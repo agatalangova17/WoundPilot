@@ -18,6 +18,14 @@ struct HomeView: View {
                         .cornerRadius(10)
                 }
 
+                NavigationLink(destination: WoundListView()) {
+                    Text("🧾 View My Wounds")
+                        .padding()
+                        .background(Color.green)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                }
+
                 Button("Logout") {
                     do {
                         try Auth.auth().signOut()
