@@ -11,6 +11,13 @@
 - Wound images stored in Firebase Storage
 - Wound metadata saved to Firestore with timestamp and user ID
 - GitHub repository initialized
+- Added Wound History View Integration
+- Modified: `HomeView.swift`  
+  - Added a new `NavigationLink` button: **"🧾 View My Wounds"**
+  - This button routes the user to the upcoming `WoundListView`, which will display all previously uploaded wound photos.
+- Purpose:  
+  - Allow the doctor to view a list of their uploaded wounds for tracking and review.
+  - First step toward building a full patient wound history system.
 
 ---
 
