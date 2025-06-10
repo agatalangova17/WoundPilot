@@ -6,39 +6,66 @@ struct HomeView: View {
 
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                Text("Welcome to WoundPilot 👨‍⚕️")
-                    .font(.title)
+            VStack(spacing: 40) {
+                // App Title
+                VStack(spacing: 8) {
+                    Text("WoundPilot")
+                        .font(.system(size: 32, weight: .semibold))
+                        .foregroundColor(.primary)
 
-                NavigationLink(destination: CaptureWoundView()) {
-                    Text("📸 Capture New Wound")
+                    Text("Your AI assistant for wound care.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+
+                // Navigation Buttons
+                VStack(spacing: 16) {
+                    NavigationLink(destination: CaptureWoundView()) {
+                        HStack {
+                            Image(systemName: "camera")
+                            Text("Capture Wound")
+                        }
+                        .frame(maxWidth: .infinity)
                         .padding()
                         .background(Color.blue)
                         .foregroundColor(.white)
-                        .cornerRadius(10)
-                }
+                        .cornerRadius(12)
+                    }
 
-                NavigationLink(destination: WoundListView()) {
-                    Text("🧾 View My Wounds")
+                    NavigationLink(destination: WoundListView()) {
+                        HStack {
+                            Image(systemName: "list.bullet.rectangle")
+                            Text("View Wound History")
+                        }
+                        .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.green)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
+                        .background(Color(.systemGray6))
+                        .foregroundColor(.primary)
+                        .cornerRadius(12)
+                    }
                 }
+                .padding(.horizontal)
 
-                Button("Logout") {
+                // Logout
+                Button(action: {
                     do {
                         try Auth.auth().signOut()
                         isUserLoggedIn = false
                     } catch {
                         print("Logout failed: \(error)")
                     }
+                }) {
+                    Text("Log Out")
+                        .foregroundColor(.red)
+                        .padding(.top, 20)
                 }
-                .padding()
-                .foregroundColor(.red)
+
+                Spacer()
             }
             .padding()
             .navigationTitle("Home")
+            .navigationBarTitleDisplayMode(.inline)
+            .background(Color(.systemBackground))
         }
     }
 }
