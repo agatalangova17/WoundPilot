@@ -1,24 +1,16 @@
-//
-//  ContentView.swift
-//  WoundPilot
-//
-//  Created by Agata Langova on 09/06/2025.
-//
-
 import SwiftUI
+import FirebaseAuth
 
 struct ContentView: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
-    }
-}
+    @State private var isUserLoggedIn = Auth.auth().currentUser != nil
 
-#Preview {
-    ContentView()
+    var body: some View {
+        NavigationView {
+            if isUserLoggedIn {
+                HomeView(isUserLoggedIn: $isUserLoggedIn)
+            } else {
+                LoginView(isUserLoggedIn: $isUserLoggedIn)
+            }
+        }
+    }
 }
