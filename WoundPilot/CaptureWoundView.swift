@@ -8,9 +8,12 @@ struct CaptureWoundView: View {
     @State private var isPickerPresented = false
     @State private var isUploading = false
     @State private var uploadMessage = ""
+    @State private var showLocationPicker = false
+    @State private var selectedLocation: String?
 
     var body: some View {
-        VStack {
+        VStack(spacing: 16) {
+            // Image Preview
             if let image = image {
                 Image(uiImage: image)
                     .resizable()
@@ -22,19 +25,42 @@ struct CaptureWoundView: View {
                     .foregroundColor(.gray)
             }
 
+            // Capture Button
             Button("Capture Wound Photo") {
                 isPickerPresented = true
             }
-            .padding()
             .buttonStyle(.borderedProminent)
+            
+#if targetEnvironment(simulator)
+Button("Use Dummy Wound Image") {
+    image = UIImage(named: "dummy_wound")
+}
+.buttonStyle(.bordered)
+.padding(.bottom, 4)
+#endif
 
+            // Location Picker Button
+            Button("Select Wound Location") {
+                showLocationPicker = true
+            }
+            .disabled(image == nil)
+            .buttonStyle(.bordered)
+
+            // Show selected location
+            if let location = selectedLocation {
+                Text("Selected Location: \(location.replacingOccurrences(of: "_", with: " ").capitalized)")
+                    .font(.footnote)
+                    .foregroundColor(.blue)
+            }
+
+            // Upload Button
             Button("Upload to Firebase") {
                 uploadWound()
             }
-            .disabled(image == nil || isUploading)
-            .padding()
+            .disabled(image == nil || isUploading || selectedLocation == nil)
             .buttonStyle(.bordered)
 
+            // Upload Progress & Result
             if isUploading {
                 ProgressView("Uploading...")
             }
@@ -44,14 +70,20 @@ struct CaptureWoundView: View {
                     .font(.footnote)
                     .foregroundColor(.green)
             }
-        }
-        .sheet(isPresented: $isPickerPresented) {
-            ImagePicker(image: $image)
+
+            Spacer()
         }
         .padding()
         .navigationTitle("Capture Wound")
+        .sheet(isPresented: $isPickerPresented) {
+            ImagePicker(image: $image)
+        }
+        .sheet(isPresented: $showLocationPicker) {
+            WoundLocationPickerView(selectedRegion: $selectedLocation)
+        }
     }
 
+    // MARK: - Upload Image + Save Metadata
     func uploadWound() {
         guard let image = image,
               let imageData = image.jpegData(compressionQuality: 0.8),
@@ -79,7 +111,8 @@ struct CaptureWoundView: View {
                 if let url = url {
                     saveWoundMetadata(imageURL: url.absoluteString, userId: user.uid)
                     uploadMessage = "Upload successful!"
-                    self.image = nil // Reset after success
+                    self.image = nil
+                    self.selectedLocation = nil
                 } else {
                     uploadMessage = "Failed to get download URL."
                 }
@@ -89,10 +122,16 @@ struct CaptureWoundView: View {
 
     func saveWoundMetadata(imageURL: String, userId: String) {
         let db = Firestore.firestore()
-        db.collection("wounds").addDocument(data: [
+        var data: [String: Any] = [
             "imageURL": imageURL,
             "userId": userId,
             "timestamp": Timestamp(date: Date())
-        ])
+        ]
+
+        if let location = selectedLocation {
+            data["location"] = location
+        }
+
+        db.collection("wounds").addDocument(data: data)
     }
 }
