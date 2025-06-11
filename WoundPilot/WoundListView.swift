@@ -7,6 +7,7 @@ struct Wound: Identifiable {
     var id: String
     var imageURL: String
     var timestamp: Date
+    var location: String?
 }
 
 struct WoundListView: View {
@@ -35,6 +36,12 @@ struct WoundListView: View {
                             }
 
                             VStack(alignment: .leading) {
+                                if let location = wound.location {
+                                    Text(location.replacingOccurrences(of: "_", with: " ").capitalized)
+                                        .font(.subheadline)
+                                        .foregroundColor(.blue)
+                                }
+
                                 Text("Uploaded:")
                                 Text(wound.timestamp.formatted(date: .abbreviated, time: .shortened))
                                     .font(.caption)
@@ -71,7 +78,15 @@ struct WoundListView: View {
                               let timestamp = data["timestamp"] as? Timestamp else {
                             return nil
                         }
-                        return Wound(id: doc.documentID, imageURL: url, timestamp: timestamp.dateValue())
+
+                        let location = data["location"] as? String
+
+                        return Wound(
+                            id: doc.documentID,
+                            imageURL: url,
+                            timestamp: timestamp.dateValue(),
+                            location: location
+                        )
                     }
                 }
                 isLoading = false
