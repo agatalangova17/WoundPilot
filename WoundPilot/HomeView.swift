@@ -1,17 +1,19 @@
 import SwiftUI
 import FirebaseAuth
+import FirebaseFirestore
 
 struct HomeView: View {
     @Binding var isUserLoggedIn: Bool
     @State private var showAddPatient = false
     @State private var showPatientList = false
+    @State private var userName: String = ""
 
     var body: some View {
         NavigationView {
             VStack(spacing: 15) {
                 // Welcome Message
                 VStack(spacing: 8) {
-                    Text("Welcome to WoundPilot")
+                    Text("Hi \(userName.split(separator: " ").first.map(String.init) ?? "there")")
                         .font(.largeTitle)
                         .fontWeight(.bold)
                     Text("Start by adding a patient or view your existing patients.")
@@ -76,8 +78,23 @@ struct HomeView: View {
 
             }
             .padding()
-            
+            .onAppear {
+                fetchUserName()
+            }
+
         }
         .navigationViewStyle(StackNavigationViewStyle())
+    }
+
+    // 🔧 Moved inside the View so it can access @State
+    func fetchUserName() {
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+
+        let db = Firestore.firestore()
+        db.collection("users").document(userId).getDocument { document, error in
+            if let document = document, document.exists {
+                userName = document.get("name") as? String ?? ""
+            }
+        }
     }
 }

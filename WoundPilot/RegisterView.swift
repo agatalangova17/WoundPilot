@@ -11,6 +11,7 @@ struct RegisterView: View {
     @State private var agreedToTerms = false
     @State private var showTerms = false
     @State private var showPrivacy = false
+    @State private var name = ""
     
     var body: some View {
         NavigationStack {
@@ -20,6 +21,17 @@ struct RegisterView: View {
                     .font(.largeTitle)
                     .fontWeight(.bold)
                 
+                
+                // Name Input
+                TextField("Full Name", text: $name)
+                    .autocapitalization(.words)
+                    .disableAutocorrection(true)
+                    .padding()
+                    .background(Color.gray.opacity(0.1))
+                    .cornerRadius(8)
+                
+                
+            
                 // Email Input
                 TextField("Email", text: $email)
                     .keyboardType(.emailAddress)
@@ -103,6 +115,10 @@ struct RegisterView: View {
     
     // MARK: - Register User with Firebase
     private func registerUser() {
+        guard !name.isEmpty else {
+            errorMessage = "Full name is required."
+            return
+        }
         guard !email.isEmpty, !password.isEmpty else {
             errorMessage = "Email and password are required."
             return
@@ -126,6 +142,7 @@ struct RegisterView: View {
                 let db = Firestore.firestore()
                 db.collection("users").document(user.uid).setData([
                     "email": email,
+                    "name": name,
                     "agreedToTerms": true,
                     "termsVersion": "1.0",
                     "agreedAt": Timestamp(date: Date())
