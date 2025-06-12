@@ -3,50 +3,64 @@ import FirebaseAuth
 
 struct HomeView: View {
     @Binding var isUserLoggedIn: Bool
+    @State private var showAddPatient = false
+    @State private var showPatientList = false
 
     var body: some View {
         NavigationView {
-            VStack(spacing: 40) {
-                // App Title
+            VStack(spacing: 15) {
+                // Welcome Message
                 VStack(spacing: 8) {
-                    Text("WoundPilot")
-                        .font(.system(size: 32, weight: .semibold))
-                        .foregroundColor(.primary)
-
-                    Text("Your AI assistant for wound care.")
+                    Text("Welcome to WoundPilot")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                    Text("Start by adding a patient or view your existing patients.")
                         .font(.subheadline)
+                        .multilineTextAlignment(.center)
                         .foregroundColor(.secondary)
                 }
 
-                // Navigation Buttons
-                VStack(spacing: 16) {
-                    NavigationLink(destination: CaptureWoundView()) {
-                        HStack {
-                            Image(systemName: "camera")
-                            Text("Capture Wound")
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
-                    }
-
-                    NavigationLink(destination: WoundListView()) {
-                        HStack {
-                            Image(systemName: "list.bullet.rectangle")
-                            Text("View Wound History")
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color(.systemGray6))
-                        .foregroundColor(.primary)
-                        .cornerRadius(12)
-                    }
+                // Add New Patient
+                NavigationLink(destination: AddPatientView(), isActive: $showAddPatient) {
+                    EmptyView()
                 }
-                .padding(.horizontal)
 
-                // Logout
+                Button(action: {
+                    showAddPatient = true
+                }) {
+                    HStack {
+                        Image(systemName: "plus.circle.fill")
+                        Text("Add New Patient")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.green)
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+                }
+
+                // View Existing Patients
+                NavigationLink(destination: PatientListView(), isActive: $showPatientList) {
+                    EmptyView()
+                }
+
+                Button(action: {
+                    showPatientList = true
+                }) {
+                    HStack {
+                        Image(systemName: "person.3.fill")
+                        Text("View Existing Patients")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .foregroundColor(.primary)
+                    .cornerRadius(12)
+                }
+
+                Spacer()
+
+                // Log Out Button
                 Button(action: {
                     do {
                         try Auth.auth().signOut()
@@ -57,15 +71,13 @@ struct HomeView: View {
                 }) {
                     Text("Log Out")
                         .foregroundColor(.red)
-                        .padding(.top, 20)
+                        .padding(.top, 10)
                 }
 
-                Spacer()
             }
             .padding()
-            .navigationTitle("Home")
-            .navigationBarTitleDisplayMode(.inline)
-            .background(Color(.systemBackground))
+            
         }
+        .navigationViewStyle(StackNavigationViewStyle())
     }
 }

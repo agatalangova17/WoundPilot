@@ -8,9 +8,12 @@ struct Wound: Identifiable {
     var imageURL: String
     var timestamp: Date
     var location: String?
+    var patientId: String
+    var userId: String
 }
 
 struct WoundListView: View {
+    let patient: Patient
     @State private var wounds: [Wound] = []
     @State private var isLoading = true
 
@@ -62,7 +65,7 @@ struct WoundListView: View {
         let db = Firestore.firestore()
 
         db.collection("wounds")
-            .whereField("userId", isEqualTo: userId)
+            .whereField("patientId", isEqualTo: patient.id)
             .order(by: "timestamp", descending: true)
             .getDocuments { snapshot, error in
                 if let error = error {
@@ -75,7 +78,9 @@ struct WoundListView: View {
                     self.wounds = documents.compactMap { doc in
                         let data = doc.data()
                         guard let url = data["imageURL"] as? String,
-                              let timestamp = data["timestamp"] as? Timestamp else {
+                              let timestamp = data["timestamp"] as? Timestamp,
+                              let patientId = data["patientId"] as? String,
+                              let userId = data["userId"] as? String else {
                             return nil
                         }
 
@@ -85,7 +90,9 @@ struct WoundListView: View {
                             id: doc.documentID,
                             imageURL: url,
                             timestamp: timestamp.dateValue(),
-                            location: location
+                            location: location,
+                            patientId: patientId,
+                            userId: userId
                         )
                     }
                 }

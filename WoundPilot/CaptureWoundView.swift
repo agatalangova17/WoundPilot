@@ -4,6 +4,7 @@ import FirebaseFirestore
 import FirebaseAuth
 
 struct CaptureWoundView: View {
+    let patient: Patient
     @State private var image: UIImage?
     @State private var isPickerPresented = false
     @State private var isUploading = false
@@ -54,7 +55,7 @@ Button("Use Dummy Wound Image") {
             }
 
             // Upload Button
-            Button("Upload to Firebase") {
+            Button("Save Wound Entry") {
                 uploadWound()
             }
             .disabled(image == nil || isUploading || selectedLocation == nil)
@@ -109,7 +110,7 @@ Button("Use Dummy Wound Image") {
             imageRef.downloadURL { url, error in
                 isUploading = false
                 if let url = url {
-                    saveWoundMetadata(imageURL: url.absoluteString, userId: user.uid)
+                    saveWoundMetadata(imageURL: url.absoluteString, userId: user.uid, patientId: patient.id)
                     uploadMessage = "Upload successful!"
                     self.image = nil
                     self.selectedLocation = nil
@@ -120,11 +121,14 @@ Button("Use Dummy Wound Image") {
         }
     }
 
-    func saveWoundMetadata(imageURL: String, userId: String) {
+    func saveWoundMetadata(imageURL: String, userId: String, patientId: String) {
+        print("Saving wound with patientId: \(patientId)")  // 👈 Add this
+
         let db = Firestore.firestore()
         var data: [String: Any] = [
             "imageURL": imageURL,
             "userId": userId,
+            "patientId": patientId,
             "timestamp": Timestamp(date: Date())
         ]
 
