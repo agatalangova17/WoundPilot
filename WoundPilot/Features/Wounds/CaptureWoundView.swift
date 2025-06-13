@@ -5,10 +5,13 @@ import FirebaseAuth
 
 struct CaptureWoundView: View {
     let patient: Patient
-    let image: UIImage?  // image is passed in
+    let image: UIImage?
+    
     @State private var selectedLocation: String?
+    @State private var woundGroupName: String = ""
     @State private var isUploading = false
     @State private var uploadMessage = ""
+    @State private var showLocationPicker = false
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
@@ -33,9 +36,14 @@ struct CaptureWoundView: View {
                         .foregroundColor(.blue)
                 }
 
+                TextField("Wound Group Name", text: $woundGroupName)
+                    .textFieldStyle(.roundedBorder)
+                    .padding(.top)
+
                 Button("Save Wound Entry") {
                     uploadWound()
                 }
+                .disabled(woundGroupName.isEmpty || selectedLocation == nil)
                 .buttonStyle(.borderedProminent)
 
                 Button("Retake Photo") {
@@ -60,8 +68,6 @@ struct CaptureWoundView: View {
             WoundLocationPickerView(selectedRegion: $selectedLocation)
         }
     }
-
-    @State private var showLocationPicker = false
 
     func uploadWound() {
         guard let image = image,
@@ -88,10 +94,13 @@ struct CaptureWoundView: View {
             imageRef.downloadURL { url, error in
                 isUploading = false
                 if let url = url {
+                    let woundGroupId = UUID().uuidString
                     saveWoundMetadata(
                         imageURL: url.absoluteString,
                         userId: user.uid,
-                        patientId: patient.id
+                        patientId: patient.id,
+                        woundGroupId: woundGroupId,
+                        woundGroupName: woundGroupName
                     )
                     uploadMessage = "Wound saved successfully!"
                 } else {
@@ -101,12 +110,14 @@ struct CaptureWoundView: View {
         }
     }
 
-    func saveWoundMetadata(imageURL: String, userId: String, patientId: String) {
+    func saveWoundMetadata(imageURL: String, userId: String, patientId: String, woundGroupId: String, woundGroupName: String) {
         let db = Firestore.firestore()
         var data: [String: Any] = [
             "imageURL": imageURL,
             "userId": userId,
             "patientId": patientId,
+            "woundGroupId": woundGroupId,
+            "woundGroupName": woundGroupName,
             "timestamp": Timestamp(date: Date())
         ]
 

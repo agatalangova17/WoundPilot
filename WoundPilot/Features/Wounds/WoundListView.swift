@@ -10,6 +10,8 @@ struct Wound: Identifiable {
     var location: String?
     var patientId: String
     var userId: String
+    var woundGroupId: String
+    var woundGroupName: String?
 }
 
 struct WoundListView: View {
@@ -26,32 +28,46 @@ struct WoundListView: View {
                     Text("No wounds uploaded yet.")
                         .foregroundColor(.gray)
                 } else {
-                    List(wounds) { wound in
-                        HStack {
-                            AsyncImage(url: URL(string: wound.imageURL)) { image in
-                                image.resizable()
-                                     .aspectRatio(contentMode: .fill)
-                                     .frame(width: 60, height: 60)
-                                     .clipped()
-                                     .cornerRadius(8)
-                            } placeholder: {
-                                ProgressView()
-                            }
+                    // Group by woundGroupId
+                    let grouped = Dictionary(grouping: wounds, by: { $0.woundGroupId })
 
-                            VStack(alignment: .leading) {
-                                if let location = wound.location {
-                                    Text(location.replacingOccurrences(of: "_", with: " ").capitalized)
-                                        .font(.subheadline)
-                                        .foregroundColor(.blue)
+                    List {
+                        ForEach(grouped.keys.sorted(), id: \.self) { groupId in
+                            if let groupWounds = grouped[groupId],
+                               let latest = groupWounds.sorted(by: { $0.timestamp > $1.timestamp }).first {
+
+                                NavigationLink(
+                                    destination: WoundDetailView(
+                                        woundGroupId: groupId,
+                                        woundGroupName: latest.woundGroupName ?? "Unnamed Wound",
+                                        patient: patient
+                                    )
+                                ) {
+                                    HStack {
+                                        AsyncImage(url: URL(string: latest.imageURL)) { image in
+                                            image.resizable()
+                                                .aspectRatio(contentMode: .fill)
+                                                .frame(width: 60, height: 60)
+                                                .clipped()
+                                                .cornerRadius(8)
+                                        } placeholder: {
+                                            ProgressView()
+                                        }
+
+                                        VStack(alignment: .leading) {
+                                            Text(latest.woundGroupName ?? "Unnamed Wound")
+                                                .font(.headline)
+                                                .foregroundColor(.blue)
+
+                                            Text("Last update:")
+                                            Text(latest.timestamp.formatted(date: .abbreviated, time: .shortened))
+                                                .font(.caption)
+                                                .foregroundColor(.gray)
+                                        }
+                                    }
                                 }
-
-                                Text("Uploaded:")
-                                Text(wound.timestamp.formatted(date: .abbreviated, time: .shortened))
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
                             }
                         }
-                        .padding(.vertical, 6)
                     }
                 }
             }
@@ -68,9 +84,10 @@ struct WoundListView: View {
             .whereField("patientId", isEqualTo: patient.id)
             .order(by: "timestamp", descending: true)
             .getDocuments { snapshot, error in
+                isLoading = false
+
                 if let error = error {
                     print("Error fetching wounds: \(error)")
-                    isLoading = false
                     return
                 }
 
@@ -80,23 +97,23 @@ struct WoundListView: View {
                         guard let url = data["imageURL"] as? String,
                               let timestamp = data["timestamp"] as? Timestamp,
                               let patientId = data["patientId"] as? String,
-                              let userId = data["userId"] as? String else {
+                              let userId = data["userId"] as? String,
+                              let groupId = data["woundGroupId"] as? String else {
                             return nil
                         }
-
-                        let location = data["location"] as? String
 
                         return Wound(
                             id: doc.documentID,
                             imageURL: url,
                             timestamp: timestamp.dateValue(),
-                            location: location,
+                            location: data["location"] as? String,
                             patientId: patientId,
-                            userId: userId
+                            userId: userId,
+                            woundGroupId: groupId,
+                            woundGroupName: data["woundGroupName"] as? String
                         )
                     }
                 }
-                isLoading = false
             }
     }
 }
