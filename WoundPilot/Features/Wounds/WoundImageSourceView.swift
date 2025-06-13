@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct WoundImageSourceView: View {
-    let patient: Patient
+    let selectedPatient: Patient?
 
     @State private var showImagePicker = false
     @State private var pickerSource: UIImagePickerController.SourceType = .camera
@@ -58,27 +58,46 @@ struct WoundImageSourceView: View {
 
         // Step 2: Show wound group picker
         .sheet(isPresented: $showGroupPicker) {
-            WoundGroupPickerView(
-                patientId: patient.id,
-                selectedGroupId: $selectedGroupId,
-                selectedGroupName: $selectedGroupName
-            )
-            .onDisappear {
-                if selectedGroupId != nil && selectedGroupName != nil {
-                    showCaptureScreen = true
+            if let patient = selectedPatient {
+                WoundGroupPickerView(
+                    patientId: patient.id,
+                    selectedGroupId: $selectedGroupId,
+                    selectedGroupName: $selectedGroupName
+                )
+                .onDisappear {
+                    if selectedGroupId != nil && selectedGroupName != nil {
+                        showCaptureScreen = true
+                    }
                 }
+            } else {
+                // Fast capture mode (no patient)
+                VStack(spacing: 16) {
+                    Text("No patient selected.")
+                        .foregroundColor(.gray)
+
+                    Button("Continue Without Group") {
+                        selectedGroupId = UUID().uuidString
+                        selectedGroupName = "Fast Capture \(Date().formatted(date: .abbreviated, time: .shortened))"
+                        showGroupPicker = false
+                        showCaptureScreen = true
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .padding()
             }
         }
 
         // Step 3: Navigate to CaptureWoundView
         .background(
             Group {
-                if let image = selectedImage,
+                if showCaptureScreen,
+                   let image = selectedImage,
                    let groupId = selectedGroupId,
                    let groupName = selectedGroupName {
+
                     NavigationLink(
                         destination: CaptureWoundView(
-                            patient: patient,
+                            patient: selectedPatient,
                             image: image,
                             woundGroupId: groupId,
                             woundGroupName: groupName

@@ -22,6 +22,22 @@ struct HomeView: View {
                         .foregroundColor(.secondary)
                 }
 
+                NavigationLink(
+                    destination: WoundImageSourceView(
+                        selectedPatient: nil as Patient? // Optional patient
+                    )
+                ) {
+                    HStack {
+                        Image(systemName: "bolt.fill")
+                        Text("Quick Analysis")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.orange.opacity(0.2))
+                    .foregroundColor(.orange)
+                    .cornerRadius(12)
+                }
+                
                 // Add New Patient
                 NavigationLink(destination: AddPatientView(), isActive: $showAddPatient) {
                     EmptyView()

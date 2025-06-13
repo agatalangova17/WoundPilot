@@ -6,7 +6,7 @@ import Charts
 struct WoundDetailView: View {
     let woundGroupId: String
     let woundGroupName: String
-    let patient: Patient
+    let patient: Patient?
 
     @State private var wounds: [Wound] = []
     @State private var isLoading = true

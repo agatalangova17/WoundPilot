@@ -15,7 +15,7 @@ struct Wound: Identifiable {
 }
 
 struct WoundListView: View {
-    let patient: Patient
+    let patient: Patient?  // ✅ Now optional
     @State private var wounds: [Wound] = []
     @State private var isLoading = true
 
@@ -28,7 +28,6 @@ struct WoundListView: View {
                     Text("No wounds uploaded yet.")
                         .foregroundColor(.gray)
                 } else {
-                    // Group by woundGroupId
                     let grouped = Dictionary(grouping: wounds, by: { $0.woundGroupId })
 
                     List {
@@ -40,7 +39,7 @@ struct WoundListView: View {
                                     destination: WoundDetailView(
                                         woundGroupId: groupId,
                                         woundGroupName: latest.woundGroupName ?? "Unnamed Wound",
-                                        patient: patient
+                                        patient: patient  // ✅ now optional
                                     )
                                 ) {
                                     HStack {
@@ -78,42 +77,47 @@ struct WoundListView: View {
 
     func loadWounds() {
         guard let userId = Auth.auth().currentUser?.uid else { return }
+
         let db = Firestore.firestore()
+        var query: Query = db.collection("wounds").whereField("userId", isEqualTo: userId)
 
-        db.collection("wounds")
-            .whereField("patientId", isEqualTo: patient.id)
-            .order(by: "timestamp", descending: true)
-            .getDocuments { snapshot, error in
-                isLoading = false
+        if let patient = patient {
+            query = query.whereField("patientId", isEqualTo: patient.id)  // ✅ Only filter by patient if provided
+        }
 
-                if let error = error {
-                    print("Error fetching wounds: \(error)")
-                    return
-                }
+        query.order(by: "timestamp", descending: true).getDocuments { snapshot, error in
+            isLoading = false
 
-                if let documents = snapshot?.documents {
-                    self.wounds = documents.compactMap { doc in
-                        let data = doc.data()
-                        guard let url = data["imageURL"] as? String,
-                              let timestamp = data["timestamp"] as? Timestamp,
-                              let patientId = data["patientId"] as? String,
-                              let userId = data["userId"] as? String,
-                              let groupId = data["woundGroupId"] as? String else {
-                            return nil
-                        }
+            if let error = error {
+                print("Error fetching wounds: \(error)")
+                return
+            }
 
-                        return Wound(
-                            id: doc.documentID,
-                            imageURL: url,
-                            timestamp: timestamp.dateValue(),
-                            location: data["location"] as? String,
-                            patientId: patientId,
-                            userId: userId,
-                            woundGroupId: groupId,
-                            woundGroupName: data["woundGroupName"] as? String
-                        )
+            if let documents = snapshot?.documents {
+                self.wounds = documents.compactMap { doc in
+                    let data = doc.data()
+                    guard let url = data["imageURL"] as? String,
+                          let timestamp = data["timestamp"] as? Timestamp,
+                          let userId = data["userId"] as? String,
+                          let groupId = data["woundGroupId"] as? String else {
+                        return nil
                     }
+
+                    // patientId is optional now
+                    let patientId = data["patientId"] as? String ?? ""
+
+                    return Wound(
+                        id: doc.documentID,
+                        imageURL: url,
+                        timestamp: timestamp.dateValue(),
+                        location: data["location"] as? String,
+                        patientId: patientId,
+                        userId: userId,
+                        woundGroupId: groupId,
+                        woundGroupName: data["woundGroupName"] as? String
+                    )
                 }
             }
+        }
     }
 }

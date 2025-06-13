@@ -1,10 +1,10 @@
 import SwiftUI
-import FirebaseStorage
 import FirebaseFirestore
+import FirebaseStorage
 import FirebaseAuth
 
 struct CaptureWoundView: View {
-    let patient: Patient
+    let patient: Patient?  // Optional patient
     let image: UIImage?
     let woundGroupId: String
     let woundGroupName: String
@@ -26,6 +26,22 @@ struct CaptureWoundView: View {
                         .cornerRadius(10)
                 }
 
+                // Patient info (optional)
+                if let patient = patient {
+                    Text("Patient: \(patient.name)")
+                        .font(.footnote)
+                        .foregroundColor(.gray)
+                } else {
+                    Text("⚠️ Fast Capture (Not saved)")
+                        .font(.footnote)
+                        .foregroundColor(.orange)
+                }
+
+                // Wound group
+                Text("Group: \(woundGroupName)")
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+
                 Button("Select Wound Location") {
                     showLocationPicker = true
                 }
@@ -36,10 +52,6 @@ struct CaptureWoundView: View {
                         .font(.footnote)
                         .foregroundColor(.blue)
                 }
-
-                Text("Group: \(woundGroupName)")
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
 
                 Button("Save Wound Entry") {
                     uploadWound()
@@ -95,14 +107,20 @@ struct CaptureWoundView: View {
             imageRef.downloadURL { url, error in
                 isUploading = false
                 if let url = url {
-                    saveWoundMetadata(
-                        imageURL: url.absoluteString,
-                        userId: user.uid,
-                        patientId: patient.id,
-                        woundGroupId: woundGroupId,
-                        woundGroupName: woundGroupName
-                    )
-                    uploadMessage = "Wound saved successfully!"
+                    if let patient = patient {
+                        // ✅ Save to Firestore ONLY if a patient is assigned
+                        saveWoundMetadata(
+                            imageURL: url.absoluteString,
+                            userId: user.uid,
+                            patientId: patient.id,
+                            woundGroupId: woundGroupId,
+                            woundGroupName: woundGroupName
+                        )
+                        uploadMessage = "Wound saved successfully!"
+                    } else {
+                        // 🟡 Fast Capture: Do not save to DB
+                        uploadMessage = "Fast capture complete (not saved)."
+                    }
                 } else {
                     uploadMessage = "Failed to get download URL."
                 }
@@ -110,16 +128,19 @@ struct CaptureWoundView: View {
         }
     }
 
-    func saveWoundMetadata(imageURL: String, userId: String, patientId: String, woundGroupId: String, woundGroupName: String) {
+    func saveWoundMetadata(imageURL: String, userId: String, patientId: String?, woundGroupId: String, woundGroupName: String) {
         let db = Firestore.firestore()
         var data: [String: Any] = [
             "imageURL": imageURL,
             "userId": userId,
-            "patientId": patientId,
             "woundGroupId": woundGroupId,
             "woundGroupName": woundGroupName,
             "timestamp": Timestamp(date: Date())
         ]
+
+        if let patientId = patientId {
+            data["patientId"] = patientId
+        }
 
         if let location = selectedLocation {
             data["location"] = location
