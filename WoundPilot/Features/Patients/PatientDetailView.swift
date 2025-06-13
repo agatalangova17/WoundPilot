@@ -16,7 +16,9 @@ struct PatientDetailView: View {
             }
 
             // Action Buttons
-            NavigationLink(destination: CaptureWoundView(patient: patient)) {
+            NavigationLink(destination:
+                WoundImageSourceView(patient: patient)
+            ) {
                 HStack {
                     Image(systemName: "camera.fill")
                     Text("New Wound Entry")

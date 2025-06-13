@@ -5,101 +5,69 @@ import FirebaseAuth
 
 struct CaptureWoundView: View {
     let patient: Patient
-    @State private var image: UIImage?
-    @State private var isPickerPresented = false
+    let image: UIImage?  // image is passed in
+    @State private var selectedLocation: String?
     @State private var isUploading = false
     @State private var uploadMessage = ""
-    @State private var showLocationPicker = false
-    @State private var selectedLocation: String?
-    @State private var pickerSource: UIImagePickerController.SourceType = .camera
+    @Environment(\.dismiss) var dismiss
 
     var body: some View {
-        VStack(spacing: 16) {
-            // Image Preview
-            if let image = image {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 250)
-                    .cornerRadius(10)
-            } else {
-                Text("No image selected")
-                    .foregroundColor(.gray)
-            }
+        ScrollView {
+            VStack(spacing: 16) {
+                if let image = image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 250)
+                        .cornerRadius(10)
+                }
 
-            // Capture Button
-            HStack(spacing: 12) {
-                Button("Take Photo") {
-                    pickerSource = .camera
-                    isPickerPresented = true
+                Button("Select Wound Location") {
+                    showLocationPicker = true
+                }
+                .buttonStyle(.bordered)
+
+                if let location = selectedLocation {
+                    Text("Location: \(location.replacingOccurrences(of: "_", with: " ").capitalized)")
+                        .font(.footnote)
+                        .foregroundColor(.blue)
+                }
+
+                Button("Save Wound Entry") {
+                    uploadWound()
                 }
                 .buttonStyle(.borderedProminent)
 
-                Button("Choose Photo") {
-                    pickerSource = .photoLibrary
-                    isPickerPresented = true
+                Button("Retake Photo") {
+                    dismiss()
                 }
-                .buttonStyle(.bordered)
-            }
-            
-#if targetEnvironment(simulator)
-Button("Use Dummy Wound Image") {
-    image = UIImage(named: "dummy_wound")
-}
-.buttonStyle(.bordered)
-.padding(.bottom, 4)
-#endif
+                .foregroundColor(.red)
 
-            // Location Picker Button
-            Button("Select Wound Location") {
-                showLocationPicker = true
-            }
-            .disabled(image == nil)
-            .buttonStyle(.bordered)
+                if isUploading {
+                    ProgressView("Uploading...")
+                }
 
-            // Show selected location
-            if let location = selectedLocation {
-                Text("Selected Location: \(location.replacingOccurrences(of: "_", with: " ").capitalized)")
-                    .font(.footnote)
-                    .foregroundColor(.blue)
+                if !uploadMessage.isEmpty {
+                    Text(uploadMessage)
+                        .font(.footnote)
+                        .foregroundColor(.green)
+                }
             }
-
-            // Upload Button
-            Button("Save Wound Entry") {
-                uploadWound()
-            }
-            .disabled(image == nil || isUploading || selectedLocation == nil)
-            .buttonStyle(.bordered)
-
-            // Upload Progress & Result
-            if isUploading {
-                ProgressView("Uploading...")
-            }
-
-            if !uploadMessage.isEmpty {
-                Text(uploadMessage)
-                    .font(.footnote)
-                    .foregroundColor(.green)
-            }
-
-            Spacer()
+            .padding()
         }
-        .padding()
-        .navigationTitle("Capture Wound")
-        .sheet(isPresented: $isPickerPresented) {
-            ImagePicker(image: $image, sourceType: pickerSource)
-        }
+        .navigationTitle("Review & Save")
         .sheet(isPresented: $showLocationPicker) {
             WoundLocationPickerView(selectedRegion: $selectedLocation)
         }
     }
 
-    // MARK: - Upload Image + Save Metadata
+    @State private var showLocationPicker = false
+
     func uploadWound() {
         guard let image = image,
               let imageData = image.jpegData(compressionQuality: 0.8),
               let user = Auth.auth().currentUser else {
-            uploadMessage = "Image or user missing."
+            uploadMessage = "Missing image or user."
             return
         }
 
@@ -110,7 +78,7 @@ Button("Use Dummy Wound Image") {
         let filename = "wounds/\(user.uid)/\(UUID().uuidString).jpg"
         let imageRef = storageRef.child(filename)
 
-        imageRef.putData(imageData, metadata: nil) { metadata, error in
+        imageRef.putData(imageData, metadata: nil) { _, error in
             if let error = error {
                 isUploading = false
                 uploadMessage = "Upload failed: \(error.localizedDescription)"
@@ -120,10 +88,12 @@ Button("Use Dummy Wound Image") {
             imageRef.downloadURL { url, error in
                 isUploading = false
                 if let url = url {
-                    saveWoundMetadata(imageURL: url.absoluteString, userId: user.uid, patientId: patient.id)
-                    uploadMessage = "Upload successful!"
-                    self.image = nil
-                    self.selectedLocation = nil
+                    saveWoundMetadata(
+                        imageURL: url.absoluteString,
+                        userId: user.uid,
+                        patientId: patient.id
+                    )
+                    uploadMessage = "Wound saved successfully!"
                 } else {
                     uploadMessage = "Failed to get download URL."
                 }
@@ -132,8 +102,6 @@ Button("Use Dummy Wound Image") {
     }
 
     func saveWoundMetadata(imageURL: String, userId: String, patientId: String) {
-        print("Saving wound with patientId: \(patientId)")  // 👈 Add this
-
         let db = Firestore.firestore()
         var data: [String: Any] = [
             "imageURL": imageURL,
