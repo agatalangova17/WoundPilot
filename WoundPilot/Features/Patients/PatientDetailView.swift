@@ -19,7 +19,7 @@ struct PatientDetailView: View {
             NavigationLink(destination: CaptureWoundView(patient: patient)) {
                 HStack {
                     Image(systemName: "camera.fill")
-                    Text("Capture Wound")
+                    Text("New Wound Entry")
                 }
                 .frame(maxWidth: .infinity)
                 .padding()

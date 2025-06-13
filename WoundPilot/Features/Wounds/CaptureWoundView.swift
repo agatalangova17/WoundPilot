@@ -11,6 +11,7 @@ struct CaptureWoundView: View {
     @State private var uploadMessage = ""
     @State private var showLocationPicker = false
     @State private var selectedLocation: String?
+    @State private var pickerSource: UIImagePickerController.SourceType = .camera
 
     var body: some View {
         VStack(spacing: 16) {
@@ -27,10 +28,19 @@ struct CaptureWoundView: View {
             }
 
             // Capture Button
-            Button("Capture Wound Photo") {
-                isPickerPresented = true
+            HStack(spacing: 12) {
+                Button("Take Photo") {
+                    pickerSource = .camera
+                    isPickerPresented = true
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button("Choose Photo") {
+                    pickerSource = .photoLibrary
+                    isPickerPresented = true
+                }
+                .buttonStyle(.bordered)
             }
-            .buttonStyle(.borderedProminent)
             
 #if targetEnvironment(simulator)
 Button("Use Dummy Wound Image") {
@@ -77,7 +87,7 @@ Button("Use Dummy Wound Image") {
         .padding()
         .navigationTitle("Capture Wound")
         .sheet(isPresented: $isPickerPresented) {
-            ImagePicker(image: $image)
+            ImagePicker(image: $image, sourceType: pickerSource)
         }
         .sheet(isPresented: $showLocationPicker) {
             WoundLocationPickerView(selectedRegion: $selectedLocation)
