@@ -6,9 +6,10 @@ import FirebaseAuth
 struct CaptureWoundView: View {
     let patient: Patient
     let image: UIImage?
-    
+    let woundGroupId: String
+    let woundGroupName: String
+
     @State private var selectedLocation: String?
-    @State private var woundGroupName: String = ""
     @State private var isUploading = false
     @State private var uploadMessage = ""
     @State private var showLocationPicker = false
@@ -36,14 +37,14 @@ struct CaptureWoundView: View {
                         .foregroundColor(.blue)
                 }
 
-                TextField("Wound Group Name", text: $woundGroupName)
-                    .textFieldStyle(.roundedBorder)
-                    .padding(.top)
+                Text("Group: \(woundGroupName)")
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
 
                 Button("Save Wound Entry") {
                     uploadWound()
                 }
-                .disabled(woundGroupName.isEmpty || selectedLocation == nil)
+                .disabled(selectedLocation == nil)
                 .buttonStyle(.borderedProminent)
 
                 Button("Retake Photo") {
@@ -94,7 +95,6 @@ struct CaptureWoundView: View {
             imageRef.downloadURL { url, error in
                 isUploading = false
                 if let url = url {
-                    let woundGroupId = UUID().uuidString
                     saveWoundMetadata(
                         imageURL: url.absoluteString,
                         userId: user.uid,
