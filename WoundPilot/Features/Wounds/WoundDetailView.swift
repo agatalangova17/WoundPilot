@@ -1,5 +1,6 @@
 import SwiftUI
 import FirebaseFirestore
+import FirebaseStorage
 import Charts
 
 struct WoundDetailView: View {
@@ -9,6 +10,9 @@ struct WoundDetailView: View {
 
     @State private var wounds: [Wound] = []
     @State private var isLoading = true
+    @State private var showDeleteConfirmation = false
+    @State private var woundToDelete: Wound?
+    @State private var showGroupDeleteConfirmation = false
 
     var body: some View {
         ScrollView {
@@ -25,7 +29,7 @@ struct WoundDetailView: View {
                         ForEach(wounds.indices, id: \.self) { index in
                             LineMark(
                                 x: .value("Time", wounds[index].timestamp),
-                                y: .value("Progress", index + 1) // fake score for now
+                                y: .value("Progress", index + 1) // Placeholder score
                             )
                         }
                     }
@@ -54,6 +58,14 @@ struct WoundDetailView: View {
                             Text(wound.timestamp.formatted(date: .abbreviated, time: .shortened))
                                 .font(.caption)
                                 .foregroundColor(.gray)
+
+                            Button(role: .destructive) {
+                                woundToDelete = wound
+                                showDeleteConfirmation = true
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                            .font(.caption)
                         }
                     }
                 }
@@ -61,7 +73,30 @@ struct WoundDetailView: View {
             .padding()
         }
         .navigationTitle("Wound Details")
+        .navigationBarItems(trailing:
+            Button(role: .destructive) {
+                showGroupDeleteConfirmation = true
+            } label: {
+                Label("Delete Group", systemImage: "trash")
+            }
+        )
         .onAppear(perform: loadWoundGroup)
+        .alert("Delete this wound photo?", isPresented: $showDeleteConfirmation, presenting: woundToDelete) { wound in
+            Button("Delete", role: .destructive) {
+                deleteWound(wound)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { _ in
+            Text("This cannot be undone.")
+        }
+        .alert("Delete ALL photos in this group?", isPresented: $showGroupDeleteConfirmation) {
+            Button("Delete All", role: .destructive) {
+                deleteEntireWoundGroup()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will permanently delete all wound entries in '\(woundGroupName)'.")
+        }
     }
 
     func loadWoundGroup() {
@@ -101,5 +136,50 @@ struct WoundDetailView: View {
                     }
                 }
             }
+    }
+
+    func deleteWound(_ wound: Wound) {
+        let db = Firestore.firestore()
+        let storage = Storage.storage()
+
+        db.collection("wounds").document(wound.id).delete { error in
+            if let error = error {
+                print("Error deleting wound document: \(error)")
+                return
+            }
+
+            let storageRef = storage.reference(forURL: wound.imageURL)
+            storageRef.delete { error in
+                if let error = error {
+                    print("Error deleting image from storage: \(error)")
+                } else {
+                    print("Image deleted from storage.")
+                }
+            }
+
+            wounds.removeAll { $0.id == wound.id }
+        }
+    }
+
+    func deleteEntireWoundGroup() {
+        let db = Firestore.firestore()
+        let storage = Storage.storage()
+
+        for wound in wounds {
+            db.collection("wounds").document(wound.id).delete { error in
+                if let error = error {
+                    print("Error deleting document: \(error)")
+                }
+            }
+
+            let ref = storage.reference(forURL: wound.imageURL)
+            ref.delete { error in
+                if let error = error {
+                    print("Error deleting image: \(error)")
+                }
+            }
+        }
+
+        wounds.removeAll()
     }
 }
