@@ -3,7 +3,7 @@ import SwiftUI
 struct SingleWoundDetailView: View {
     let wound: Wound
 
-    @State private var navigateToQuestionnaire = false
+    @State private var navigateToSizeAnalysis = false
 
     var body: some View {
         VStack(spacing: 16) {
@@ -33,19 +33,16 @@ struct SingleWoundDetailView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal)
 
-            // Analyze Button
+            // Navigation to Size Analysis
             NavigationLink(
-                destination: QuestionnaireView(
-                    woundGroupId: wound.woundGroupId,
-                    patientId: wound.patientId
-                ),
-                isActive: $navigateToQuestionnaire
+                destination: SizeAnalysisView(wound: wound),
+                isActive: $navigateToSizeAnalysis
             ) {
                 EmptyView()
             }
 
             Button("Analyze Wound") {
-                navigateToQuestionnaire = true
+                navigateToSizeAnalysis = true
             }
             .frame(maxWidth: .infinity)
             .padding()

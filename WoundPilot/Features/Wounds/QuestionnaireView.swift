@@ -52,8 +52,7 @@ struct QuestionnaireView: View {
         .navigationTitle("Clinical Questionnaire")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $showNextView) {
-            // TODO: Replace with your actual size analysis view
-            Text("Next: AI Size Analysis")
+            Text("AI Analysis")
         }
     }
 
