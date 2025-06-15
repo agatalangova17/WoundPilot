@@ -4,8 +4,7 @@ import FirebaseAuth
 
 struct WoundGroupPickerView: View {
     let patientId: String
-    @Binding var selectedGroupId: String?
-    @Binding var selectedGroupName: String?
+    let onGroupSelected: (String, String) -> Void
     @Environment(\.dismiss) var dismiss
 
     @State private var existingGroups: [WoundGroup] = []
@@ -24,16 +23,13 @@ struct WoundGroupPickerView: View {
                     } else {
                         ForEach(existingGroups) { group in
                             Button(action: {
-                                selectedGroupId = group.id
-                                selectedGroupName = group.name
+                                onGroupSelected(group.id, group.name)
                                 dismiss()
                             }) {
                                 HStack {
                                     Text(group.name)
-                                    if selectedGroupId == group.id {
-                                        Spacer()
-                                        Image(systemName: "checkmark")
-                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
                                 }
                             }
                         }
@@ -44,7 +40,10 @@ struct WoundGroupPickerView: View {
                     TextField("Group Name", text: $newGroupName)
 
                     Button("Create and Select") {
-                        createNewGroup()
+                        let groupId = UUID().uuidString
+                        let groupName = newGroupName.trimmingCharacters(in: .whitespaces)
+                        onGroupSelected(groupId, groupName)
+                        dismiss()
                     }
                     .disabled(newGroupName.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
@@ -78,13 +77,4 @@ struct WoundGroupPickerView: View {
                 self.isLoading = false
             }
     }
-
-    func createNewGroup() {
-        let groupId = UUID().uuidString
-        let trimmedName = newGroupName.trimmingCharacters(in: .whitespaces)
-        selectedGroupId = groupId
-        selectedGroupName = trimmedName
-        dismiss()
-    }
 }
-

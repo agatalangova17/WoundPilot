@@ -61,14 +61,13 @@ struct WoundImageSourceView: View {
             if let patient = selectedPatient {
                 WoundGroupPickerView(
                     patientId: patient.id,
-                    selectedGroupId: $selectedGroupId,
-                    selectedGroupName: $selectedGroupName
-                )
-                .onDisappear {
-                    if selectedGroupId != nil && selectedGroupName != nil {
+                    onGroupSelected: { groupId, groupName in
+                        selectedGroupId = groupId
+                        selectedGroupName = groupName
+                        showGroupPicker = false
                         showCaptureScreen = true
                     }
-                }
+                )
             } else {
                 // Fast capture mode (no patient)
                 VStack(spacing: 16) {
@@ -89,24 +88,18 @@ struct WoundImageSourceView: View {
 
         // Step 3: Navigate to CaptureWoundView
         .background(
-            Group {
-                if showCaptureScreen,
-                   let image = selectedImage,
-                   let groupId = selectedGroupId,
-                   let groupName = selectedGroupName {
-
-                    NavigationLink(
-                        destination: CaptureWoundView(
-                            patient: selectedPatient,
-                            image: image,
-                            woundGroupId: groupId,
-                            woundGroupName: groupName
-                        ),
-                        isActive: $showCaptureScreen
-                    ) {
-                        EmptyView()
-                    }
-                }
+            NavigationLink(
+                destination: showCaptureScreen && selectedImage != nil && selectedGroupId != nil && selectedGroupName != nil ?
+                    AnyView(CaptureWoundView(
+                        patient: selectedPatient,
+                        image: selectedImage!,
+                        woundGroupId: selectedGroupId!,
+                        woundGroupName: selectedGroupName!
+                    )) :
+                    AnyView(EmptyView()),
+                isActive: $showCaptureScreen
+            ) {
+                EmptyView()
             }
         )
     }

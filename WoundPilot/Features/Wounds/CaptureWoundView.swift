@@ -146,6 +146,14 @@ struct CaptureWoundView: View {
             data["location"] = location
         }
 
-        db.collection("wounds").addDocument(data: data)
+        db.collection("wounds").addDocument(data: data) { error in
+            if let error = error {
+                print("❌ Firestore save failed: \(error.localizedDescription)")
+                uploadMessage = "Failed to save wound data."
+            } else {
+                print("✅ Firestore save successful.")
+                uploadMessage = "Wound saved successfully!"
+            }
+        }
     }
 }
