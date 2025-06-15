@@ -1,5 +1,7 @@
 import SwiftUI
-
+enum WoundNavigation: Hashable {
+    case capture(image: UIImage, groupId: String, groupName: String)
+}
 struct WoundImageSourceView: View {
     let selectedPatient: Patient?
 
@@ -11,96 +13,95 @@ struct WoundImageSourceView: View {
     @State private var selectedGroupId: String?
     @State private var selectedGroupName: String?
 
-    @State private var showCaptureScreen = false
+    @State private var navigationPath = NavigationPath()
 
     var body: some View {
-        VStack(spacing: 24) {
-            Text("Add Wound Image")
-                .font(.title2)
-                .fontWeight(.semibold)
+        NavigationStack(path: $navigationPath) {
+            VStack(spacing: 24) {
+                Text("Add Wound Image")
+                    .font(.title2)
+                    .fontWeight(.semibold)
 
-            HStack(spacing: 12) {
-                Button("Take Photo") {
-                    pickerSource = .camera
-                    showImagePicker = true
-                }
-                .buttonStyle(.borderedProminent)
-
-                Button("Choose Photo") {
-                    pickerSource = .photoLibrary
-                    showImagePicker = true
-                }
-                .buttonStyle(.bordered)
-            }
-
-#if targetEnvironment(simulator)
-            Button("Use Dummy Wound Image") {
-                selectedImage = UIImage(named: "dummy_wound")
-                showGroupPicker = true
-            }
-            .buttonStyle(.bordered)
-#endif
-
-            Spacer()
-        }
-        .padding()
-        .navigationTitle("New Wound")
-
-        // Step 1: Show image picker
-        .sheet(isPresented: $showImagePicker) {
-            ImagePicker(image: $selectedImage, sourceType: pickerSource)
-                .onDisappear {
-                    if selectedImage != nil {
-                        showGroupPicker = true
-                    }
-                }
-        }
-
-        // Step 2: Show wound group picker
-        .sheet(isPresented: $showGroupPicker) {
-            if let patient = selectedPatient {
-                WoundGroupPickerView(
-                    patientId: patient.id,
-                    onGroupSelected: { groupId, groupName in
-                        selectedGroupId = groupId
-                        selectedGroupName = groupName
-                        showGroupPicker = false
-                        showCaptureScreen = true
-                    }
-                )
-            } else {
-                // Fast capture mode (no patient)
-                VStack(spacing: 16) {
-                    Text("No patient selected.")
-                        .foregroundColor(.gray)
-
-                    Button("Continue Without Group") {
-                        selectedGroupId = UUID().uuidString
-                        selectedGroupName = "Fast Capture \(Date().formatted(date: .abbreviated, time: .shortened))"
-                        showGroupPicker = false
-                        showCaptureScreen = true
+                HStack(spacing: 12) {
+                    Button("Take Photo") {
+                        pickerSource = .camera
+                        showImagePicker = true
                     }
                     .buttonStyle(.borderedProminent)
+
+                    Button("Choose Photo") {
+                        pickerSource = .photoLibrary
+                        showImagePicker = true
+                    }
+                    .buttonStyle(.bordered)
                 }
-                .padding()
+
+#if targetEnvironment(simulator)
+                Button("Use Dummy Wound Image") {
+                    selectedImage = UIImage(named: "dummy_wound")
+                    showGroupPicker = true
+                }
+                .buttonStyle(.bordered)
+#endif
+
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("New Wound")
+            .sheet(isPresented: $showImagePicker) {
+                ImagePicker(image: $selectedImage, sourceType: pickerSource)
+                    .onDisappear {
+                        if selectedImage != nil {
+                            showGroupPicker = true
+                        }
+                    }
+            }
+            .sheet(isPresented: $showGroupPicker) {
+                if let patient = selectedPatient {
+                    WoundGroupPickerView(
+                        patientId: patient.id,
+                        onGroupSelected: { groupId, groupName in
+                            selectedGroupId = groupId
+                            selectedGroupName = groupName
+                            showGroupPicker = false
+                            pushCaptureView()
+                        }
+                    )
+                } else {
+                    VStack(spacing: 16) {
+                        Text("No patient selected.")
+                            .foregroundColor(.gray)
+
+                        Button("Continue Without Group") {
+                            selectedGroupId = UUID().uuidString
+                            selectedGroupName = "Fast Capture \(Date().formatted(date: .abbreviated, time: .shortened))"
+                            showGroupPicker = false
+                            pushCaptureView()
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                    .padding()
+                }
+            }
+            .navigationDestination(for: WoundNavigation.self) { route in
+                switch route {
+                case .capture(let image, let groupId, let groupName):
+                    CaptureWoundView(
+                        patient: selectedPatient,
+                        image: image,
+                        woundGroupId: groupId,
+                        woundGroupName: groupName
+                    )
+                }
             }
         }
+    }
 
-        // Step 3: Navigate to CaptureWoundView
-        .background(
-            NavigationLink(
-                destination: showCaptureScreen && selectedImage != nil && selectedGroupId != nil && selectedGroupName != nil ?
-                    AnyView(CaptureWoundView(
-                        patient: selectedPatient,
-                        image: selectedImage!,
-                        woundGroupId: selectedGroupId!,
-                        woundGroupName: selectedGroupName!
-                    )) :
-                    AnyView(EmptyView()),
-                isActive: $showCaptureScreen
-            ) {
-                EmptyView()
-            }
-        )
+    private func pushCaptureView() {
+        if let image = selectedImage,
+           let groupId = selectedGroupId,
+           let groupName = selectedGroupName {
+            navigationPath.append(WoundNavigation.capture(image: image, groupId: groupId, groupName: groupName))
+        }
     }
 }

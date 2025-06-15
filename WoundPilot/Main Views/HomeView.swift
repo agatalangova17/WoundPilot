@@ -9,7 +9,7 @@ struct HomeView: View {
     @State private var userName: String = ""
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 15) {
                 // Welcome Message
                 VStack(spacing: 8) {
@@ -22,10 +22,9 @@ struct HomeView: View {
                         .foregroundColor(.secondary)
                 }
 
+                // Quick Analysis
                 NavigationLink(
-                    destination: WoundImageSourceView(
-                        selectedPatient: nil as Patient? // Optional patient
-                    )
+                    destination: WoundImageSourceView(selectedPatient: nil)
                 ) {
                     HStack {
                         Image(systemName: "bolt.fill")
@@ -37,12 +36,8 @@ struct HomeView: View {
                     .foregroundColor(.orange)
                     .cornerRadius(12)
                 }
-                
-                // Add New Patient
-                NavigationLink(destination: AddPatientView(), isActive: $showAddPatient) {
-                    EmptyView()
-                }
 
+                // Add New Patient
                 Button(action: {
                     showAddPatient = true
                 }) {
@@ -58,10 +53,6 @@ struct HomeView: View {
                 }
 
                 // View Existing Patients
-                NavigationLink(destination: PatientListView(), isActive: $showPatientList) {
-                    EmptyView()
-                }
-
                 Button(action: {
                     showPatientList = true
                 }) {
@@ -78,7 +69,7 @@ struct HomeView: View {
 
                 Spacer()
 
-                // Log Out Button
+                // Log Out
                 Button(action: {
                     do {
                         try Auth.auth().signOut()
@@ -91,18 +82,24 @@ struct HomeView: View {
                         .foregroundColor(.red)
                         .padding(.top, 10)
                 }
-
             }
             .padding()
             .onAppear {
                 fetchUserName()
             }
 
+            // iOS 16+ modern navigation
+            .navigationDestination(isPresented: $showAddPatient) {
+                AddPatientView()
+            }
+            .navigationDestination(isPresented: $showPatientList) {
+                PatientListView()
+            }
         }
         .navigationViewStyle(StackNavigationViewStyle())
     }
 
-    // 🔧 Moved inside the View so it can access @State
+    // Fetch user name from Firestore
     func fetchUserName() {
         guard let userId = Auth.auth().currentUser?.uid else { return }
 

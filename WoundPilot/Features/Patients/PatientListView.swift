@@ -145,8 +145,8 @@ struct PatientListView: View {
             .getDocuments { snapshot, error in
                 if let documents = snapshot?.documents {
                     for doc in documents {
-                        if let url = doc.data()["imageURL"] as? String,
-                           let storageRef = storage.reference(forURL: url) as? StorageReference {
+                        if let url = doc.data()["imageURL"] as? String {
+                            let storageRef = storage.reference(forURL: url)
                             storageRef.delete(completion: nil)
                         }
                         doc.reference.delete()
