@@ -4,7 +4,7 @@ import FirebaseStorage
 import FirebaseAuth
 
 struct CaptureWoundView: View {
-    let patient: Patient?  // Optional patient
+    let patient: Patient?
     let image: UIImage?
     let woundGroupId: String
     let woundGroupName: String
@@ -13,76 +13,92 @@ struct CaptureWoundView: View {
     @State private var isUploading = false
     @State private var uploadMessage = ""
     @State private var showLocationPicker = false
+    @State private var savedWound: Wound? = nil
+
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                if let image = image {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 250)
-                        .cornerRadius(10)
-                }
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 16) {
+                    if let image = image {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 250)
+                            .cornerRadius(10)
+                    }
 
-                // Patient info (optional)
-                if let patient = patient {
-                    Text("Patient: \(patient.name)")
-                        .font(.footnote)
+                    if let patient = patient {
+                        Text("Patient: \(patient.name)")
+                            .font(.footnote)
+                            .foregroundColor(.gray)
+                    } else {
+                        Text("⚠️ Fast Capture (Saved without patient)")
+                            .font(.footnote)
+                            .foregroundColor(.orange)
+                    }
+
+                    Text("Group: \(woundGroupName)")
+                        .font(.subheadline)
                         .foregroundColor(.gray)
-                } else {
-                    Text("⚠️ Fast Capture (Not saved)")
-                        .font(.footnote)
-                        .foregroundColor(.orange)
-                }
 
-                // Wound group
-                Text("Group: \(woundGroupName)")
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
+                    Button("Select Wound Location") {
+                        showLocationPicker = true
+                    }
+                    .buttonStyle(.bordered)
 
-                Button("Select Wound Location") {
-                    showLocationPicker = true
-                }
-                .buttonStyle(.bordered)
+                    if let location = selectedLocation {
+                        Text("Location: \(location.replacingOccurrences(of: "_", with: " ").capitalized)")
+                            .font(.footnote)
+                            .foregroundColor(.blue)
+                    }
 
-                if let location = selectedLocation {
-                    Text("Location: \(location.replacingOccurrences(of: "_", with: " ").capitalized)")
-                        .font(.footnote)
-                        .foregroundColor(.blue)
-                }
+                    Button("Save Wound Entry") {
+                        uploadWound()
+                    }
+                    .disabled(selectedLocation == nil || isUploading)
+                    .buttonStyle(.borderedProminent)
 
-                Button("Save Wound Entry") {
-                    uploadWound()
-                }
-                .disabled(selectedLocation == nil)
-                .buttonStyle(.borderedProminent)
+                    Button("Retake Photo") {
+                        dismiss()
+                    }
+                    .foregroundColor(.red)
 
-                Button("Retake Photo") {
-                    dismiss()
-                }
-                .foregroundColor(.red)
+                    if isUploading {
+                        ProgressView("Uploading...")
+                    }
 
-                if isUploading {
-                    ProgressView("Uploading...")
-                }
+                    if !uploadMessage.isEmpty {
+                        Text(uploadMessage)
+                            .font(.footnote)
+                            .foregroundColor(.green)
+                    }
 
-                if !uploadMessage.isEmpty {
-                    Text(uploadMessage)
-                        .font(.footnote)
-                        .foregroundColor(.green)
+                    // ✅ Navigate only if savedWound is set
+                    if let wound = savedWound {
+                        NavigationLink(
+                            destination: SingleWoundDetailView(wound: wound),
+                            label: {
+                                Text("Proceed to Analysis")
+                                    .bold()
+                                    .frame(maxWidth: .infinity)
+                            }
+                        )
+                        .buttonStyle(.borderedProminent)
+                        .padding(.top, 10)
+                    }
                 }
+                .padding()
             }
-            .padding()
-        }
-        .navigationTitle("Review & Save")
-        .sheet(isPresented: $showLocationPicker) {
-            WoundLocationPickerView(selectedRegion: $selectedLocation)
+            .navigationTitle("Review & Save")
+            .sheet(isPresented: $showLocationPicker) {
+                WoundLocationPickerView(selectedRegion: $selectedLocation)
+            }
         }
     }
 
-    func uploadWound() {
+    private func uploadWound() {
         guard let image = image,
               let imageData = image.jpegData(compressionQuality: 0.8),
               let user = Auth.auth().currentUser else {
@@ -107,20 +123,7 @@ struct CaptureWoundView: View {
             imageRef.downloadURL { url, error in
                 isUploading = false
                 if let url = url {
-                    if let patient = patient {
-                        // ✅ Save to Firestore ONLY if a patient is assigned
-                        saveWoundMetadata(
-                            imageURL: url.absoluteString,
-                            userId: user.uid,
-                            patientId: patient.id,
-                            woundGroupId: woundGroupId,
-                            woundGroupName: woundGroupName
-                        )
-                        uploadMessage = "Wound saved successfully!"
-                    } else {
-                        // 🟡 Fast Capture: Do not save to DB
-                        uploadMessage = "Fast capture complete (not saved)."
-                    }
+                    saveWoundMetadata(imageURL: url.absoluteString, userId: user.uid)
                 } else {
                     uploadMessage = "Failed to get download URL."
                 }
@@ -128,8 +131,10 @@ struct CaptureWoundView: View {
         }
     }
 
-    func saveWoundMetadata(imageURL: String, userId: String, patientId: String?, woundGroupId: String, woundGroupName: String) {
+    private func saveWoundMetadata(imageURL: String, userId: String) {
         let db = Firestore.firestore()
+        let newDoc = db.collection("wounds").document()
+
         var data: [String: Any] = [
             "imageURL": imageURL,
             "userId": userId,
@@ -138,22 +143,31 @@ struct CaptureWoundView: View {
             "timestamp": Timestamp(date: Date())
         ]
 
-        if let patientId = patientId {
-            data["patientId"] = patientId
+        if let patient = patient {
+            data["patientId"] = patient.id
         }
-
         if let location = selectedLocation {
             data["location"] = location
         }
 
-        db.collection("wounds").addDocument(data: data) { error in
+        newDoc.setData(data) { error in
             if let error = error {
-                print("❌ Firestore save failed: \(error.localizedDescription)")
-                uploadMessage = "Failed to save wound data."
-            } else {
-                print("✅ Firestore save successful.")
-                uploadMessage = "Wound saved successfully!"
+                uploadMessage = "Failed to save wound: \(error.localizedDescription)"
+                return
             }
+
+            savedWound = Wound(
+                id: newDoc.documentID,
+                imageURL: imageURL,
+                timestamp: Date(),
+                location: selectedLocation,
+                patientId: patient?.id ?? "",
+                userId: userId,
+                woundGroupId: woundGroupId,
+                woundGroupName: woundGroupName
+            )
+
+            uploadMessage = "Wound saved successfully!"
         }
     }
 }

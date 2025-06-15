@@ -39,34 +39,37 @@ struct WoundDetailView: View {
                     Text("Not enough data for graph.")
                         .foregroundColor(.gray)
                 }
+                
 
                 ForEach(wounds) { wound in
-                    HStack {
-                        AsyncImage(url: URL(string: wound.imageURL)) { image in
-                            image.resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: 70, height: 70)
-                                .cornerRadius(8)
-                        } placeholder: {
-                            ProgressView()
-                        }
-
-                        VStack(alignment: .leading) {
-                            if let location = wound.location {
-                                Text(location.replacingOccurrences(of: "_", with: " ").capitalized)
-                                    .foregroundColor(.blue)
+                    NavigationLink(destination: SingleWoundDetailView(wound: wound)) {
+                        HStack {
+                            AsyncImage(url: URL(string: wound.imageURL)) { image in
+                                image.resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 70, height: 70)
+                                    .cornerRadius(8)
+                            } placeholder: {
+                                ProgressView()
                             }
-                            Text(wound.timestamp.formatted(date: .abbreviated, time: .shortened))
+
+                            VStack(alignment: .leading) {
+                                if let location = wound.location {
+                                    Text(location.replacingOccurrences(of: "_", with: " ").capitalized)
+                                        .foregroundColor(.blue)
+                                }
+                                Text(wound.timestamp.formatted(date: .abbreviated, time: .shortened))
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+
+                                Button(role: .destructive) {
+                                    woundToDelete = wound
+                                    showDeleteConfirmation = true
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
                                 .font(.caption)
-                                .foregroundColor(.gray)
-
-                            Button(role: .destructive) {
-                                woundToDelete = wound
-                                showDeleteConfirmation = true
-                            } label: {
-                                Label("Delete", systemImage: "trash")
                             }
-                            .font(.caption)
                         }
                     }
                 }
