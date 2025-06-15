@@ -119,6 +119,7 @@ struct PatientListView: View {
                     if let documents = snapshot?.documents {
                         self.patients = documents.compactMap { doc in
                             let data = doc.data()
+
                             guard let name = data["name"] as? String,
                                   let dobTimestamp = data["dateOfBirth"] as? Timestamp else {
                                 return nil
@@ -127,7 +128,17 @@ struct PatientListView: View {
                             return Patient(
                                 id: doc.documentID,
                                 name: name,
-                                dateOfBirth: dobTimestamp.dateValue()
+                                dateOfBirth: dobTimestamp.dateValue(),
+                                sex: data["sex"] as? String,
+                                isDiabetic: data["isDiabetic"] as? Bool,
+                                isSmoker: data["isSmoker"] as? Bool,
+                                hasPAD: data["hasPAD"] as? Bool,
+                                hasMobilityIssues: data["hasMobilityIssues"] as? Bool,
+                                hasBloodPressureIssues: data["hasBloodPressureIssues"] as? Bool,
+                                weight: data["weight"] as? Double,
+                                allergies: data["allergies"] as? String,
+                                bloodPressure: data["bloodPressure"] as? String,
+                                diabetesType: data["diabetesType"] as? String
                             )
                         }
                     }
