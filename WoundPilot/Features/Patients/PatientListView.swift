@@ -3,6 +3,7 @@ import FirebaseFirestore
 import FirebaseAuth
 import FirebaseStorage
 
+
 struct PatientListView: View {
     @State private var patients: [Patient] = []
     @State private var isLoading = true
@@ -14,22 +15,32 @@ struct PatientListView: View {
     @State private var selectedPatient: Patient?
     @State private var showPatientDetail = false
 
+    @State private var searchText = ""
+
+    var filteredPatients: [Patient] {
+        if searchText.isEmpty {
+            return patients
+        } else {
+            return patients.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 if isLoading {
                     ProgressView("Loading patients...")
                         .padding()
-                } else if patients.isEmpty {
+                } else if filteredPatients.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "person.crop.circle.badge.exclamationmark")
                             .font(.system(size: 50))
                             .foregroundColor(.gray)
-                        
+
                         Text("No patients found")
                             .font(.title3)
                             .foregroundColor(.gray)
-                        
+
                         Text("Start by adding a patient.")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
@@ -37,7 +48,7 @@ struct PatientListView: View {
                     .padding()
                 } else {
                     VStack(spacing: 12) {
-                        ForEach(patients) { patient in
+                        ForEach(filteredPatients) { patient in
                             HStack {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(patient.name)
@@ -76,6 +87,7 @@ struct PatientListView: View {
                     .padding(.top)
                 }
             }
+            .searchable(text: $searchText, prompt: "Search patients by name")
             .navigationTitle("Your Patients")
             .onAppear(perform: loadPatients)
             .alert("Delete this patient and all their wound photos?", isPresented: $showDeleteConfirmation) {
@@ -149,8 +161,7 @@ struct PatientListView: View {
     private func deletePatientAndAllWounds(patient: Patient) {
         let db = Firestore.firestore()
         let storage = Storage.storage()
-        
-        // 1. Delete all wounds
+
         db.collection("wounds")
             .whereField("patientId", isEqualTo: patient.id)
             .getDocuments { snapshot, error in
@@ -164,12 +175,10 @@ struct PatientListView: View {
                     }
                 }
 
-                // 2. Delete patient
                 db.collection("patients").document(patient.id).delete { err in
                     if let err = err {
                         print("Error deleting patient: \(err)")
                     } else {
-                        // 3. Refresh list
                         loadPatients()
                     }
                 }
