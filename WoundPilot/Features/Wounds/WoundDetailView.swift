@@ -13,6 +13,7 @@ struct WoundDetailView: View {
     @State private var showDeleteConfirmation = false
     @State private var woundToDelete: Wound?
     @State private var showGroupDeleteConfirmation = false
+    
 
     var body: some View {
         ScrollView {
