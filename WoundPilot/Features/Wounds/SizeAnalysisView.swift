@@ -3,7 +3,6 @@ import FirebaseStorage
 import FirebaseFirestore
 import UIKit
 
-
 struct SizeAnalysisView: View {
     let wound: Wound
 
@@ -43,17 +42,6 @@ struct SizeAnalysisView: View {
             }
             .font(.subheadline)
 
-            // Hidden NavigationLink
-            NavigationLink(
-                destination: QuestionnaireView(
-                    woundGroupId: wound.woundGroupId,
-                    patientId: wound.patientId
-                ),
-                isActive: $navigateToQuestionnaire
-            ) {
-                EmptyView()
-            }
-
             Button("Continue") {
                 navigateToQuestionnaire = true
             }
@@ -68,5 +56,11 @@ struct SizeAnalysisView: View {
         .padding()
         .navigationTitle("Size Analysis")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(isPresented: $navigateToQuestionnaire) {
+            QuestionnaireView(
+                woundGroupId: wound.woundGroupId,
+                patientId: wound.patientId
+            )
+        }
     }
 }

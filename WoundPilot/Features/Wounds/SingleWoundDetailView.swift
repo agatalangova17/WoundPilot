@@ -1,5 +1,7 @@
 import SwiftUI
 
+import SwiftUI
+
 struct SingleWoundDetailView: View {
     let wound: Wound
 
@@ -33,14 +35,7 @@ struct SingleWoundDetailView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal)
 
-            // Navigation to Size Analysis
-            NavigationLink(
-                destination: SizeAnalysisView(wound: wound),
-                isActive: $navigateToSizeAnalysis
-            ) {
-                EmptyView()
-            }
-
+            // Analyze Button
             Button("Analyze Wound") {
                 navigateToSizeAnalysis = true
             }
@@ -55,5 +50,8 @@ struct SingleWoundDetailView: View {
         .padding()
         .navigationTitle("Wound Entry")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(isPresented: $navigateToSizeAnalysis) {
+            SizeAnalysisView(wound: wound)
+        }
     }
 }
