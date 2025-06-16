@@ -2,144 +2,216 @@ import SwiftUI
 
 struct WelcomeView: View {
     @Binding var isUserLoggedIn: Bool
+    @State private var selectedStep = 1
+    @State private var expandedQuestion: String?
+
+    let steps = [
+        (1, "Register or log in securely", "person.crop.circle"),
+        (2, "Add a patient", "person.crop.circle.badge.plus"),
+        (3, "Capture wound photo", "camera.viewfinder"),
+        (4, "Answer clinical questions", "doc.plaintext"),
+        (5, "AI-powered size & healing analysis", "brain.head.profile")
+    ]
+
+    let faqList: [(question: String, answer: String)] = [
+        ("Is my data secure?", "Yes. All data is encrypted and stored securely in compliance with healthcare standards."),
+        ("Can I use WoundPilot offline?", "Some features work offline, but AI analysis and syncing require internet."),
+        ("Is WoundPilot free?", "The core version is free. Some advanced tools may require a subscription.")
+    ]
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 30) {
-                    // App Title
-                    Text("WoundPilot")
-                        .font(.largeTitle)
-                        .fontWeight(.semibold)
-                    
-                    // Tagline
-                    Text("AI-powered wound analysis in your pocket")
-                        .font(.headline)
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                    
-                    // App Icon
-                    Image(systemName: "cross.case.fill")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 100, height: 100)
-                        .foregroundColor(.blue.opacity(0.8))
-                        .padding(.top, 10)
-                    
-                    // Product Description
-                    Text("Capture a wound photo — our AI provides rapid, evidence-based clinical insights.")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(.primary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                    
-                    // Video Placeholder
-                    ZStack {
-                        Rectangle()
-                            .fill(Color.black.opacity(0.1))
-                            .frame(height: 200)
-                            .cornerRadius(12)
-                        
-                        VStack {
-                            Image(systemName: "play.circle.fill")
+            if isUserLoggedIn {
+                HomeView(isUserLoggedIn: $isUserLoggedIn)
+            } else {
+                ScrollView {
+                    VStack(spacing: 30) {
+
+                        // MARK: - App Title
+                        VStack(spacing: 12) {
+                            Image(systemName: "cross.case.fill")
                                 .resizable()
-                                .frame(width: 50, height: 50)
-                                .foregroundColor(.blue)
-                            
-                            Text("Watch Introduction")
-                                .foregroundColor(.blue)
+                                .scaledToFit()
+                                .frame(width: 80, height: 80)
+                                .foregroundColor(.accentBlue)
+
+                            Text("Welcome to WoundPilot!")
+                                .font(.largeTitle.bold())
+                                .foregroundColor(.black)
+
+                            Text("AI-powered wound analysis in your pocket")
                                 .font(.subheadline)
-                                .padding(.top, 5)
+                                .multilineTextAlignment(.center)
+                                .foregroundColor(.gray)
                         }
-                    }
-                    .onTapGesture {
-                        // TODO: Add action to play video or navigate
-                    }
-                    .padding(.horizontal)
-                    
-                    // Log In / Register buttons
-                    VStack(spacing: 15) {
-                        NavigationLink(destination: LoginView(isUserLoggedIn: $isUserLoggedIn)) {
-                            Text("Log In")
-                                .frame(maxWidth: .infinity)
+                        .padding(.top, 30)
+
+                        // MARK: - Login/Register Section (Top and Separated)
+                        VStack(spacing: 16) {
+
+                            VStack(spacing: 12) {
+                                NavigationLink(destination: LoginView(isUserLoggedIn: $isUserLoggedIn)) {
+                                    Text("Log In")
+                                        .frame(maxWidth: .infinity)
+                                        .padding()
+                                        .background(Color.primaryBlue)
+                                        .foregroundColor(.white)
+                                        .cornerRadius(10)
+                                }
+
+                                NavigationLink(destination: RegisterView(isUserLoggedIn: $isUserLoggedIn)) {
+                                    Text("Register")
+                                        .frame(maxWidth: .infinity)
+                                        .padding()
+                                        .background(Color.accentBlue.opacity(0.15))
+                                        .foregroundColor(.accentBlue)
+                                        .cornerRadius(10)
+                                }
+                            }
+                            .padding()
+                            .background(Color.gray.opacity(0.05))
+                            .cornerRadius(12)
+                        }
+                        .padding(.horizontal)
+
+                        // MARK: - Watch Video
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color.accentBlue.opacity(0.1))
+                                .frame(height: 180)
+
+                            VStack {
+                                Image(systemName: "play.circle.fill")
+                                    .resizable()
+                                    .frame(width: 50, height: 50)
+                                    .foregroundColor(.accentBlue)
+
+                                Text("Watch Introduction")
+                                    .foregroundColor(.accentBlue)
+                                    .font(.subheadline)
+                            }
+                        }
+                        .padding(.horizontal)
+
+                        // MARK: - Benefits
+                        VStack(spacing: 12) {
+                            Text("Benefits")
+                                .font(.headline)
+                                .foregroundColor(.black)
+
+                            HStack(spacing: 12) {
+                                BenefitCard(icon: "stethoscope", text: "Doctors & Nurses")
+                                BenefitCard(icon: "bolt.fill", text: "Fast Insights")
+                                BenefitCard(icon: "lock.shield.fill", text: "Secure by Design")
+                            }
+                        }
+                        .padding(.horizontal)
+
+                        // MARK: - How It Works
+                        VStack(spacing: 12) {
+                            Text("How it Works")
+                                .font(.headline)
+                                .foregroundColor(.black)
+
+                            HStack(spacing: 10) {
+                                ForEach(1...5, id: \.self) { index in
+                                    Button(action: {
+                                        withAnimation { selectedStep = index }
+                                    }) {
+                                        Text("\(index)")
+                                            .fontWeight(.bold)
+                                            .frame(width: 40, height: 40)
+                                            .background(selectedStep == index ? Color.primaryBlue : Color.gray.opacity(0.2))
+                                            .foregroundColor(selectedStep == index ? .white : .black)
+                                            .clipShape(Circle())
+                                    }
+                                }
+                            }
+
+                            if let step = steps.first(where: { $0.0 == selectedStep }) {
+                                VStack(spacing: 10) {
+                                    Text(step.1)
+                                        .font(.subheadline)
+                                        .multilineTextAlignment(.center)
+                                        .foregroundColor(.gray)
+
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(Color.gray.opacity(0.1))
+                                            .frame(height: 180)
+
+                                        Image(systemName: step.2)
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 80, height: 80)
+                                            .foregroundColor(.gray.opacity(0.4))
+                                    }
+                                }
+                                .transition(.opacity)
+                            }
+                        }
+                        .padding(.horizontal)
+
+                        // MARK: - FAQ Section
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("FAQ")
+                                .font(.headline)
+                                .foregroundColor(.black)
+
+                            ForEach(faqList, id: \.question) { faq in
+                                DisclosureGroup(
+                                    isExpanded: Binding(
+                                        get: { expandedQuestion == faq.question },
+                                        set: { expandedQuestion = $0 ? faq.question : nil }
+                                    )
+                                ) {
+                                    Text(faq.answer)
+                                        .font(.subheadline)
+                                        .foregroundColor(.gray)
+                                } label: {
+                                    Text(faq.question)
+                                        .foregroundColor(.primaryBlue)
+                                }
                                 .padding()
-                                .background(Color.blue)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
+                                .background(Color.accentBlue.opacity(0.1))
+                                .cornerRadius(8)
+                            }
                         }
-                        
-                        NavigationLink(destination: RegisterView(isUserLoggedIn: $isUserLoggedIn)) {
-                            Text("Register")
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.gray.opacity(0.15))
-                                .foregroundColor(.blue)
-                                .cornerRadius(10)
-                        }
+                        .padding(.horizontal)
+                        .padding(.bottom, 30)
                     }
-                    .padding(.horizontal)
-                    
-                    Divider().padding(.horizontal)
-                    // MARK: - FAQ
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Frequently Asked Questions")
-                            .font(.headline)
-
-                        DisclosureGroup("Is my data secure?") {
-                            Text("Yes. All data is encrypted and stored securely in compliance with healthcare standards.")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-
-                        DisclosureGroup("Can I use WoundPilot offline?") {
-                            Text("Some features work offline, but for AI analysis and syncing, you'll need an internet connection.")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-
-                        DisclosureGroup("Is WoundPilot free?") {
-                            Text("WoundPilot offers a free version with core features. Advanced tools may require a subscription in the future.")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding(.horizontal)
-                    .padding(.bottom, 30)
-                    
-                    
-                    Divider().padding(.horizontal)
-                    // MARK: - About Us
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("About Us")
-                            .font(.headline)
-                        Text("WoundPilot was created by doctors and engineers to help clinicians deliver faster, smarter wound care using AI-powered tools.")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.horizontal)
-                    
-                    // MARK: - Who It's For
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Who It's For")
-                            .font(.headline)
-                        Text("Designed for doctors, nurses, and wound care specialists who want fast, accurate wound analysis on the go.")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.horizontal)
-                    
-                    // MARK: - Privacy
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Privacy")
-                            .font(.headline)
-                        Text("We take data security seriously. All wound photos and user information are stored securely and never shared without your consent.")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.horizontal)}
+                }
+                .background(Color.white)
             }
         }
     }
+}
+
+// MARK: - Benefit Card
+struct BenefitCard: View {
+    let icon: String
+    let text: String
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundColor(.accentBlue)
+
+            Text(text)
+                .font(.caption)
+                .multilineTextAlignment(.center)
+                .foregroundColor(.black)
+        }
+        .frame(maxWidth: .infinity, minHeight: 100)
+        .padding()
+        .background(Color.accentBlue.opacity(0.08))
+        .cornerRadius(10)
+    }
+}
+
+// MARK: - Color Extension
+extension Color {
+    static let primaryBlue = Color(red: 0.20, green: 0.45, blue: 0.95)
+    static let accentBlue  = Color(red: 0.25, green: 0.80, blue: 0.85)
 }
