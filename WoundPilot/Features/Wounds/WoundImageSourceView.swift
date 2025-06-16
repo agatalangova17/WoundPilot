@@ -11,47 +11,79 @@ struct WoundImageSourceView: View {
     @State private var selectedGroupId: String?
     @State private var selectedGroupName: String?
 
-    @State private var showCaptureScreen = false  
+    @State private var showCaptureScreen = false
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
-                Text("Add Wound Image")
-                    .font(.title2)
-                    .fontWeight(.semibold)
+            VStack(spacing: 28) {
+                // MARK: - Icon + Title
+                VStack(spacing: 10) {
+                    Image(systemName: "plus.rectangle.on.rectangle")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 60, height: 60)
+                        .foregroundColor(.accentBlue)
 
-                HStack(spacing: 12) {
-                    Button("Take Photo") {
+                    Text("Add Wound Image")
+                        .font(.title2.bold())
+                        .multilineTextAlignment(.center)
+                        .foregroundColor(.primary)
+                }
+                .padding(.top, 30)
+
+                // MARK: - Main Buttons
+                VStack(spacing: 16) {
+                    Button {
                         pickerSource = .camera
                         showImagePicker = true
+                    } label: {
+                        Label("Take Photo", systemImage: "camera.fill")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.primaryBlue)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
                     }
-                    .buttonStyle(.borderedProminent)
 
-                    Button("Choose Photo") {
+                    Button {
                         pickerSource = .photoLibrary
                         showImagePicker = true
+                    } label: {
+                        Label("Choose Photo", systemImage: "photo.on.rectangle")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.accentBlue.opacity(0.15))
+                            .foregroundColor(.accentBlue)
+                            .cornerRadius(10)
                     }
-                    .buttonStyle(.bordered)
-                }
 
 #if targetEnvironment(simulator)
-                Button("Use Dummy Wound Image") {
-                    selectedImage = UIImage(named: "dummy_wound")
-                    if selectedPatient != nil {
-                        showGroupPicker = true
-                    } else {
-                        assignFastGroupAndNavigate()
+                    Button {
+                        selectedImage = UIImage(named: "dummy_wound")
+                        if selectedPatient != nil {
+                            showGroupPicker = true
+                        } else {
+                            assignFastGroupAndNavigate()
+                        }
+                    } label: {
+                        Label("Use Dummy Wound Image", systemImage: "photo.fill.on.rectangle.fill")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.gray.opacity(0.15))
+                            .foregroundColor(.gray)
+                            .cornerRadius(10)
                     }
-                }
-                .buttonStyle(.bordered)
 #endif
+                }
+                .padding(.horizontal)
 
                 Spacer()
             }
             .padding()
             .navigationTitle("New Wound")
+            .navigationBarTitleDisplayMode(.inline)
 
-            // Step 1: Image Picker
+            // MARK: - Image Picker
             .sheet(isPresented: $showImagePicker) {
                 ImagePicker(image: $selectedImage, sourceType: pickerSource)
                     .onDisappear {
@@ -65,7 +97,7 @@ struct WoundImageSourceView: View {
                     }
             }
 
-            // Step 2: Wound Group Picker
+            // MARK: - Group Picker
             .sheet(isPresented: $showGroupPicker) {
                 if let patient = selectedPatient {
                     WoundGroupPickerView(
@@ -78,11 +110,11 @@ struct WoundImageSourceView: View {
                         }
                     )
                 } else {
-                    EmptyView() // should never be hit now
+                    EmptyView()
                 }
             }
 
-            // Step 3: Navigation to CaptureWoundView
+            // MARK: - Navigate to Capture
             .navigationDestination(isPresented: $showCaptureScreen) {
                 if let image = selectedImage,
                    let groupId = selectedGroupId,
@@ -100,6 +132,7 @@ struct WoundImageSourceView: View {
         }
     }
 
+    // MARK: - Assign Group for Fast Capture
     private func assignFastGroupAndNavigate() {
         selectedGroupId = UUID().uuidString
         selectedGroupName = "Quick Analysis \(Date().formatted(date: .abbreviated, time: .shortened))"

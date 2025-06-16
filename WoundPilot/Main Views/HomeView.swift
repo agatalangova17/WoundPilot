@@ -10,66 +10,71 @@ struct HomeView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 15) {
-                // Welcome Message
-                VStack(spacing: 8) {
-                    Text("Hi \(userName.split(separator: " ").first.map(String.init) ?? "there")")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                    Text("Start by adding a patient or view your existing patients.")
-                        .font(.subheadline)
-                        .multilineTextAlignment(.center)
-                        .foregroundColor(.secondary)
-                }
+            VStack(spacing: 24) {
+                // MARK: - Header (Date + Title)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(formattedDate())
+                        .font(.footnote)
+                        .foregroundColor(.gray)
 
-                // Quick Analysis
-                NavigationLink(
-                    destination: WoundImageSourceView(selectedPatient: nil)
-                ) {
-                    HStack {
-                        Image(systemName: "bolt.fill")
-                        Text("Quick Analysis")
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.orange.opacity(0.2))
-                    .foregroundColor(.orange)
-                    .cornerRadius(12)
+                    Text("Dashboard")
+                        .font(.largeTitle.bold())
+                        .foregroundColor(.primary)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal)
 
-                // Add New Patient
-                Button(action: {
-                    showAddPatient = true
-                }) {
-                    HStack {
-                        Image(systemName: "plus.circle.fill")
-                        Text("Add New Patient")
+                // MARK: - Main Action Buttons
+                VStack(spacing: 16) {
+                    NavigationLink(destination: WoundImageSourceView(selectedPatient: nil)) {
+                        HStack {
+                            Image(systemName: "bolt.fill")
+                            Text("Quick Analysis")
+                        }
+                        .font(.headline)
+                        .foregroundColor(.orange)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.orange.opacity(0.1))
+                        .cornerRadius(12)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.green)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
-                }
 
-                // View Existing Patients
-                Button(action: {
-                    showPatientList = true
-                }) {
-                    HStack {
-                        Image(systemName: "person.3.fill")
-                        Text("View Existing Patients")
+                    Button {
+                        showAddPatient = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "plus.circle.fill")
+                            Text("Add New Patient")
+                        }
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.primaryBlue)
+                        .cornerRadius(12)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .foregroundColor(.primary)
-                    .cornerRadius(12)
+
+                    Button {
+                        showPatientList = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "person.3.fill")
+                            Text("View Patients")
+                        }
+                        .font(.headline)
+                        .foregroundColor(.primaryBlue)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.accentBlue.opacity(0.12))
+                        .cornerRadius(12)
+                    }
                 }
+                .padding(.top, 12)
+                .padding(.horizontal)
 
                 Spacer()
 
-                // Log Out
+                // MARK: - Log Out Button
                 Button(action: {
                     do {
                         try Auth.auth().signOut()
@@ -79,16 +84,17 @@ struct HomeView: View {
                     }
                 }) {
                     Text("Log Out")
+                        .font(.subheadline)
                         .foregroundColor(.red)
-                        .padding(.top, 10)
+                        .padding(8)
+                        .padding(.horizontal, 16)
+                        .background(Color.red.opacity(0.05))
+                        .cornerRadius(8)
                 }
+                .padding(.bottom, 20)
             }
-            .padding()
-            .onAppear {
-                fetchUserName()
-            }
-
-            // iOS 16+ modern navigation
+            .padding(.top)
+            .onAppear(perform: fetchUserName)
             .navigationDestination(isPresented: $showAddPatient) {
                 AddPatientView()
             }
@@ -96,18 +102,23 @@ struct HomeView: View {
                 PatientListView()
             }
         }
-        .navigationViewStyle(StackNavigationViewStyle())
     }
 
-    // Fetch user name from Firestore
+    // MARK: - Helpers
+
     func fetchUserName() {
         guard let userId = Auth.auth().currentUser?.uid else { return }
-
         let db = Firestore.firestore()
-        db.collection("users").document(userId).getDocument { document, error in
+        db.collection("users").document(userId).getDocument { document, _ in
             if let document = document, document.exists {
                 userName = document.get("name") as? String ?? ""
             }
         }
+    }
+
+    func formattedDate() -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .long
+        return formatter.string(from: Date())
     }
 }

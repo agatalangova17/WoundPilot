@@ -20,53 +20,60 @@ struct CaptureWoundView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(spacing: 24) {
+                    // MARK: - Image Preview
                     if let image = image {
                         Image(uiImage: image)
                             .resizable()
                             .scaledToFit()
-                            .frame(height: 250)
+                            .frame(maxHeight: 240)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+
+                    // MARK: - Wound Location
+                    VStack(spacing: 8) {
+                        Button(action: {
+                            showLocationPicker = true
+                        }) {
+                            Text(selectedLocation == nil ? "Select Wound Location" : "Change Location")
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.primaryBlue)
+                                .foregroundColor(.white)
+                                .cornerRadius(10)
+                        }
+
+                        if let location = selectedLocation {
+                            Text("Location: \(location.replacingOccurrences(of: "_", with: " ").capitalized)")
+                                .font(.footnote)
+                                .foregroundColor(.blue)
+                        }
+                    }
+
+                    // MARK: - Save Button
+                    Button(action: uploadWound) {
+                        Text("Save Wound Entry")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(selectedLocation != nil ? Color.accentBlue : Color.gray.opacity(0.4))
+                            .foregroundColor(.white)
                             .cornerRadius(10)
                     }
-
-                    if let patient = patient {
-                        Text("Patient: \(patient.name)")
-                            .font(.footnote)
-                            .foregroundColor(.gray)
-                    } else {
-                        Text("⚠️ Fast Capture (Saved without patient)")
-                            .font(.footnote)
-                            .foregroundColor(.orange)
-                    }
-
-                    Text("Group: \(woundGroupName)")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-
-                    Button("Select Wound Location") {
-                        showLocationPicker = true
-                    }
-                    .buttonStyle(.bordered)
-
-                    if let location = selectedLocation {
-                        Text("Location: \(location.replacingOccurrences(of: "_", with: " ").capitalized)")
-                            .font(.footnote)
-                            .foregroundColor(.blue)
-                    }
-
-                    Button("Save Wound Entry") {
-                        uploadWound()
-                    }
                     .disabled(selectedLocation == nil || isUploading)
-                    .buttonStyle(.borderedProminent)
 
-                    Button("Retake Photo") {
+                    // MARK: - Retake Button
+                    Button(action: {
                         dismiss()
+                    }) {
+                        Text("Retake Photo")
+                            .foregroundColor(.red)
+                            .padding(.top, 4)
                     }
-                    .foregroundColor(.red)
 
+                    // MARK: - Upload Status
                     if isUploading {
                         ProgressView("Uploading...")
+                            .padding(.top, 10)
                     }
 
                     if !uploadMessage.isEmpty {
@@ -75,17 +82,17 @@ struct CaptureWoundView: View {
                             .foregroundColor(.green)
                     }
 
-                    // ✅ Navigate only if savedWound is set
+                    // MARK: - Navigation
                     if let wound = savedWound {
-                        NavigationLink(
-                            destination: SingleWoundDetailView(wound: wound),
-                            label: {
-                                Text("Proceed to Analysis")
-                                    .bold()
-                                    .frame(maxWidth: .infinity)
-                            }
-                        )
-                        .buttonStyle(.borderedProminent)
+                        NavigationLink(destination: SingleWoundDetailView(wound: wound)) {
+                            Text("Proceed to Analysis")
+                                .bold()
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.green.opacity(0.8))
+                                .foregroundColor(.white)
+                                .cornerRadius(10)
+                        }
                         .padding(.top, 10)
                     }
                 }
@@ -98,6 +105,7 @@ struct CaptureWoundView: View {
         }
     }
 
+    // MARK: - Upload Logic
     private func uploadWound() {
         guard let image = image,
               let imageData = image.jpegData(compressionQuality: 0.8),
@@ -167,7 +175,7 @@ struct CaptureWoundView: View {
                 woundGroupName: woundGroupName
             )
 
-            uploadMessage = "Wound saved successfully!"
+            uploadMessage = "✅ Wound saved successfully!"
         }
     }
 }
