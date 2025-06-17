@@ -2,7 +2,6 @@ import SwiftUI
 import FirebaseFirestore
 import FirebaseAuth
 
-
 struct AddPatientView: View {
     @Environment(\.dismiss) var dismiss
 

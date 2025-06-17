@@ -2,6 +2,8 @@ import SwiftUI
 
 struct WoundLocationPickerView: View {
     @Binding var selectedRegion: String?
+    var onConfirm: (String) -> Void
+    
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
@@ -87,15 +89,6 @@ struct WoundLocationPickerView: View {
                     .foregroundColor(.black)
             }
 
-            // Confirm button
-            Button("Confirm Location") {
-                dismiss()
-            }
-            .disabled(selectedRegion == nil)
-            .padding()
-            .buttonStyle(.borderedProminent)
-
-            Spacer()
         }
         .padding()
     }

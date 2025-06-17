@@ -7,16 +7,16 @@ struct WoundImageSourceView: View {
     @State private var pickerSource: UIImagePickerController.SourceType = .camera
     @State private var selectedImage: UIImage?
 
+    @State private var showConfirmationView = false
     @State private var showGroupPicker = false
-    @State private var selectedGroupId: String?
-    @State private var selectedGroupName: String?
+    @State private var navigateToPrepare = false
 
-    @State private var showCaptureScreen = false
+    @State private var woundGroupId = UUID().uuidString
+    @State private var woundGroupName = "Quick Analysis \(Date().formatted(date: .abbreviated, time: .shortened))"
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 28) {
-                // MARK: - Icon + Title
                 VStack(spacing: 10) {
                     Image(systemName: "plus.rectangle.on.rectangle")
                         .resizable()
@@ -31,7 +31,6 @@ struct WoundImageSourceView: View {
                 }
                 .padding(.top, 30)
 
-                // MARK: - Main Buttons
                 VStack(spacing: 16) {
                     Button {
                         pickerSource = .camera
@@ -60,11 +59,7 @@ struct WoundImageSourceView: View {
 #if targetEnvironment(simulator)
                     Button {
                         selectedImage = UIImage(named: "dummy_wound")
-                        if selectedPatient != nil {
-                            showGroupPicker = true
-                        } else {
-                            assignFastGroupAndNavigate()
-                        }
+                        showConfirmationView = true
                     } label: {
                         Label("Use Dummy Wound Image", systemImage: "photo.fill.on.rectangle.fill")
                             .frame(maxWidth: .infinity)
@@ -88,54 +83,63 @@ struct WoundImageSourceView: View {
                 ImagePicker(image: $selectedImage, sourceType: pickerSource)
                     .onDisappear {
                         if selectedImage != nil {
-                            if selectedPatient != nil {
-                                showGroupPicker = true
-                            } else {
-                                assignFastGroupAndNavigate()
-                            }
+                            showConfirmationView = true
                         }
                     }
             }
 
-            // MARK: - Group Picker
+            // MARK: - Confirmation View
+            .sheet(isPresented: $showConfirmationView) {
+                if let image = selectedImage {
+                    ImageConfirmationView(
+                        image: image,
+                        onConfirm: {
+                            showConfirmationView = false
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                if selectedPatient != nil {
+                                    showGroupPicker = true
+                                } else {
+                                    navigateToPrepare = true
+                                }
+                            }
+                        },
+                        onRetake: {
+                            selectedImage = nil
+                            showConfirmationView = false
+                            showImagePicker = true
+                        }
+                    )
+                }
+            }
+
+            // MARK: - Group Picker for patient flow
             .sheet(isPresented: $showGroupPicker) {
                 if let patient = selectedPatient {
                     WoundGroupPickerView(
                         patientId: patient.id,
                         onGroupSelected: { groupId, groupName in
-                            selectedGroupId = groupId
-                            selectedGroupName = groupName
-                            showGroupPicker = false
-                            showCaptureScreen = true
+                            self.woundGroupId = groupId
+                            self.woundGroupName = groupName
+                            self.showGroupPicker = false
+                            self.navigateToPrepare = true
                         }
                     )
-                } else {
-                    EmptyView()
                 }
             }
 
-            // MARK: - Navigate to Capture
-            .navigationDestination(isPresented: $showCaptureScreen) {
-                if let image = selectedImage,
-                   let groupId = selectedGroupId,
-                   let groupName = selectedGroupName {
-                    CaptureWoundView(
-                        patient: selectedPatient,
+            // MARK: - Prepare Analysis
+            .navigationDestination(isPresented: $navigateToPrepare) {
+                if let image = selectedImage {
+                    PrepareWoundAnalysisView(
                         image: image,
-                        woundGroupId: groupId,
-                        woundGroupName: groupName
+                        patient: selectedPatient,
+                        woundGroupId: woundGroupId,
+                        woundGroupName: woundGroupName
                     )
                 } else {
                     EmptyView()
                 }
             }
         }
-    }
-
-    // MARK: - Assign Group for Fast Capture
-    private func assignFastGroupAndNavigate() {
-        selectedGroupId = UUID().uuidString
-        selectedGroupName = "Quick Analysis \(Date().formatted(date: .abbreviated, time: .shortened))"
-        showCaptureScreen = true
     }
 }

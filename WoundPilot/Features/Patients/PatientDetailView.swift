@@ -10,7 +10,7 @@ struct PatientDetailView: View {
                 Text(patient.name)
                     .font(.title2)
                     .fontWeight(.semibold)
-                Text("DOB: \(patient.dateOfBirth.formatted(date: .abbreviated, time: .omitted))")
+                Text("Date of Birth: \(patient.dateOfBirth.formatted(date: .abbreviated, time: .omitted))")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }

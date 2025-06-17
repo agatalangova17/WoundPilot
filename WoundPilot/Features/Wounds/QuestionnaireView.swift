@@ -43,7 +43,7 @@ struct QuestionnaireView: View {
                     if isSaving {
                         ProgressView()
                     } else {
-                        Text("Continue to Size Analysis")
+                        Text("Continue to AI Analysis")
                     }
                 }
                 .disabled(isSaving || woundAgeInDays.isEmpty)
