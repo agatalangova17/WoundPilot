@@ -38,9 +38,7 @@ struct ImageConfirmationView: View {
 
                 Button(action: {
                     isLoading = true
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        onConfirm()
-                    }
+                    onConfirm()
                 }) {
                     if isLoading {
                         ProgressView()

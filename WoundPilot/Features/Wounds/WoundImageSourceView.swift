@@ -14,6 +14,8 @@ struct WoundImageSourceView: View {
     @State private var woundGroupId = UUID().uuidString
     @State private var woundGroupName = "Quick Analysis \(Date().formatted(date: .abbreviated, time: .shortened))"
 
+    @State private var nextStepTriggered = false  // ✅ Triggers transition after confirmation sheet closes
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 28) {
@@ -95,13 +97,7 @@ struct WoundImageSourceView: View {
                         image: image,
                         onConfirm: {
                             showConfirmationView = false
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                                if selectedPatient != nil {
-                                    showGroupPicker = true
-                                } else {
-                                    navigateToPrepare = true
-                                }
-                            }
+                            nextStepTriggered = true  // ✅ Set flag to proceed after dismissal
                         },
                         onRetake: {
                             selectedImage = nil
@@ -127,7 +123,7 @@ struct WoundImageSourceView: View {
                 }
             }
 
-            // MARK: - Prepare Analysis
+            // MARK: - Navigation to Prepare Analysis
             .navigationDestination(isPresented: $navigateToPrepare) {
                 if let image = selectedImage {
                     PrepareWoundAnalysisView(
@@ -138,6 +134,18 @@ struct WoundImageSourceView: View {
                     )
                 } else {
                     EmptyView()
+                }
+            }
+
+            // ✅ Trigger transition cleanly once confirmation sheet is closed
+            .onChange(of: nextStepTriggered) {
+                if nextStepTriggered {
+                    if selectedPatient != nil {
+                        showGroupPicker = true
+                    } else {
+                        navigateToPrepare = true
+                    }
+                    nextStepTriggered = false
                 }
             }
         }
