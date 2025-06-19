@@ -10,32 +10,47 @@ struct PrepareWoundAnalysisView: View {
     @State private var selectedGroup: WoundGroup?
     @State private var newGroupName: String = ""
     @State private var showExplanation = false
-    @State private var showDropdown = false
+    @State private var showGroups = false
+    @State private var showImage = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(alignment: .leading, spacing: 28) {
+                    
+                    // Title + Steps
+                    VStack(alignment: .center, spacing: 12) {
+                        Text("You're just 3 steps away from an AI-powered wound evaluation.")
+                            .font(.title2.bold())
+                            .multilineTextAlignment(.center)
+                            .padding(.top, 8)
 
-                    // Main Heading
-                    Text("You're just 3 steps away from an AI-powered wound evaluation.")
-                        .font(.title2.bold())
-                        .multilineTextAlignment(.center)
-                        .padding(.top, 8)
-                        .padding(.horizontal)
+                        stepList
+                    }
+                    .frame(maxWidth: .infinity)
 
-                    // Step List
-                    stepList
+                    // Image toggle
+                    if showImage {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 160)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .shadow(radius: 3)
+                            .transition(.opacity)
+                            .onTapGesture { withAnimation { showImage = false } }
+                    } else {
+                        Button {
+                            withAnimation { showImage = true }
+                        } label: {
+                            Label("Preview Wound Image", systemImage: "photo")
+                                .font(.subheadline)
+                                .foregroundColor(.accentBlue)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    }
 
-                    // Image Preview
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 200)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .shadow(radius: 4)
-
-                    // Group Selection
+                    // Group Section
                     if let patient = patient {
                         groupSection(for: patient)
                     }
@@ -52,7 +67,6 @@ struct PrepareWoundAnalysisView: View {
                             .foregroundColor(.white)
                             .cornerRadius(12)
                     }
-                    .padding(.top, 8)
                     .disabled(patient != nil && (selectedGroup == nil && newGroupName.trimmingCharacters(in: .whitespaces).isEmpty))
                 }
                 .padding()
@@ -91,7 +105,7 @@ struct PrepareWoundAnalysisView: View {
     }
 
     private func stepRow(_ icon: String, _ title: String, _ detail: String) -> some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(spacing: 12) {
             Image(systemName: icon)
                 .foregroundColor(.accentBlue)
                 .font(.title3)
@@ -102,23 +116,42 @@ struct PrepareWoundAnalysisView: View {
         }
     }
 
-    // MARK: - Group Picker Section
+    // MARK: - Group Section
     private func groupSection(for patient: Patient) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             Text("Assign Wound Group")
                 .font(.headline)
 
-            if !existingGroups.isEmpty {
-                DisclosureGroup(isExpanded: $showDropdown) {
-                    VStack(spacing: 6) {
+            if existingGroups.isEmpty {
+                Text("No existing wound groups found.")
+                    .font(.footnote)
+                    .foregroundColor(.gray)
+
+                TextField("Create first group (e.g. Right Leg Surgery)", text: $newGroupName)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+            } else {
+                Button {
+                    withAnimation {
+                        showGroups.toggle()
+                    }
+                } label: {
+                    HStack {
+                        Text(showGroups ? "Hide Existing Groups" : "View Existing Groups")
+                        Spacer()
+                        Image(systemName: showGroups ? "chevron.up" : "chevron.down")
+                    }
+                    .foregroundColor(.accentBlue)
+                    .font(.subheadline)
+                }
+
+                if showGroups {
+                    VStack(alignment: .leading, spacing: 6) {
                         ForEach(existingGroups, id: \.id) { group in
                             Button {
                                 selectedGroup = group
-                                showDropdown = false
                             } label: {
                                 HStack {
                                     Text(group.name)
-                                        .foregroundColor(.primary)
                                     Spacer()
                                     if selectedGroup?.id == group.id {
                                         Image(systemName: "checkmark")
@@ -127,42 +160,23 @@ struct PrepareWoundAnalysisView: View {
                                 }
                                 .padding(.vertical, 4)
                             }
+                            .foregroundColor(.primary)
                         }
                     }
-                } label: {
-                    HStack {
-                        Text(selectedGroup?.name ?? "Select Existing Group")
-                            .foregroundColor(selectedGroup == nil ? .gray : .primary)
-                        Spacer()
-                        Image(systemName: "chevron.down")
-                            .rotationEffect(.degrees(showDropdown ? 180 : 0))
-                            .animation(.easeInOut(duration: 0.2), value: showDropdown)
-                    }
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(10)
                 }
-            }
 
-            TextField("Or create new group (e.g. Right Leg Surgery)", text: $newGroupName)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
+                Text("Or create new group:")
+                    .font(.footnote)
+                    .foregroundColor(.gray)
+
+                TextField("e.g. Right Leg Surgery", text: $newGroupName)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+            }
 
             DisclosureGroup("Why assign a wound group?", isExpanded: $showExplanation) {
                 Text("Wound groups help track healing progress over time. Select an existing group if this wound was treated before, or create a new group to start tracking.")
                     .font(.footnote)
                     .foregroundColor(.gray)
-                    .padding(.top, 4)
-
-                if !existingGroups.isEmpty {
-                    Divider()
-                    Text("Existing Groups:")
-                        .font(.footnote.bold())
-                    ForEach(existingGroups) { group in
-                        Text("• \(group.name)")
-                            .font(.footnote)
-                            .foregroundColor(.secondary)
-                    }
-                }
             }
         }
         .padding()
@@ -177,8 +191,8 @@ struct PrepareWoundAnalysisView: View {
             .whereField("patientId", isEqualTo: patient.id)
             .getDocuments { snapshot, error in
                 if let documents = snapshot?.documents {
-                    existingGroups = documents.map { doc in
-                        WoundGroup(id: doc.documentID, name: doc["name"] as? String ?? "")
+                    existingGroups = documents.map {
+                        WoundGroup(id: $0.documentID, name: $0["name"] as? String ?? "")
                     }
                 }
             }
