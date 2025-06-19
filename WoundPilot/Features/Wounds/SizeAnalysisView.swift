@@ -6,11 +6,16 @@ import UIKit
 struct SizeAnalysisView: View {
     let wound: Wound
 
-    // Simulated values for now
+    // Simulated AI-estimated values
     let width: Double = 3.5
     let height: Double = 4.0
 
     @State private var navigateToQuestionnaire = false
+
+    // Manual override
+    @State private var manualEntry = false
+    @State private var manualWidth = ""
+    @State private var manualHeight = ""
 
     var body: some View {
         VStack(spacing: 20) {
@@ -42,7 +47,24 @@ struct SizeAnalysisView: View {
             }
             .font(.subheadline)
 
+            // Toggle for manual size entry
+            Toggle("Edit Size Manually", isOn: $manualEntry)
+                .padding(.top)
+
+            if manualEntry {
+                VStack(spacing: 12) {
+                    TextField("Width (cm)", text: $manualWidth)
+                        .keyboardType(.decimalPad)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+
+                    TextField("Height (cm)", text: $manualHeight)
+                        .keyboardType(.decimalPad)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                }
+            }
+
             Button("Continue") {
+                // Optional: You could validate manual entries here before navigating
                 navigateToQuestionnaire = true
             }
             .frame(maxWidth: .infinity)
@@ -60,6 +82,7 @@ struct SizeAnalysisView: View {
             QuestionnaireView(
                 woundGroupId: wound.woundGroupId,
                 patientId: wound.patientId
+                // Optionally pass manual size too if needed
             )
         }
     }

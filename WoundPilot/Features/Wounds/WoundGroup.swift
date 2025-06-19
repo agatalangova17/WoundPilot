@@ -1,6 +1,6 @@
 import Foundation
 
-struct WoundGroup: Identifiable {
+struct WoundGroup: Identifiable, Hashable {
     var id: String
     var name: String
 }
