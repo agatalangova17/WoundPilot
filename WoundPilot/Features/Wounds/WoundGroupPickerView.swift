@@ -5,52 +5,47 @@ import FirebaseAuth
 struct WoundGroupPickerView: View {
     let patientId: String
     let onGroupSelected: (String, String) -> Void
-    @Environment(\.dismiss) var dismiss
 
     @State private var existingGroups: [WoundGroup] = []
     @State private var newGroupName: String = ""
     @State private var isLoading = true
 
     var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("Select Existing Wound Group")) {
-                    if isLoading {
-                        ProgressView("Loading groups...")
-                    } else if existingGroups.isEmpty {
-                        Text("No existing groups")
-                            .foregroundColor(.gray)
-                    } else {
-                        ForEach(existingGroups) { group in
-                            Button(action: {
-                                onGroupSelected(group.id, group.name)
-                                dismiss()
-                            }) {
-                                HStack {
-                                    Text(group.name)
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                }
+        Form {
+            Section(header: Text("Select Existing Wound Group")) {
+                if isLoading {
+                    ProgressView("Loading groups...")
+                } else if existingGroups.isEmpty {
+                    Text("No existing groups")
+                        .foregroundColor(.gray)
+                } else {
+                    ForEach(existingGroups) { group in
+                        Button(action: {
+                            onGroupSelected(group.id, group.name)
+                        }) {
+                            HStack {
+                                Text(group.name)
+                                Spacer()
+                                Image(systemName: "chevron.right")
                             }
                         }
                     }
                 }
-
-                Section(header: Text("Or Create New Group")) {
-                    TextField("Group Name", text: $newGroupName)
-
-                    Button("Create and Select") {
-                        let groupId = UUID().uuidString
-                        let groupName = newGroupName.trimmingCharacters(in: .whitespaces)
-                        onGroupSelected(groupId, groupName)
-                        dismiss()
-                    }
-                    .disabled(newGroupName.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
             }
-            .navigationTitle("Wound Group")
-            .onAppear(perform: fetchExistingGroups)
+
+            Section(header: Text("Or Create New Group")) {
+                TextField("Group Name", text: $newGroupName)
+
+                Button("Create and Select") {
+                    let groupId = UUID().uuidString
+                    let groupName = newGroupName.trimmingCharacters(in: .whitespaces)
+                    onGroupSelected(groupId, groupName)
+                }
+                .disabled(newGroupName.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
         }
+        .navigationTitle("Wound Group")
+        .onAppear(perform: fetchExistingGroups)
     }
 
     func fetchExistingGroups() {
@@ -70,7 +65,6 @@ struct WoundGroupPickerView: View {
                             return WoundGroup(id: id, name: name)
                         }
 
-                    // Deduplicate by ID
                     let unique = Dictionary(grouping: groups, by: { $0.id }).compactMap { $0.value.first }
                     self.existingGroups = unique
                 }
