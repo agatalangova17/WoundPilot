@@ -22,7 +22,7 @@ struct HomeView: View {
                             .clipShape(Circle())
                             .shadow(radius: 4)
 
-                        Text("Welcome back, Dr. \(userName)!")
+                        Text("Welcome back, \(userName)!")
                             .font(.title3.bold())
 
                         Text(formattedDate())
