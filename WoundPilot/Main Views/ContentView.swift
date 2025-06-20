@@ -6,7 +6,7 @@ struct ContentView: View {
 
     var body: some View {
         if isUserLoggedIn {
-            HomeView(isUserLoggedIn: $isUserLoggedIn)
+            MainTabView(isUserLoggedIn: $isUserLoggedIn)
         } else {
             WelcomeView(isUserLoggedIn: $isUserLoggedIn)
         }

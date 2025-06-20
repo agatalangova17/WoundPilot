@@ -6,141 +6,108 @@ struct HomeView: View {
     @Binding var isUserLoggedIn: Bool
     @State private var showAddPatient = false
     @State private var showPatientList = false
+    @State private var showProfile = false
     @State private var userName: String = ""
     @State private var showContent = false
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
 
-                VStack(spacing: 24) {
-                    // MARK: - Avatar + Greeting
-                    VStack(spacing: 16) {
-                        Image("avatar")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 180, height: 180)
-                            .opacity(showContent ? 1 : 0)
-                            .animation(.easeOut(duration: 0.6).delay(0.1), value: showContent)
-                            .padding(.bottom, 9)
-
-                        Text("Welcome back, \(userName)!")
-                            .font(.system(.title2, design: .rounded).weight(.semibold))
-                            .opacity(showContent ? 1 : 0)
-                            .animation(.easeOut(duration: 0.6).delay(0.2), value: showContent)
-
-                        VStack(spacing: 4) {
+                    // MARK: - Header with Date & Profile
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
                             Text(formattedDate())
                                 .font(.subheadline)
-                                .foregroundColor(.black)
+                                .foregroundColor(.secondary)
 
-                            Divider()
-                                .frame(width: 160)
-                                .opacity(0.08)
-                                .padding(.top, 2)
-                                .padding(.bottom, 9)
-
-                    
-
-                           
-                        }
-                        .multilineTextAlignment(.center)
-                        .padding(.top, 2)
-                        .opacity(showContent ? 1 : 0)
-                        .animation(.easeIn(duration: 1.0).delay(0.4), value: showContent)
-                    }
-                    .padding(.top)
-
-                    // MARK: - Main Actions
-                    VStack(spacing: 14) {
-                        
-                        //Quick analysis
-                        NavigationLink(destination: WoundImageSourceView(selectedPatient: nil)) {
-                            Label("Quick Analysis", systemImage: "bolt.fill")
-                                .font(.system(size: 16, weight: .medium, design: .rounded))
-                                .foregroundColor(.accentBlue)
-                                .frame(maxWidth: .infinity, minHeight: 46)
-                                .background(Color.accentBlue.opacity(0.2))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.accentBlue.opacity(0.4), lineWidth: 1)
-                                )
-                                .cornerRadius(8)
+                            Text("Dashboard")
+                                .font(.title2.bold())
                         }
 
-                        // Add New Patient
+                        Spacer()
+
                         Button {
-                            showAddPatient = true
+                            showProfile = true
                         } label: {
-                            Label("Add New Patient", systemImage: "plus.circle.fill")
-                                .font(.system(size: 16, weight: .medium, design: .rounded))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity, minHeight: 46)
-                                .background(Color.primaryBlue)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.primaryBlue.opacity(0.4), lineWidth: 1)
-                                )
-                                .cornerRadius(8)
-                        }
-
-                        // View Patients
-                        Button {
-                            showPatientList = true
-                        } label: {
-                            Label("View Patients", systemImage: "person.3.fill")
-                                .font(.system(size: 16, weight: .medium, design: .rounded))
-                                .foregroundColor(.gray)
-                                .frame(maxWidth: .infinity, minHeight: 46)
-                                .background(Color.gray.opacity(0.1))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                                )
-                                .cornerRadius(8)
+                            Image(systemName: "person.crop.circle")
+                                .font(.system(size: 24))
+                                .foregroundColor(.primary)
+                                .padding(6)
+                                .background(Color(.systemGray5))
+                                .clipShape(Circle())
                         }
                     }
                     .padding(.horizontal)
-                    .opacity(showContent ? 1 : 0)
-                    .animation(.easeOut(duration: 0.6).delay(0.5), value: showContent)
+                    .padding(.top)
 
-                    Spacer()
-
-                    // MARK: - Log Out
-                    Button(action: {
-                        do {
-                            try Auth.auth().signOut()
-                            isUserLoggedIn = false
-                        } catch {
-                            print("Logout failed: \(error)")
-                        }
-                    }) {
-                        Text("Log Out")
-                            .font(.footnote)
-                            .foregroundColor(.red)
-                            .padding(6)
-                            .padding(.horizontal, 16)
-                            .background(Color.red.opacity(0.05))
-                            .cornerRadius(8)
+                    // MARK: - Large Quick Analysis Card
+                    NavigationLink(destination: WoundImageSourceView(selectedPatient: nil)) {
+                        DashboardCard(
+                            icon: "bolt.fill",
+                            title: "Quick Analysis",
+                            subtitle: "Snap a wound photo instantly",
+                            iconColor: .accentBlue,
+                            bgColor: Color.accentBlue.opacity(0.08),
+                            layout: .large,
+                            textColor: .primary,
+                            showsChevron: true
+                        )
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal)
                     }
-                    .padding(.bottom, 20)
-                    .opacity(showContent ? 1 : 0)
-                    .animation(.easeOut(duration: 0.6).delay(0.6), value: showContent)
+
+                    // MARK: - Two Side-by-Side Square Cards
+                    HStack(spacing: 16) {
+                        Button {
+                            showAddPatient = true
+                        } label: {
+                            DashboardCard(
+                                icon: "person.crop.circle.badge.plus",
+                                title: "Add Patient",
+                                subtitle: "New record",
+                                iconColor: .white,
+                                bgColor: Color.primaryBlue,
+                                layout: .square,
+                                textColor: .white,
+                                showsChevron: true
+                            )
+                        }
+
+                        Button {
+                            showPatientList = true
+                        } label: {
+                            DashboardCard(
+                                icon: "person.3.fill",
+                                title: "View Patients",
+                                subtitle: "Saved list",
+                                iconColor: .gray,
+                                bgColor: Color.gray.opacity(0.1),
+                                layout: .square,
+                                showsChevron: true
+                            )
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom)
                 }
-                .padding(.horizontal)
+            }
+            .background(Color(.systemGroupedBackground))
+            .navigationDestination(isPresented: $showAddPatient) {
+                AddPatientView()
+            }
+            .navigationDestination(isPresented: $showPatientList) {
+                PatientListView()
+            }
+            .navigationDestination(isPresented: $showProfile) {
+                ProfileView(isUserLoggedIn: $isUserLoggedIn)
             }
             .onAppear {
                 fetchUserName()
                 withAnimation {
                     showContent = true
                 }
-            }
-            .navigationDestination(isPresented: $showAddPatient) {
-                AddPatientView()
-            }
-            .navigationDestination(isPresented: $showPatientList) {
-                PatientListView()
             }
         }
     }
