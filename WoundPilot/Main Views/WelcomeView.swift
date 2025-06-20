@@ -29,13 +29,9 @@ struct WelcomeView: View {
 
                         // MARK: - App Title
                         VStack(spacing: 12) {
-                            Image(systemName: "cross.case.fill")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 80, height: 80)
-                                .foregroundColor(.accentBlue)
+                            
 
-                            Text("Welcome to WoundPilot!")
+                            Text("WoundPilot")
                                 .font(.largeTitle.bold())
                                 .foregroundColor(.black)
 
@@ -69,11 +65,37 @@ struct WelcomeView: View {
                                 }
                             }
                             .padding()
-                            .background(Color.gray.opacity(0.05))
                             .cornerRadius(12)
                         }
                         .padding(.horizontal)
 
+                        
+
+                        // MARK: - Meet Your Assistant
+                        VStack(spacing: 16) {
+                            Image("avatar")
+                                .resizable()
+                                .frame(width: 120, height: 120)
+                                .clipShape(Circle())
+                                .shadow(radius: 3)
+                                .padding(.bottom, 4)
+
+                            Text("Meet your clinical assistant.")
+                                .font(.headline)
+                                .foregroundColor(.black)
+
+                            Text("I am here to guide you through fast and secure wound assessments powered by AI.")
+                                .font(.subheadline)
+                                .multilineTextAlignment(.center)
+                                .foregroundColor(.gray)
+                                .padding(.horizontal)
+                        }
+                        .padding()
+                        .cornerRadius(14)
+                        .padding(.horizontal)
+                        
+                        
+                        
                         // MARK: - Watch Video
                         ZStack {
                             RoundedRectangle(cornerRadius: 16)
@@ -92,21 +114,8 @@ struct WelcomeView: View {
                             }
                         }
                         .padding(.horizontal)
-
-                        // MARK: - Benefits
-                        VStack(spacing: 12) {
-                            Text("Benefits")
-                                .font(.headline)
-                                .foregroundColor(.black)
-
-                            HStack(spacing: 12) {
-                                BenefitCard(icon: "stethoscope", text: "Doctors & Nurses")
-                                BenefitCard(icon: "bolt.fill", text: "Fast Insights")
-                                BenefitCard(icon: "lock.shield.fill", text: "Secure by Design")
-                            }
-                        }
-                        .padding(.horizontal)
-
+                        
+                        
                         // MARK: - How It Works
                         VStack(spacing: 12) {
                             Text("How it Works")
@@ -153,10 +162,14 @@ struct WelcomeView: View {
                         .padding(.horizontal)
 
                         // MARK: - FAQ Section
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("FAQ")
-                                .font(.headline)
-                                .foregroundColor(.black)
+                        VStack(alignment: .leading, spacing: 16) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "questionmark.circle.fill")
+                                    .foregroundColor(.accentBlue)
+                                Text("FAQ")
+                                    .font(.title3.bold())
+                                    .foregroundColor(.black)
+                            }
 
                             ForEach(faqList, id: \.question) { faq in
                                 DisclosureGroup(
@@ -168,13 +181,23 @@ struct WelcomeView: View {
                                     Text(faq.answer)
                                         .font(.subheadline)
                                         .foregroundColor(.gray)
+                                        .padding(.top, 4)
+                                        .transition(.opacity)
                                 } label: {
                                     Text(faq.question)
+                                        .font(.subheadline.weight(.medium))
                                         .foregroundColor(.primaryBlue)
                                 }
                                 .padding()
-                                .background(Color.accentBlue.opacity(0.1))
-                                .cornerRadius(8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color.accentBlue.opacity(0.07))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color.accentBlue.opacity(0.2), lineWidth: 1)
+                                )
+                                .animation(.easeInOut(duration: 0.2), value: expandedQuestion)
                             }
                         }
                         .padding(.horizontal)

@@ -17,45 +17,29 @@ struct PrepareWoundAnalysisView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
-                    
-                    // Title + Steps
-                    VStack(alignment: .center, spacing: 12) {
+
+                    // MARK: - Avatar + Title + Steps
+                    VStack(alignment: .center, spacing: 16) {
+                        Image(systemName: "stethoscope.circle.fill")
+                            .resizable()
+                            .frame(width: 60, height: 60)
+                            .foregroundColor(.accentBlue)
+                            .padding(.top, 8)
+
                         Text("You're just 3 steps away from an AI-powered wound evaluation.")
                             .font(.title2.bold())
                             .multilineTextAlignment(.center)
-                            .padding(.top, 8)
 
                         stepList
                     }
                     .frame(maxWidth: .infinity)
 
-                    // Image toggle
-                    if showImage {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 160)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                            .shadow(radius: 3)
-                            .transition(.opacity)
-                            .onTapGesture { withAnimation { showImage = false } }
-                    } else {
-                        Button {
-                            withAnimation { showImage = true }
-                        } label: {
-                            Label("Preview Wound Image", systemImage: "photo")
-                                .font(.subheadline)
-                                .foregroundColor(.accentBlue)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .center)
-                    }
-
-                    // Group Section
+                    // MARK: - Wound Group Section
                     if let patient = patient {
                         groupSection(for: patient)
                     }
 
-                    // Continue
+                    // MARK: - Continue Button
                     Button {
                         proceedToLocation = true
                     } label: {
@@ -184,7 +168,7 @@ struct PrepareWoundAnalysisView: View {
         .cornerRadius(12)
     }
 
-    // MARK: - Fetch
+    // MARK: - Firestore
     private func fetchExistingGroups(for patient: Patient) {
         let db = Firestore.firestore()
         db.collection("woundGroups")
