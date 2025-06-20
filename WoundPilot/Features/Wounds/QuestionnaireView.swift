@@ -15,44 +15,82 @@ struct QuestionnaireView: View {
     @State private var errorMessage: String?
 
     var body: some View {
-        Form {
-            Section(header: Text("")) {
-                Toggle("Patient has diabetes", isOn: $isDiabetic)
-                Toggle("Wound shows signs of infection", isOn: $isInfected)
-                Toggle("Wound has exudate (fluid)", isOn: $hasExudate)
-                
-                TextField("Wound age (in days)", text: $woundAgeInDays)
-                    .keyboardType(.numberPad)
+        VStack {
+            ScrollView {
+                VStack(spacing: 20) {
 
-                Picker("Pain level (0–10)", selection: $painLevel) {
-                    ForEach(0..<11) { level in
-                        Text("\(level)").tag(level)
+                    // Title
+                    Text("Clinical Questionnaire")
+                        .font(.title2.bold())
+                        .padding(.top, 8)
+
+                    // Questionnaire Section
+                    VStack(spacing: 16) {
+
+                        ToggleRow(title: "Patient has diabetes", isOn: $isDiabetic)
+                        ToggleRow(title: "Wound shows signs of infection", isOn: $isInfected)
+                        ToggleRow(title: "Wound has exudate (fluid)", isOn: $hasExudate)
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Wound age (in days)")
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+
+                            TextField("Enter number", text: $woundAgeInDays)
+                                .keyboardType(.numberPad)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                        }
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Pain level (0–10)")
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+
+                            Picker("Pain level", selection: $painLevel) {
+                                ForEach(0..<11) {
+                                    Text("\($0)").tag($0)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                        }
+                    }
+                    .padding()
+                    .background(Color(.secondarySystemBackground))
+                    .cornerRadius(14)
+                    .padding(.horizontal)
+
+                    if let error = errorMessage {
+                        Text(error)
+                            .foregroundColor(.red)
+                            .font(.footnote)
+                            .padding(.horizontal)
                     }
                 }
             }
 
-            if let errorMessage = errorMessage {
-                Section {
-                    Text(errorMessage)
-                        .foregroundColor(.red)
+            // Continue Button
+            Button(action: saveAnswers) {
+                if isSaving {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                } else {
+                    Text("Continue to AI Analysis")
+                        .bold()
+                        .frame(maxWidth: .infinity)
+                        .padding()
                 }
             }
-
-            Section {
-                Button(action: saveAnswers) {
-                    if isSaving {
-                        ProgressView()
-                    } else {
-                        Text("Continue to AI Analysis")
-                    }
-                }
-                .disabled(isSaving || woundAgeInDays.isEmpty)
-            }
+            .background(woundAgeInDays.isEmpty ? Color.gray.opacity(0.3) : Color.accentColor)
+            .foregroundColor(.white)
+            .cornerRadius(12)
+            .padding()
+            .disabled(isSaving || woundAgeInDays.isEmpty)
         }
-        .navigationTitle("Clinical Questionnaire")
+        .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $showNextView) {
-            Text("AI Analysis")
+            AIAnalysisView()
         }
     }
 
@@ -88,6 +126,20 @@ struct QuestionnaireView: View {
                     showNextView = true
                 }
             }
+        }
+    }
+}
+
+// MARK: - ToggleRow
+struct ToggleRow: View {
+    let title: String
+    @Binding var isOn: Bool
+
+    var body: some View {
+        Toggle(isOn: $isOn) {
+            Text(title)
+                .font(.subheadline)
+                .foregroundColor(.primary)
         }
     }
 }

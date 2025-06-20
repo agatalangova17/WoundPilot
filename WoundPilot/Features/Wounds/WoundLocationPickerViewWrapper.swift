@@ -20,11 +20,29 @@ struct WoundLocationPickerViewWrapper: View {
             )
 
             if selectedRegion != nil {
-                Button("Confirm Location") {
+                Button(action: {
                     navigateToPrep = true
+                }) {
+                    VStack(spacing: 3) {
+
+                        Text("Confirm")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        LinearGradient(
+                            colors: [Color.accentBlue, Color.primaryBlue],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .cornerRadius(16)
+                    .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
                 }
-                .buttonStyle(.borderedProminent)
-                .padding()
+                .padding(.horizontal)
+                .padding(.top, 6)
             }
         }
         .navigationDestination(isPresented: $navigateToPrep) {

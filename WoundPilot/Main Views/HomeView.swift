@@ -49,7 +49,7 @@ struct HomeView: View {
                             title: "Quick Analysis",
                             subtitle: "Snap a wound photo instantly",
                             iconColor: .accentBlue,
-                            bgColor: Color.accentBlue.opacity(0.08),
+                            bgColor: Color.accentBlue.opacity(0.25),
                             layout: .large,
                             textColor: .primary,
                             showsChevron: true

@@ -8,31 +8,48 @@ struct ImageConfirmationView: View {
     @State private var isLoading = false
 
     var body: some View {
-        VStack(spacing: 24) {
-            Text("Confirm Wound Photo")
-                .font(.title2)
-                .fontWeight(.semibold)
-                .padding(.top)
+        VStack(spacing: 28) {
+            // Title
+            VStack(spacing: 8) {
+                Text("Confirm Wound Photo")
+                    .font(.title2.bold())
+                    .multilineTextAlignment(.center)
 
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFit()
-                .frame(maxWidth: .infinity)
-                .cornerRadius(12)
-                .shadow(radius: 4)
-                .padding(.horizontal)
+                Text("Make sure the photo is clear and ruler is visible.")
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.top)
 
-            Text("Is this photo clear and accurate?")
-                .foregroundColor(.gray)
-                .font(.subheadline)
+            // Image Card
+            ZStack {
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(.systemGray6))
+                    .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
 
-            HStack(spacing: 20) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .cornerRadius(12)
+                    .padding(8)
+            }
+            .frame(height: 260)
+            .padding(.horizontal)
+
+            // Buttons
+            VStack(spacing: 16) {
                 Button(action: onRetake) {
-                    Label("Retake", systemImage: "arrow.counterclockwise")
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.gray.opacity(0.2))
-                        .cornerRadius(10)
+                    HStack {
+                        Image(systemName: "arrow.counterclockwise")
+                        Text("Retake")
+                    }
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.gray.opacity(0.15))
+                    .foregroundColor(.black)
+                    .cornerRadius(12)
                 }
                 .disabled(isLoading)
 
@@ -42,22 +59,28 @@ struct ImageConfirmationView: View {
                 }) {
                     if isLoading {
                         ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             .frame(maxWidth: .infinity)
                             .padding()
                     } else {
-                        Label("Use Photo", systemImage: "checkmark.circle.fill")
-                            .padding()
-                            .frame(maxWidth: .infinity)
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                            Text("Use Photo")
+                        }
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
                     }
                 }
-                .background(Color.accentColor)
+                .background(Color.accentBlue)
                 .foregroundColor(.white)
-                .cornerRadius(10)
+                .cornerRadius(12)
             }
             .padding(.horizontal)
 
             Spacer()
         }
         .padding()
+        .background(Color.white)
     }
 }
