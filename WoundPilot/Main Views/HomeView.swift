@@ -7,77 +7,103 @@ struct HomeView: View {
     @State private var showAddPatient = false
     @State private var showPatientList = false
     @State private var userName: String = ""
+    @State private var showContent = false
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
+            ZStack {
+                
 
-                    // MARK: - Avatar & Welcome Section
-                    VStack(spacing: 12) {
+                VStack(spacing: 24) {
+                    // MARK: - Avatar + Greeting
+                    VStack(spacing: 16) {
                         Image("avatar")
                             .resizable()
                             .scaledToFit()
-                            .frame(width: 120, height: 120)
-                            .clipShape(Circle())
-                            .shadow(radius: 4)
+                            .frame(width: 180, height: 180)
+                            .opacity(showContent ? 1 : 0)
+                            .animation(.easeOut(duration: 0.6).delay(0.1), value: showContent)
+                            .padding(.bottom, 9)
 
                         Text("Welcome back, \(userName)!")
-                            .font(.title3.bold())
+                            .font(.system(.title2, design: .rounded).weight(.semibold))
+                            .opacity(showContent ? 1 : 0)
+                            .animation(.easeOut(duration: 0.6).delay(0.2), value: showContent)
 
-                        Text(formattedDate())
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
+                        VStack(spacing: 4) {
+                            Text(formattedDate())
+                                .font(.subheadline)
+                                .foregroundColor(.black)
+
+                            Divider()
+                                .frame(width: 160)
+                                .opacity(0.08)
+                                .padding(.top, 2)
+                                .padding(.bottom, 9)
+
+                    
+
+                           
+                        }
+                        .multilineTextAlignment(.center)
+                        .padding(.top, 2)
+                        .opacity(showContent ? 1 : 0)
+                        .animation(.easeIn(duration: 1.0).delay(0.4), value: showContent)
                     }
-                    .frame(maxWidth: .infinity)
                     .padding(.top)
 
-                    // MARK: - Main Actions Section
-                    VStack(spacing: 16) {
+                    // MARK: - Main Actions
+                    VStack(spacing: 14) {
+                        
+                        //Quick analysis
                         NavigationLink(destination: WoundImageSourceView(selectedPatient: nil)) {
-                            HStack {
-                                Image(systemName: "bolt.fill")
-                                Text("Quick Analysis")
-                            }
-                            .font(.headline)
-                            .foregroundColor(.orange)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.orange.opacity(0.1))
-                            .cornerRadius(12)
+                            Label("Quick Analysis", systemImage: "bolt.fill")
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .foregroundColor(.accentBlue)
+                                .frame(maxWidth: .infinity, minHeight: 46)
+                                .background(Color.accentBlue.opacity(0.2))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color.accentBlue.opacity(0.4), lineWidth: 1)
+                                )
+                                .cornerRadius(8)
                         }
 
+                        // Add New Patient
                         Button {
                             showAddPatient = true
                         } label: {
-                            HStack {
-                                Image(systemName: "plus.circle.fill")
-                                Text("Add New Patient")
-                            }
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.primaryBlue)
-                            .cornerRadius(12)
+                            Label("Add New Patient", systemImage: "plus.circle.fill")
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity, minHeight: 46)
+                                .background(Color.primaryBlue)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color.primaryBlue.opacity(0.4), lineWidth: 1)
+                                )
+                                .cornerRadius(8)
                         }
 
+                        // View Patients
                         Button {
                             showPatientList = true
                         } label: {
-                            HStack {
-                                Image(systemName: "person.3.fill")
-                                Text("View Patients")
-                            }
-                            .font(.headline)
-                            .foregroundColor(.primaryBlue)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.accentBlue.opacity(0.12))
-                            .cornerRadius(12)
+                            Label("View Patients", systemImage: "person.3.fill")
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .foregroundColor(.gray)
+                                .frame(maxWidth: .infinity, minHeight: 46)
+                                .background(Color.gray.opacity(0.1))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                )
+                                .cornerRadius(8)
                         }
                     }
                     .padding(.horizontal)
+                    .opacity(showContent ? 1 : 0)
+                    .animation(.easeOut(duration: 0.6).delay(0.5), value: showContent)
 
                     Spacer()
 
@@ -91,18 +117,25 @@ struct HomeView: View {
                         }
                     }) {
                         Text("Log Out")
-                            .font(.subheadline)
+                            .font(.footnote)
                             .foregroundColor(.red)
-                            .padding(8)
+                            .padding(6)
                             .padding(.horizontal, 16)
                             .background(Color.red.opacity(0.05))
                             .cornerRadius(8)
                     }
                     .padding(.bottom, 20)
+                    .opacity(showContent ? 1 : 0)
+                    .animation(.easeOut(duration: 0.6).delay(0.6), value: showContent)
                 }
-                .padding()
+                .padding(.horizontal)
             }
-            .onAppear(perform: fetchUserName)
+            .onAppear {
+                fetchUserName()
+                withAnimation {
+                    showContent = true
+                }
+            }
             .navigationDestination(isPresented: $showAddPatient) {
                 AddPatientView()
             }
@@ -112,7 +145,8 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Fetch User Name
+    // MARK: - Helpers
+
     func fetchUserName() {
         guard let userId = Auth.auth().currentUser?.uid else { return }
         let db = Firestore.firestore()

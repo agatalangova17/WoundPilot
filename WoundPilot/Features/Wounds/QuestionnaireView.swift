@@ -16,7 +16,7 @@ struct QuestionnaireView: View {
 
     var body: some View {
         Form {
-            Section(header: Text("Clinical Information")) {
+            Section(header: Text("")) {
                 Toggle("Patient has diabetes", isOn: $isDiabetic)
                 Toggle("Wound shows signs of infection", isOn: $isInfected)
                 Toggle("Wound has exudate (fluid)", isOn: $hasExudate)

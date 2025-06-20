@@ -9,74 +9,64 @@ struct WoundImageSourceView: View {
 
     @State private var showConfirmationView = false
     @State private var navigateToPrepare = false
-
-    @State private var nextStepTriggered = false  // ✅ Triggers transition after confirmation
+    @State private var nextStepTriggered = false
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 28) {
-                VStack(spacing: 10) {
-                    Image(systemName: "plus.rectangle.on.rectangle")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 60, height: 60)
-                        .foregroundColor(.accentBlue)
+            ZStack {
+                // Subtle background
+                LinearGradient(colors: [Color(white: 0.96), .white], startPoint: .top, endPoint: .bottom)
+                    .ignoresSafeArea()
 
-                    Text("Add Wound Image")
-                        .font(.title2.bold())
-                        .multilineTextAlignment(.center)
-                        .foregroundColor(.primary)
-                }
-                .padding(.top, 30)
+                VStack(spacing: 32) {
+                    
 
-                VStack(spacing: 16) {
-                    Button {
-                        pickerSource = .camera
-                        showImagePicker = true
-                    } label: {
-                        Label("Take Photo", systemImage: "camera.fill")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.primaryBlue)
-                            .foregroundColor(.white)
-                            .cornerRadius(10)
-                    }
+                    // MARK: - Image Input Options
+                    VStack(spacing: 16) {
+                        OptionCard(
+                            icon: "camera.fill",
+                            title: "Take Photo",
+                            caption: "Use your camera in real time",
+                            color: Color.primaryBlue
+                        ) {
+                            pickerSource = .camera
+                            showImagePicker = true
+                        }
 
-                    Button {
-                        pickerSource = .photoLibrary
-                        showImagePicker = true
-                    } label: {
-                        Label("Choose Photo", systemImage: "photo.on.rectangle")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.accentBlue.opacity(0.15))
-                            .foregroundColor(.accentBlue)
-                            .cornerRadius(10)
-                    }
+                        OptionCard(
+                            icon: "photo.on.rectangle",
+                            title: "Choose Photo",
+                            caption: "Pick an existing photo from gallery",
+                            color: Color.accentBlue.opacity(0.15),
+                            foreground: .accentBlue
+                        ) {
+                            pickerSource = .photoLibrary
+                            showImagePicker = true
+                        }
 
 #if targetEnvironment(simulator)
-                    Button {
-                        selectedImage = UIImage(named: "dummy_wound")
-                        showConfirmationView = true
-                    } label: {
-                        Label("Use Dummy Wound Image", systemImage: "photo.fill.on.rectangle.fill")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.gray.opacity(0.15))
-                            .foregroundColor(.gray)
-                            .cornerRadius(10)
-                    }
+                        OptionCard(
+                            icon: "photo.fill.on.rectangle.fill",
+                            title: "Use Dummy Wound Image",
+                            caption: "Simulator-only testing image",
+                            color: Color.gray.opacity(0.1),
+                            foreground: .gray
+                        ) {
+                            selectedImage = UIImage(named: "dummy_wound")
+                            showConfirmationView = true
+                        }
 #endif
-                }
-                .padding(.horizontal)
+                    }
+                    .padding(.horizontal)
 
-                Spacer()
+                    Spacer()
+                }
+                .padding()
             }
-            .padding()
             .navigationTitle("New Wound")
             .navigationBarTitleDisplayMode(.inline)
 
-            // MARK: - Image Picker Sheet
+            // MARK: - Sheets
             .sheet(isPresented: $showImagePicker) {
                 ImagePicker(image: $selectedImage, sourceType: pickerSource)
                     .onDisappear {
@@ -86,7 +76,6 @@ struct WoundImageSourceView: View {
                     }
             }
 
-            // MARK: - Image Confirmation Sheet
             .sheet(isPresented: $showConfirmationView) {
                 if let image = selectedImage {
                     ImageConfirmationView(
@@ -104,23 +93,58 @@ struct WoundImageSourceView: View {
                 }
             }
 
-            // MARK: - Navigation to Prepare Analysis
+            // MARK: - Navigation Trigger
             .navigationDestination(isPresented: $navigateToPrepare) {
                 if let image = selectedImage {
-                    PrepareWoundAnalysisView(
-                        image: image,
-                        patient: selectedPatient
-                    )
+                    PrepareWoundAnalysisView(image: image, patient: selectedPatient)
                 }
             }
 
-            // MARK: - Control Flow Trigger
             .onChange(of: nextStepTriggered) {
                 if nextStepTriggered {
                     navigateToPrepare = true
                     nextStepTriggered = false
                 }
             }
+        }
+    }
+}
+
+// MARK: - Card Component
+
+struct OptionCard: View {
+    var icon: String
+    var title: String
+    var caption: String
+    var color: Color
+    var foreground: Color = .white
+    var action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 16) {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundColor(foreground)
+                    .padding(10)
+                    .background(foreground.opacity(0.15))
+                    .clipShape(Circle())
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.headline)
+                        .foregroundColor(foreground)
+
+                    Text(caption)
+                        .font(.caption)
+                        .foregroundColor(foreground.opacity(0.7))
+                }
+
+                Spacer()
+            }
+            .padding()
+            .background(color)
+            .cornerRadius(14)
         }
     }
 }
