@@ -3,7 +3,6 @@ import FirebaseFirestore
 import FirebaseAuth
 import FirebaseStorage
 
-
 struct PatientListView: View {
     @State private var patients: [Patient] = []
     @State private var isLoading = true
@@ -32,54 +31,60 @@ struct PatientListView: View {
                     ProgressView("Loading patients...")
                         .padding()
                 } else if filteredPatients.isEmpty {
-                    VStack(spacing: 16) {
+                    VStack(spacing: 12) {
                         Image(systemName: "person.crop.circle.badge.exclamationmark")
-                            .font(.system(size: 50))
-                            .foregroundColor(.gray)
+                            .font(.system(size: 48))
+                            .foregroundColor(.secondary)
 
                         Text("No patients found")
                             .font(.title3)
-                            .foregroundColor(.gray)
+                            .foregroundColor(.primary)
 
                         Text("Start by adding a patient.")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding()
                 } else {
-                    VStack(spacing: 12) {
+                    LazyVStack(spacing: 14) {
                         ForEach(filteredPatients) { patient in
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(patient.name)
-                                        .font(.headline)
-                                        .foregroundColor(.primary)
-
-                                    Text("Date of Birth: \(patient.dateOfBirth.formatted(date: .abbreviated, time: .omitted))")
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                }
-
-                                Spacer()
-
-                                Button(action: {
-                                    patientToDelete = patient
-                                    showDeleteConfirmation = true
-                                }) {
-                                    Image(systemName: "trash")
-                                        .foregroundColor(.red)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color(.systemBackground))
-                                    .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
-                            )
-                            .onTapGesture {
+                            Button {
                                 selectedPatient = patient
                                 showPatientDetail = true
+                            } label: {
+                                HStack(spacing: 16) {
+                                    
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(patient.name)
+                                            .font(.headline)
+                                            .foregroundColor(.primary)
+
+                                        Text("Date of Birth: \(patient.dateOfBirth.formatted(date: .abbreviated, time: .omitted))")
+                                            .font(.subheadline)
+                                            .foregroundColor(.secondary)
+                                    }
+
+                                    Spacer()
+
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(.gray)
+                                }
+                                .padding()
+                                .background(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .fill(Color(.systemGray6))
+                                        .shadow(color: Color.black.opacity(0.03), radius: 1, x: 0, y: 1)
+                                )
+                            }
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    patientToDelete = patient
+                                    showDeleteConfirmation = true
+                                } label: {
+                                    Label("Delete Patient", systemImage: "trash")
+                                }
                             }
                             .padding(.horizontal)
                         }
