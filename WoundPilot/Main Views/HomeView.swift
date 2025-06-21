@@ -74,14 +74,14 @@ struct HomeView: View {
                             showQuickScan()
                         } label: {
                             DashboardCard(
-                                        title: "Quick Wound Scan",
-                                        subtitle: "Start fast analysis",
-                                        systemImage: "bolt.fill",
-                                        bgColor: Color(red: 0.90, green: 0.94, blue: 0.98), // Light Blue Gray
-                                        layout: .square,
-                                        textColor: Color(red: 0.00, green: 0.32, blue: 0.70), // Deep Blue
-                                        showsChevron: true
-                                    )
+                                title: "Quick Wound Scan",
+                                subtitle: "Start fast analysis",
+                                systemImage: "bolt.fill",
+                                bgColor: Color(red: 0.84, green: 0.92, blue: 1.0), // Softer, brighter blue
+                                layout: .square,
+                                textColor: Color(red: 0.00, green: 0.30, blue: 0.75), // Stronger, vibrant deep blue
+                                showsChevron: true
+                            )
                         }
 
                         Button {
@@ -89,14 +89,14 @@ struct HomeView: View {
                             showAddPatient = true
                         } label: {
                             DashboardCard(
-                                        title: "Add Patient",
-                                        subtitle: "Create profile",
-                                        systemImage: "person.crop.circle.badge.plus",
-                                        bgColor: Color(red: 0.82, green: 0.89, blue: 0.98), // Soft Blue
-                                        layout: .square,
-                                        textColor: Color(red: 0.08, green: 0.22, blue: 0.42), // Darker Blue
-                                        showsChevron: true
-                                    )
+                                title: "Add Patient",
+                                subtitle: "Create profile",
+                                systemImage: "person.crop.circle.badge.plus",
+                                bgColor: Color(red: 0.88, green: 0.90, blue: 0.98), // Soft Indigo Tint
+                                layout: .square,
+                                textColor: Color(red: 0.22, green: 0.24, blue: 0.60), // Deep Indigo-Blue
+                                showsChevron: true
+                            )
                         }
 
                         Button {
@@ -104,14 +104,14 @@ struct HomeView: View {
                             showPatientList = true
                         } label: {
                             DashboardCard(
-                                        title: "View Patients",
-                                        subtitle: "Browse histories",
-                                        systemImage: "folder.fill",
-                                        bgColor: Color.gray.opacity(0.10), // Very Light Gray
-                                        layout: .square,
-                                        textColor: .primary,
-                                        showsChevron: true
-                                    )
+                                title: "View Patients",
+                                subtitle: "Browse histories",
+                                systemImage: "folder.fill",
+                                bgColor: Color(red: 0.90, green: 0.91, blue: 0.92), // Deeper soft gray with neutral tone
+                                layout: .square,
+                                textColor: Color(red: 0.14, green: 0.15, blue: 0.17), // Cooler charcoal gray
+                                showsChevron: true
+                            )
                         }
 
                         Button {
@@ -119,14 +119,14 @@ struct HomeView: View {
                             showClinicalTips = true
                         } label: {
                             DashboardCard(
-                                        title: "Clinical Tips",
-                                        subtitle: "Evidence-based advice",
-                                        systemImage: "lightbulb.fill",
-                                        bgColor: Color(red: 0.88, green: 0.94, blue: 0.91), // Mint Gray
-                                        layout: .square,
-                                        textColor: Color(red: 0.12, green: 0.32, blue: 0.26), // Deep Green
-                                        showsChevron: true
-                                    )
+                                title: "Clinical Tips",
+                                subtitle: "Evidence-based advice",
+                                systemImage: "lightbulb.fill",
+                                bgColor: Color(red: 0.85, green: 0.96, blue: 0.92), // Brighter mint aqua
+                                layout: .square,
+                                textColor: Color(red: 0.00, green: 0.38, blue: 0.30), // Confident green-blue
+                                showsChevron: true
+                            )
                         }
                     }
                     .padding(.horizontal)
