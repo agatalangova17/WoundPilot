@@ -8,14 +8,13 @@ struct HomeView: View {
     @State private var showPatientList = false
     @State private var showProfile = false
     @State private var userName: String = ""
-    @State private var showContent = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
 
-                    // MARK: - Header with Date & Profile
+                    // MARK: - Header
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(formattedDate())
@@ -29,6 +28,7 @@ struct HomeView: View {
                         Spacer()
 
                         Button {
+                            lightHaptic()
                             showProfile = true
                         } label: {
                             Image(systemName: "person.crop.circle")
@@ -42,32 +42,33 @@ struct HomeView: View {
                     .padding(.horizontal)
                     .padding(.top)
 
-                    // MARK: - Large Quick Analysis Card
-                    NavigationLink(destination: WoundImageSourceView(selectedPatient: nil)) {
+                    // MARK: - Quick Wound Scan
+                    Button {
+                        lightHaptic()
+                        showQuickScan()
+                    } label: {
                         DashboardCard(
-                            icon: "bolt.fill",
-                            title: "Quick Analysis",
-                            subtitle: "Snap a wound photo instantly",
-                            iconColor: .accentBlue,
-                            bgColor: Color.accentBlue.opacity(0.25),
+                            title: "Quick Wound Scan",
+                            subtitle: "Capture and analyze instantly",
+                            systemImage: "bolt.fill",
+                            bgColor: Color.accentBlue.opacity(0.3),
                             layout: .large,
                             textColor: .primary,
                             showsChevron: true
                         )
-                        .frame(maxWidth: .infinity)
-                        .padding(.horizontal)
                     }
+                    .padding(.horizontal)
 
-                    // MARK: - Two Side-by-Side Square Cards
+                    // MARK: - Side-by-Side Cards
                     HStack(spacing: 16) {
                         Button {
+                            lightHaptic()
                             showAddPatient = true
                         } label: {
                             DashboardCard(
-                                icon: "person.crop.circle.badge.plus",
                                 title: "Add Patient",
-                                subtitle: "New record",
-                                iconColor: .white,
+                                subtitle: "Create profile",
+                                systemImage: "person.crop.circle.badge.plus",
                                 bgColor: Color.primaryBlue,
                                 layout: .square,
                                 textColor: .white,
@@ -76,15 +77,16 @@ struct HomeView: View {
                         }
 
                         Button {
+                            lightHaptic()
                             showPatientList = true
                         } label: {
                             DashboardCard(
-                                icon: "person.3.fill",
                                 title: "View Patients",
-                                subtitle: "Saved list",
-                                iconColor: .gray,
-                                bgColor: Color.gray.opacity(0.1),
+                                subtitle: "Browse histories",
+                                systemImage: "folder.fill",
+                                bgColor: Color.gray.opacity(0.15),
                                 layout: .square,
+                                textColor: .primary,
                                 showsChevron: true
                             )
                         }
@@ -103,17 +105,19 @@ struct HomeView: View {
             .navigationDestination(isPresented: $showProfile) {
                 ProfileView(isUserLoggedIn: $isUserLoggedIn)
             }
-            .onAppear {
-                fetchUserName()
-                withAnimation {
-                    showContent = true
-                }
-            }
+        }
+    }
+
+    func showQuickScan() {
+        // Use navigation by presenting a hidden NavigationLink dynamically
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let window = windowScene.windows.first {
+            let root = UIHostingController(rootView: WoundImageSourceView(selectedPatient: nil))
+            window.rootViewController?.present(root, animated: true, completion: nil)
         }
     }
 
     // MARK: - Helpers
-
     func fetchUserName() {
         guard let userId = Auth.auth().currentUser?.uid else { return }
         let db = Firestore.firestore()
@@ -128,5 +132,10 @@ struct HomeView: View {
         let formatter = DateFormatter()
         formatter.dateStyle = .long
         return formatter.string(from: Date())
+    }
+
+    func lightHaptic() {
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.impactOccurred()
     }
 }

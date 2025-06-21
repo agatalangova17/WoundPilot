@@ -6,88 +6,77 @@ enum DashboardCardLayout {
 }
 
 struct DashboardCard: View {
-    let icon: String
     let title: String
     let subtitle: String
-    let iconColor: Color
+    let systemImage: String
     let bgColor: Color
     var layout: DashboardCardLayout = .square
     var textColor: Color = .primary
     var showsChevron: Bool = false
 
+    @State private var isPressed = false
+
     var body: some View {
         ZStack(alignment: .topTrailing) {
-            switch layout {
-            case .large:
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(title)
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(textColor)
-
-                    HStack(alignment: .center, spacing: 10) {
-                        ZStack {
-                            Circle()
-                                .fill(iconColor.opacity(0.15))
-                                .frame(width: 36, height: 36)
-
-                            Image(systemName: icon)
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundColor(iconColor)
+            content
+                .scaleEffect(isPressed ? 0.97 : 1.0)
+                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isPressed)
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { _ in isPressed = true }
+                        .onEnded { _ in
+                            isPressed = false
+                            lightHaptic()
                         }
+                )
 
-                        Text(subtitle)
-                            .font(.system(size: 14))
-                            .foregroundColor(textColor)
-
-                        Spacer()
-                    }
-                }
-                .padding()
-                .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
-                .background(bgColor)
-                .cornerRadius(14)
-
-            case .square:
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Text(title)
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(textColor)
-                        Spacer()
-                    }
-
-                    // Icon + Subtitle
-                    HStack(alignment: .center, spacing: 8) {
-                        ZStack {
-                            Circle()
-                                .fill(iconColor.opacity(0.15))
-                                .frame(width: 32, height: 32)
-
-                            Image(systemName: icon)
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(iconColor)
-                        }
-
-                        Text(subtitle)
-                            .font(.system(size: 13))
-                            .foregroundColor(textColor)
-
-                        Spacer()
-                    }
-                }
-                .padding()
-                .frame(maxWidth: .infinity, minHeight: 100, alignment: .topLeading)
-                .background(bgColor)
-                .cornerRadius(14)
-            }
-
-            // Chevron (top-right) for both layouts
             if showsChevron {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(textColor)
+                    .foregroundColor(textColor.opacity(0.4))
                     .padding(10)
             }
         }
+    }
+
+    private var content: some View {
+        VStack(alignment: .leading, spacing: layout == .large ? 12 : 10) {
+            Text(title)
+                .font(.system(size: layout == .large ? 18 : 15, weight: .semibold))
+                .foregroundColor(textColor)
+
+            Text(subtitle)
+                .font(.system(size: layout == .large ? 14 : 13))
+                .foregroundColor(textColor.opacity(0.65))
+
+            Spacer()
+
+            HStack {
+                Spacer()
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(textColor.opacity(0.1))
+                        .frame(width: 36, height: 36)
+
+                    Image(systemName: systemImage)
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundColor(textColor)
+                }
+            }
+        }
+        .padding()
+        .frame(
+            width: layout == .square ? (UIScreen.main.bounds.width - 48) / 2 : nil,
+            height: layout == .square ? 150 : 160,
+            alignment: .topLeading
+        )
+        .background(bgColor)
+        .cornerRadius(16)
+        .shadow(color: .black.opacity(0.02), radius: 3, x: 0, y: 2)
+    }
+
+    private func lightHaptic() {
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.impactOccurred()
     }
 }
