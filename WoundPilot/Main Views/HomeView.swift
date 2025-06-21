@@ -7,7 +7,28 @@ struct HomeView: View {
     @State private var showAddPatient = false
     @State private var showPatientList = false
     @State private var showProfile = false
+    @State private var showClinicalTips = false
     @State private var userName: String = ""
+
+    // MARK: - Daily Clinical Tips
+    let clinicalTips = [
+        "Maintain moisture balance for faster healing.",
+        "Assess wound edges for signs of maceration.",
+        "Use the TIME framework: Tissue, Infection, Moisture, Edge.",
+        "Granulation tissue is a sign of healing progress.",
+        "Check for signs of infection: redness, swelling, odor.",
+        "Regularly measure wound size to monitor healing trends.",
+        "Epithelialization signals wound closure is near.",
+        "Sharp debridement can accelerate healing when indicated.",
+        "Excess exudate may indicate infection or delayed healing."
+    ]
+    
+    var todaysTip: String {
+        let dayOfYear = Calendar.current.ordinality(of: .day, in: .year, for: Date()) ?? 0
+        return clinicalTips[dayOfYear % clinicalTips.count]
+    }
+
+    let columns: [GridItem] = Array(repeating: .init(.flexible(), spacing: 16), count: 2)
 
     var body: some View {
         NavigationStack {
@@ -42,38 +63,40 @@ struct HomeView: View {
                     .padding(.horizontal)
                     .padding(.top)
 
-                    // MARK: - Quick Wound Scan
-                    Button {
-                        lightHaptic()
-                        showQuickScan()
-                    } label: {
-                        DashboardCard(
-                            title: "Quick Wound Scan",
-                            subtitle: "Capture and analyze instantly",
-                            systemImage: "bolt.fill",
-                            bgColor: Color.accentBlue.opacity(0.3),
-                            layout: .large,
-                            textColor: .primary,
-                            showsChevron: true
-                        )
-                    }
-                    .padding(.horizontal)
+                    // MARK: - Tip of the Day
+                    TipOfTheDayView(tip: todaysTip)
+                        .padding(.horizontal)
 
-                    // MARK: - Side-by-Side Cards
-                    HStack(spacing: 16) {
+                    // MARK: - Grid Cards (2x2 layout)
+                    LazyVGrid(columns: columns, spacing: 16) {
+                        Button {
+                            lightHaptic()
+                            showQuickScan()
+                        } label: {
+                            DashboardCard(
+                                        title: "Quick Wound Scan",
+                                        subtitle: "Start fast analysis",
+                                        systemImage: "bolt.fill",
+                                        bgColor: Color(red: 0.90, green: 0.94, blue: 0.98), // Light Blue Gray
+                                        layout: .square,
+                                        textColor: Color(red: 0.00, green: 0.32, blue: 0.70), // Deep Blue
+                                        showsChevron: true
+                                    )
+                        }
+
                         Button {
                             lightHaptic()
                             showAddPatient = true
                         } label: {
                             DashboardCard(
-                                title: "Add Patient",
-                                subtitle: "Create profile",
-                                systemImage: "person.crop.circle.badge.plus",
-                                bgColor: Color.primaryBlue,
-                                layout: .square,
-                                textColor: .white,
-                                showsChevron: true
-                            )
+                                        title: "Add Patient",
+                                        subtitle: "Create profile",
+                                        systemImage: "person.crop.circle.badge.plus",
+                                        bgColor: Color(red: 0.82, green: 0.89, blue: 0.98), // Soft Blue
+                                        layout: .square,
+                                        textColor: Color(red: 0.08, green: 0.22, blue: 0.42), // Darker Blue
+                                        showsChevron: true
+                                    )
                         }
 
                         Button {
@@ -81,21 +104,36 @@ struct HomeView: View {
                             showPatientList = true
                         } label: {
                             DashboardCard(
-                                title: "View Patients",
-                                subtitle: "Browse histories",
-                                systemImage: "folder.fill",
-                                bgColor: Color.gray.opacity(0.15),
-                                layout: .square,
-                                textColor: .primary,
-                                showsChevron: true
-                            )
+                                        title: "View Patients",
+                                        subtitle: "Browse histories",
+                                        systemImage: "folder.fill",
+                                        bgColor: Color.gray.opacity(0.10), // Very Light Gray
+                                        layout: .square,
+                                        textColor: .primary,
+                                        showsChevron: true
+                                    )
+                        }
+
+                        Button {
+                            lightHaptic()
+                            showClinicalTips = true
+                        } label: {
+                            DashboardCard(
+                                        title: "Clinical Tips",
+                                        subtitle: "Evidence-based advice",
+                                        systemImage: "lightbulb.fill",
+                                        bgColor: Color(red: 0.88, green: 0.94, blue: 0.91), // Mint Gray
+                                        layout: .square,
+                                        textColor: Color(red: 0.12, green: 0.32, blue: 0.26), // Deep Green
+                                        showsChevron: true
+                                    )
                         }
                     }
                     .padding(.horizontal)
-                    .padding(.bottom)
+                    .padding(.bottom, 32)
                 }
             }
-            .background(Color(.systemGroupedBackground))
+            
             .navigationDestination(isPresented: $showAddPatient) {
                 AddPatientView()
             }
@@ -105,11 +143,13 @@ struct HomeView: View {
             .navigationDestination(isPresented: $showProfile) {
                 ProfileView(isUserLoggedIn: $isUserLoggedIn)
             }
+            .navigationDestination(isPresented: $showClinicalTips) {
+                ClinicalTipsView()
+            }
         }
     }
 
     func showQuickScan() {
-        // Use navigation by presenting a hidden NavigationLink dynamically
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
            let window = windowScene.windows.first {
             let root = UIHostingController(rootView: WoundImageSourceView(selectedPatient: nil))
@@ -117,7 +157,6 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Helpers
     func fetchUserName() {
         guard let userId = Auth.auth().currentUser?.uid else { return }
         let db = Firestore.firestore()
@@ -137,5 +176,11 @@ struct HomeView: View {
     func lightHaptic() {
         let generator = UIImpactFeedbackGenerator(style: .light)
         generator.impactOccurred()
+    }
+}
+
+extension Color {
+    func darken(by amount: CGFloat) -> Color {
+        return Color(UIColor(self).withAlphaComponent(1 - min(max(amount, 0), 1)))
     }
 }

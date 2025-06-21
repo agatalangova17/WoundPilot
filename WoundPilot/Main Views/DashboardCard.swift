@@ -40,7 +40,11 @@ struct DashboardCard: View {
     }
 
     private var content: some View {
-        VStack(alignment: .leading, spacing: layout == .large ? 12 : 10) {
+        VStack(alignment: .leading, spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.system(size: layout == .large ? 28 : 22, weight: .medium))
+                .foregroundColor(textColor)
+
             Text(title)
                 .font(.system(size: layout == .large ? 18 : 15, weight: .semibold))
                 .foregroundColor(textColor)
@@ -50,19 +54,6 @@ struct DashboardCard: View {
                 .foregroundColor(textColor.opacity(0.65))
 
             Spacer()
-
-            HStack {
-                Spacer()
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(textColor.opacity(0.1))
-                        .frame(width: 36, height: 36)
-
-                    Image(systemName: systemImage)
-                        .font(.system(size: 17, weight: .medium))
-                        .foregroundColor(textColor)
-                }
-            }
         }
         .padding()
         .frame(
