@@ -26,25 +26,33 @@
 
 ## 📸 Screenshots
 
-<!-- Replace with actual image paths once added -->
+<img src="WoundPilot/Screenshots/dashboard.png" alt="Dashboard screen" width="350"/>
 
-<img src="screenshots/homeview.png" alt="Home screen showing quick access cards" width="300"/>
+*Main dashboard with fast access to scanning, patient management, and clinical tips.*
 
-*Dashboard with Quick Access cards*
+<img src="WoundPilot/Screenshots/capture.png" alt="Wound capture options" width="350"/>
 
-<img src="screenshots/capturewound.png" alt="Wound capture view" width="300"/>
+*Flexible image input: real-time camera, photo library, or dummy wound image.*
 
-*CaptureWoundView with inline location selection*
+<img src="WoundPilot/Screenshots/locationpicker.png" alt="Wound location picker" width="350"/>
 
-<img src="screenshots/wounddetail.png" alt="Wound group detail view with images and graph" width="300"/>
+*Interactive anatomical diagram for selecting precise wound regions.*
 
-*Wound history and healing progress visualization*
+<img src="WoundPilot/Screenshots/getstarted.png" alt="Get Started AI steps" width="350"/>
 
-<img src="screenshots/questionnaire.png" alt="Clinical questionnaire screen" width="300"/>
+*Simple 3-step guide before starting AI-powered wound evaluation.*
 
-*Structured clinical data collection before analysis*
+<img src="WoundPilot/Screenshots/analytics.png" alt="Analytics view" width="350"/>
 
----
+*Analytics showing total patients and wound captures across time ranges.*
+
+<img src="WoundPilot/Screenshots/sharing.png" alt="Case sharing view" width="350"/>
+
+*Secure sharing and referrals for clinician-to-clinician collaboration.*
+
+<img src="WoundPilot/Screenshots/welcome.png" alt="Welcome screen" width="350"/>
+
+*Friendly clinical assistant welcoming users with secure onboarding.*
 
 ## 🧠 AI Analysis (Coming Soon)
 
