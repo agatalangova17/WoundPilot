@@ -75,6 +75,13 @@ struct WelcomeView: View {
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                     
+                    NavigationLink(destination: LoginView(isUserLoggedIn: $isUserLoggedIn)) {
+                            Text("Already using WoundPilot?")
+                                .font(.footnote.weight(.medium))
+                                .foregroundColor(.accentBlue)
+                                .padding(.top, 10)
+                        }
+                    
                     
                 }
                 .padding()
