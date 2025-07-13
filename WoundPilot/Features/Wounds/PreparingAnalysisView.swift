@@ -30,11 +30,21 @@ struct PreparingAnalysisView: View {
             }
         }
         .onAppear {
+            print("🟦 PreparingAnalysisView appeared")
             saveWound()
+
+            // Optional: timeout fallback
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                if !navigate {
+                    print("🟨 Timeout: saveWound did not complete in 5 seconds.")
+                }
+            }
         }
     }
 
     private func saveWound() {
+        print("🔵 saveWound() started")
+
         WoundService.shared.saveWound(
             image: image,
             location: location,
@@ -43,13 +53,17 @@ struct PreparingAnalysisView: View {
             woundGroupName: woundGroupName
         ) { result in
             DispatchQueue.main.async {
+                print("🟢 saveWound completion handler called")
+
                 switch result {
                 case .success(let wound):
+                    print("✅ Wound saved successfully: \(wound.id)")
                     self.savedWound = wound
                     self.navigate = true
+
                 case .failure(let error):
+                    print("❌ Wound save failed: \(error.localizedDescription)")
                     self.error = error.localizedDescription
-                    // Optional: show alert or fallback UI
                 }
             }
         }

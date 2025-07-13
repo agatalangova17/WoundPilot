@@ -4,13 +4,17 @@ struct WelcomeView: View {
     @Binding var isUserLoggedIn: Bool
     @State private var selectedStep = 1
     @State private var expandedQuestion: String?
+    @State private var displayedText = ""
+    let fullAssistantText = "I am here to guide you through fast and secure wound assessments powered by AI."
 
     let steps = [
-        (1, "Register or log in securely", "person.crop.circle"),
-        (2, "Add a patient", "person.crop.circle.badge.plus"),
-        (3, "Capture wound photo", "camera.viewfinder"),
-        (4, "Answer clinical questions", "doc.plaintext"),
-        (5, "AI-powered size & healing analysis", "brain.head.profile")
+        (1, "Securely log in or register your account", "log"),
+        (2, "Access the dashboard and begin a new wound assessment", "start analysis"),
+        (3, "Capture a clear wound photo using your camera", "photo"),
+        (4, "Mark the wound location on the body diagram", "location"),
+        (5, "Automatically analyze wound size and dimensions", "size"),
+        (6, "Answer key clinical questions about the wound", "questions"),
+        (7, "Receive AI-powered insights and healing guidance", "ai")
     ]
 
     let faqList: [(question: String, answer: String)] = [
@@ -18,7 +22,21 @@ struct WelcomeView: View {
         ("Can I use WoundPilot offline?", "Some features work offline, but AI analysis and syncing require internet."),
         ("Is WoundPilot free?", "The core version is free. Some advanced tools may require a subscription.")
     ]
-
+    
+    func typeWriterEffect() {
+        displayedText = ""
+        var index = 0
+        Timer.scheduledTimer(withTimeInterval: 0.035, repeats: true) { timer in
+            if index < fullAssistantText.count {
+                let nextChar = fullAssistantText[fullAssistantText.index(fullAssistantText.startIndex, offsetBy: index)]
+                displayedText.append(nextChar)
+                index += 1
+            } else {
+                timer.invalidate()
+            }
+        }
+    }
+    
     var body: some View {
         NavigationStack {
             if isUserLoggedIn {
@@ -71,6 +89,7 @@ struct WelcomeView: View {
 
                         
 
+                        
                         // MARK: - Meet Your Assistant
                         VStack(spacing: 16) {
                             Image("avatar")
@@ -79,16 +98,28 @@ struct WelcomeView: View {
                                 .clipShape(Circle())
                                 .shadow(radius: 3)
                                 .padding(.bottom, 4)
+                                .onAppear {
+                                    typeWriterEffect()
+                                }
 
                             Text("Meet your clinical assistant.")
                                 .font(.headline)
                                 .foregroundColor(.black)
 
-                            Text("I am here to guide you through fast and secure wound assessments powered by AI.")
+                            // Speech Bubble
+                            Text(displayedText)
                                 .font(.subheadline)
-                                .multilineTextAlignment(.center)
+                                .padding()
+                                .background(Color.accentBlue.opacity(0.08))
+                                .cornerRadius(16)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(Color.accentBlue.opacity(0.2), lineWidth: 1)
+                                )
                                 .foregroundColor(.gray)
+                                .multilineTextAlignment(.center)
                                 .padding(.horizontal)
+                                .transition(.opacity)
                         }
                         .padding()
                         .cornerRadius(14)
@@ -123,7 +154,7 @@ struct WelcomeView: View {
                                 .foregroundColor(.black)
 
                             HStack(spacing: 10) {
-                                ForEach(1...5, id: \.self) { index in
+                                ForEach(1...7, id: \.self) { index in
                                     Button(action: {
                                         withAnimation { selectedStep = index }
                                     }) {
@@ -144,19 +175,15 @@ struct WelcomeView: View {
                                         .multilineTextAlignment(.center)
                                         .foregroundColor(.gray)
 
-                                    ZStack {
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .fill(Color.gray.opacity(0.1))
-                                            .frame(height: 180)
-
-                                        Image(systemName: step.2)
-                                            .resizable()
-                                            .scaledToFit()
-                                            .frame(width: 80, height: 80)
-                                            .foregroundColor(.gray.opacity(0.4))
-                                    }
+                                    Image(step.2)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(height: 180)
+                                        .cornerRadius(12)
+                                        .shadow(radius: 2)
                                 }
                                 .transition(.opacity)
+                            }
                             }
                         }
                         .padding(.horizontal)
@@ -204,11 +231,10 @@ struct WelcomeView: View {
                         .padding(.bottom, 30)
                     }
                 }
-                .background(Color.white)
             }
         }
     }
-}
+
 
 // MARK: - Benefit Card
 struct BenefitCard: View {
@@ -238,3 +264,5 @@ extension Color {
     static let primaryBlue = Color(red: 0.20, green: 0.45, blue: 0.95)
     static let accentBlue  = Color(red: 0.25, green: 0.80, blue: 0.85)
 }
+
+
