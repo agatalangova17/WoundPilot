@@ -6,6 +6,7 @@ struct WelcomeView: View {
     @State private var selectedStep = 1
     @State private var expandedQuestion: String?
     @State private var displayedText = ""
+    @State var selectedLanguage: String = ""
     
     let fullAssistantText = "I am here to guide you through fast and secure wound assessments powered by AI."
     
@@ -43,28 +44,83 @@ struct WelcomeView: View {
         NavigationStack {
             TabView(selection: $currentTab) {
                 
+                // Page 0: Language Selection
+                VStack(spacing: 30) {
+                    VStack(spacing: 8) {
+                        Image(systemName: "globe")
+                            .font(.system(size: 40))
+                            .foregroundColor(.accentBlue)
+                        Text("Select your language / Zvoľte jazyk")
+                            .font(.title3.weight(.semibold))
+                            .multilineTextAlignment(.center)
+                    }
+                    
+                    VStack(spacing: 16) {
+                        Button(action: {
+                            selectedLanguage = "en"
+                            UserDefaults.standard.set(selectedLanguage, forKey: "selectedLanguage")
+                            withAnimation { currentTab = 1 }
+                        }) {
+                            HStack {
+                                Text("🇬🇧 English")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(.gray)
+                            }
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.primaryBlue.opacity(0.1))
+                            .cornerRadius(12)
+                        }
+
+                        Button(action: {
+                            selectedLanguage = "sk"
+                            UserDefaults.standard.set(selectedLanguage, forKey: "selectedLanguage")
+                            withAnimation { currentTab = 1 }
+                        }) {
+                            HStack {
+                                Text("🇸🇰 Slovenčina")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(.gray)
+                            }
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.accentBlue.opacity(0.1))
+                            .cornerRadius(12)
+                        }
+                    }
+                    .padding(.horizontal, 30)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .tag(0)
+
                 // Page 1: Assistant Greeting
                 VStack(spacing: 30) {
                     Text("WoundPilot")
                         .font(.largeTitle.bold())
                         .foregroundColor(.black)
-                    
+
                     Text("AI-powered wound analysis in your pocket")
                         .font(.subheadline)
                         .foregroundColor(.gray)
                         .multilineTextAlignment(.center)
-                    
+
                     Image("avatar")
                         .resizable()
                         .frame(width: 120, height: 120)
                         .clipShape(Circle())
                         .shadow(radius: 3)
                         .onAppear { typeWriterEffect() }
-                    
+
                     Text("👋 Hi, I’m your clinical assistant.")
                         .font(.headline)
                         .foregroundColor(.black)
-                    
+
                     Text(displayedText)
                         .font(.subheadline)
                         .padding()
@@ -74,31 +130,29 @@ struct WelcomeView: View {
                         .foregroundColor(.gray)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
-                    
+
                     NavigationLink(destination: LoginView(isUserLoggedIn: $isUserLoggedIn)) {
-                            Text("Already using WoundPilot?")
-                                .font(.footnote.weight(.medium))
-                                .foregroundColor(.accentBlue)
-                                .padding(.top, 10)
-                        }
-                    
-                    
+                        Text("Already using WoundPilot?")
+                            .font(.footnote.weight(.medium))
+                            .foregroundColor(.accentBlue)
+                            .padding(.top, 10)
+                    }
                 }
                 .padding()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .tag(0)
-                
-                // Page 2: Video
+                .tag(1)
+
+                // Page 2: Intro Video Placeholder
                 VStack(spacing: 24) {
                     Text("Watch Introduction Video")
                         .font(.headline)
                         .foregroundColor(.black)
-                    
+
                     ZStack {
                         RoundedRectangle(cornerRadius: 16)
                             .fill(Color.accentBlue.opacity(0.1))
                             .frame(height: 200)
-                        
+
                         VStack {
                             Image(systemName: "play.circle.fill")
                                 .resizable()
@@ -111,14 +165,14 @@ struct WelcomeView: View {
                     }
                 }
                 .padding()
-                .tag(1)
-                
+                .tag(2)
+
                 // Page 3: How It Works
                 VStack(spacing: 20) {
                     Text("How It Works")
                         .font(.headline)
                         .foregroundColor(.black)
-                    
+
                     HStack(spacing: 10) {
                         ForEach(1...7, id: \.self) { index in
                             Button(action: {
@@ -133,14 +187,14 @@ struct WelcomeView: View {
                             }
                         }
                     }
-                    
+
                     if let step = steps.first(where: { $0.0 == selectedStep }) {
                         VStack(spacing: 10) {
                             Text(step.1)
                                 .font(.subheadline)
                                 .multilineTextAlignment(.center)
                                 .foregroundColor(.gray)
-                            
+
                             Image(step.2)
                                 .resizable()
                                 .scaledToFit()
@@ -152,8 +206,8 @@ struct WelcomeView: View {
                     }
                 }
                 .padding()
-                .tag(2)
-                
+                .tag(3)
+
                 // Page 4: FAQ
                 VStack(alignment: .leading, spacing: 16) {
                     HStack(spacing: 8) {
@@ -163,7 +217,7 @@ struct WelcomeView: View {
                             .font(.title3.bold())
                             .foregroundColor(.black)
                     }
-                    
+
                     ForEach(faqList, id: \.question) { faq in
                         DisclosureGroup(
                             isExpanded: Binding(
@@ -187,18 +241,18 @@ struct WelcomeView: View {
                     }
                 }
                 .padding()
-                .tag(3)
-                
+                .tag(4)
+
                 // Page 5: Login/Register
                 VStack(spacing: 30) {
                     Text("Let's Get Started")
                         .font(.largeTitle.bold())
                         .foregroundColor(.black)
-                    
+
                     Text("Log in or create your account to begin")
                         .font(.subheadline)
                         .foregroundColor(.gray)
-                    
+
                     VStack(spacing: 16) {
                         NavigationLink(destination: LoginView(isUserLoggedIn: $isUserLoggedIn)) {
                             Text("Log In")
@@ -208,7 +262,7 @@ struct WelcomeView: View {
                                 .foregroundColor(.white)
                                 .cornerRadius(10)
                         }
-                        
+
                         NavigationLink(destination: RegisterView(isUserLoggedIn: $isUserLoggedIn)) {
                             Text("Register")
                                 .frame(maxWidth: .infinity)
@@ -221,7 +275,7 @@ struct WelcomeView: View {
                     .padding(.horizontal)
                 }
                 .padding()
-                .tag(4)
+                .tag(5)
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
             .indexViewStyle(PageIndexViewStyle(backgroundDisplayMode: .always))
