@@ -5,7 +5,7 @@ struct WoundLocationPickerViewWrapper: View {
     let patient: Patient?
 
     @State private var selectedRegion: String?
-    @State private var showGroupPicker = false
+    @State private var showNextScreen = false
     @State private var selectedGroupId: String?
     @State private var selectedGroupName: String?
 
@@ -15,13 +15,28 @@ struct WoundLocationPickerViewWrapper: View {
                 selectedRegion: $selectedRegion,
                 onConfirm: { region in
                     selectedRegion = region
-                    showGroupPicker = true
+
+                    if patient != nil {
+                        // show group picker if patient exists
+                        showNextScreen = true
+                    } else {
+                        // skip group picker if fast flow
+                        selectedGroupId = "fast-capture"
+                        selectedGroupName = "Fast Capture"
+                        showNextScreen = true
+                    }
                 }
             )
 
             if selectedRegion != nil {
                 Button(action: {
-                    showGroupPicker = true
+                    if patient != nil {
+                        showNextScreen = true
+                    } else {
+                        selectedGroupId = "fast-capture"
+                        selectedGroupName = "Fast Capture"
+                        showNextScreen = true
+                    }
                 }) {
                     Text("Confirm")
                         .font(.headline)
@@ -42,25 +57,23 @@ struct WoundLocationPickerViewWrapper: View {
                 .padding(.top, 6)
             }
         }
-        .navigationDestination(isPresented: $showGroupPicker) {
+        .navigationDestination(isPresented: $showNextScreen) {
             if let region = selectedRegion {
-                WoundGroupPickerView(patient: patient) { groupId, groupName in
-                    self.selectedGroupId = groupId
-                    self.selectedGroupName = groupName
-                    // Proceed to preparing view after group selection
-                }
-                .navigationDestination(isPresented: .constant(selectedGroupId != nil)) {
-                    if let groupId = selectedGroupId,
-                       let groupName = selectedGroupName,
-                       let region = selectedRegion {
-                        PreparingAnalysisView(
-                            image: image,
-                            location: region,
-                            patient: patient,
-                            woundGroupId: groupId,
-                            woundGroupName: groupName
-                        )
+                if let patient = patient, selectedGroupId == nil {
+                    WoundGroupPickerView(patient: patient) { groupId, groupName in
+                        self.selectedGroupId = groupId
+                        self.selectedGroupName = groupName
+                        self.showNextScreen = true
                     }
+                } else if let groupId = selectedGroupId,
+                          let groupName = selectedGroupName {
+                    PreparingAnalysisView(
+                        image: image,
+                        location: region,
+                        patient: patient,
+                        woundGroupId: groupId,
+                        woundGroupName: groupName
+                    )
                 }
             }
         }
