@@ -2,6 +2,15 @@ import SwiftUI
 
 struct PatientDetailView: View {
     let patient: Patient
+    @ObservedObject var langManager = LocalizationManager.shared
+
+    private var formattedDOB: String {
+        let df = DateFormatter()
+        df.dateStyle = .medium
+        df.timeStyle = .none
+        df.locale = Locale(identifier: langManager.currentLanguage.rawValue) // "en" / "sk"
+        return df.string(from: patient.dateOfBirth)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 32) {
@@ -10,7 +19,8 @@ struct PatientDetailView: View {
                 Text(patient.name)
                     .font(.title2)
                     .fontWeight(.semibold)
-                Text("Date of Birth: \(patient.dateOfBirth.formatted(date: .abbreviated, time: .omitted))")
+
+                Text("\(LocalizedStrings.dateOfBirth): \(formattedDOB)")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
@@ -19,14 +29,14 @@ struct PatientDetailView: View {
 
             // Section: Patient Info
             VStack(alignment: .leading, spacing: 12) {
-                Text("Patient Overview")
+                Text(LocalizedStrings.patientOverview)
                     .font(.headline)
                     .foregroundColor(.gray)
 
                 NavigationLink(destination: PatientInfoView(patient: patient)) {
                     HStack {
                         Image(systemName: "person.text.rectangle")
-                        Text("View Patient Info")
+                        Text(LocalizedStrings.viewPatientInfo)
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -40,14 +50,14 @@ struct PatientDetailView: View {
 
             // Section: Wound Management
             VStack(alignment: .leading, spacing: 12) {
-                Text("Wound Management")
+                Text(LocalizedStrings.woundManagement)
                     .font(.headline)
                     .foregroundColor(.gray)
 
                 NavigationLink(destination: WoundImageSourceView(selectedPatient: patient)) {
                     HStack {
                         Image(systemName: "camera.fill")
-                        Text("New Wound Entry")
+                        Text(LocalizedStrings.newWoundEntry)
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -59,7 +69,7 @@ struct PatientDetailView: View {
                 NavigationLink(destination: WoundListView(patient: patient)) {
                     HStack {
                         Image(systemName: "list.bullet.rectangle.portrait")
-                        Text("View Wound History")
+                        Text(LocalizedStrings.viewWoundHistory)
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -72,7 +82,7 @@ struct PatientDetailView: View {
             Spacer()
         }
         .padding()
-        .navigationTitle("Patient Details")
+        .navigationTitle(LocalizedStrings.patientDetailsTitle)
         .navigationBarTitleDisplayMode(.inline)
     }
 }

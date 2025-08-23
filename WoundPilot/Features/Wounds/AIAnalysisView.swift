@@ -1,18 +1,15 @@
 import SwiftUI
 
 struct AIAnalysisView: View {
-    // AI-generated dummy values
-    let diagnosis = "Chronic Venous Leg Ulcer"
-    let woundType = "Venous Ulcer"
-    let healingStage = "Granulating"
-    let woundStage = "Stage 2"
-    let etiology = "Poor venous return due to varicose veins"
-    let treatment = [
-        "Clean wound gently with sterile saline",
-        "Apply appropriate compression therapy",
-        "Monitor closely for signs of infection",
-        "Schedule reassessment in 7 days"
-    ]
+    @ObservedObject var langManager = LocalizationManager.shared
+
+    // AI "sample" values as computed properties so they re-localize
+    var diagnosis: String { LocalizedStrings.sampleDiagnosis }
+    var woundType: String { LocalizedStrings.sampleWoundType }
+    var healingStage: String { LocalizedStrings.sampleHealingStage }
+    var woundStage: String { LocalizedStrings.sampleWoundStage }
+    var etiology: String { LocalizedStrings.sampleEtiology }
+    var treatment: [String] { LocalizedStrings.sampleTreatmentRecommendations }
 
     @State private var animate = false
 
@@ -20,16 +17,16 @@ struct AIAnalysisView: View {
         ScrollView {
             VStack(spacing: 24) {
                 // Header
-                Text("Analysis Report")
+                Text(LocalizedStrings.analysisReportTitle)
                     .font(.title2.bold())
                     .padding(.top)
 
                 Group {
-                    analysisItem(title: "Diagnosis", value: diagnosis, icon: "stethoscope")
-                    analysisItem(title: "Wound Type", value: woundType, icon: "bandage.fill")
-                    analysisItem(title: "Healing Stage", value: healingStage, icon: "waveform.path.ecg")
-                    analysisItem(title: "Wound Stage", value: woundStage, icon: "chart.bar.fill")
-                    analysisItem(title: "Etiology", value: etiology, icon: "heart.text.square.fill")
+                    analysisItem(title: LocalizedStrings.diagnosisField, value: diagnosis, icon: "stethoscope")
+                    analysisItem(title: LocalizedStrings.woundTypeField, value: woundType, icon: "bandage.fill")
+                    analysisItem(title: LocalizedStrings.healingStageField, value: healingStage, icon: "waveform.path.ecg")
+                    analysisItem(title: LocalizedStrings.woundStageField, value: woundStage, icon: "chart.bar.fill")
+                    analysisItem(title: LocalizedStrings.etiologyField, value: etiology, icon: "heart.text.square.fill")
                     treatmentCard()
                 }
                 .opacity(animate ? 1 : 0)
@@ -41,7 +38,7 @@ struct AIAnalysisView: View {
                     Button {
                         // TODO: Share
                     } label: {
-                        Label("Share", systemImage: "square.and.arrow.up")
+                        Label(LocalizedStrings.shareAction, systemImage: "square.and.arrow.up")
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding()
@@ -53,7 +50,7 @@ struct AIAnalysisView: View {
                     Button {
                         // TODO: Download
                     } label: {
-                        Label("Download", systemImage: "arrow.down.circle.fill")
+                        Label(LocalizedStrings.downloadAction, systemImage: "arrow.down.circle.fill")
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding()
@@ -67,9 +64,7 @@ struct AIAnalysisView: View {
             }
             .padding(.horizontal)
         }
-        .onAppear {
-            animate = true
-        }
+        .onAppear { animate = true }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
     }
 
@@ -95,7 +90,7 @@ struct AIAnalysisView: View {
     // MARK: - Treatment Card
     func treatmentCard() -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("Recommended Treatment", systemImage: "cross.case.fill")
+            Label(LocalizedStrings.recommendedTreatment, systemImage: "cross.case.fill")
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(.gray)
 
@@ -112,5 +107,3 @@ struct AIAnalysisView: View {
         .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
     }
 }
-
-

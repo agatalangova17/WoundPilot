@@ -3,25 +3,28 @@ import FirebaseAuth
 
 struct LoginView: View {
     @Binding var isUserLoggedIn: Bool
+
+    @ObservedObject var langManager = LocalizationManager.shared
+
     @State private var email = ""
     @State private var password = ""
     @State private var errorMessage = ""
-    
+
     // Real-time validation
     @State private var emailError = ""
     @State private var passwordError = ""
 
     var body: some View {
         VStack(spacing: 20) {
-            Text("Login")
+            Text(LocalizedStrings.loginTitle)
                 .font(.largeTitle)
                 .fontWeight(.bold)
 
             // Email field
-            TextField("Email", text: $email)
+            TextField(LocalizedStrings.email, text: $email)
                 .keyboardType(.emailAddress)
-                .autocapitalization(.none)
-                .disableAutocorrection(true)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled(true)
                 .padding()
                 .background(Color.gray.opacity(0.1))
                 .cornerRadius(8)
@@ -36,7 +39,7 @@ struct LoginView: View {
             }
 
             // Password field
-            SecureField("Password", text: $password)
+            SecureField(LocalizedStrings.password, text: $password)
                 .padding()
                 .background(Color.gray.opacity(0.1))
                 .cornerRadius(8)
@@ -59,7 +62,7 @@ struct LoginView: View {
 
             // Login button
             Button(action: loginUser) {
-                Text("Log In")
+                Text(LocalizedStrings.loginButton)
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(Color.blue)
@@ -67,16 +70,16 @@ struct LoginView: View {
                     .cornerRadius(10)
             }
 
-            // Forgot password button (will be updated later to use a view)
+            // Forgot password
             NavigationLink(destination: ForgotPasswordView()) {
-                Text("Forgot Password?")
+                Text(LocalizedStrings.forgotPassword)
                     .font(.footnote)
                     .foregroundColor(.blue)
             }
 
             // Register link
             NavigationLink(destination: RegisterView(isUserLoggedIn: $isUserLoggedIn)) {
-                Text("No account? Register here")
+                Text(LocalizedStrings.noAccountRegister)
                     .foregroundColor(.blue)
                     .font(.footnote)
             }
@@ -86,10 +89,10 @@ struct LoginView: View {
         .padding()
     }
 
-    // MARK: - Validation Functions
+    // MARK: - Validation
     private func validateEmail(_ email: String) {
         if !email.contains("@") || !email.contains(".") {
-            emailError = "Invalid email address."
+            emailError = LocalizedStrings.invalidEmail
         } else {
             emailError = ""
         }
@@ -98,7 +101,7 @@ struct LoginView: View {
     private func validatePassword() {
         let passwordRegex = #"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$"#
         if !NSPredicate(format: "SELF MATCHES %@", passwordRegex).evaluate(with: password) {
-            passwordError = "Must be 8+ characters with uppercase, lowercase, number & symbol."
+            passwordError = LocalizedStrings.passwordRequirement
         } else {
             passwordError = ""
         }
@@ -107,12 +110,13 @@ struct LoginView: View {
     // MARK: - Firebase Actions
     private func loginUser() {
         guard emailError.isEmpty, passwordError.isEmpty else {
-            errorMessage = "Fix validation errors first."
+            errorMessage = LocalizedStrings.fixValidationFirst
             return
         }
 
-        Auth.auth().signIn(withEmail: email, password: password) { result, error in
+        Auth.auth().signIn(withEmail: email, password: password) { _, error in
             if let error = error {
+                // (Optional) Map AuthErrorCode to friendlier localized strings later
                 errorMessage = error.localizedDescription
             } else {
                 isUserLoggedIn = true

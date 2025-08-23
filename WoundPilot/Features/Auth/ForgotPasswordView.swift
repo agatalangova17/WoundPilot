@@ -2,21 +2,23 @@ import SwiftUI
 import FirebaseAuth
 
 struct ForgotPasswordView: View {
-    @Environment(\.presentationMode) var presentationMode
+    @ObservedObject var langManager = LocalizationManager.shared
+
+    @Environment(\.dismiss) private var dismiss
     @State private var email = ""
     @State private var message = ""
     @State private var error = ""
 
     var body: some View {
         VStack(spacing: 20) {
-            Text("Reset Password")
+            Text(LocalizedStrings.resetPasswordTitle)
                 .font(.largeTitle)
                 .fontWeight(.bold)
 
-            TextField("Enter your email", text: $email)
+            TextField(LocalizedStrings.enterEmailPlaceholder, text: $email)
                 .keyboardType(.emailAddress)
-                .autocapitalization(.none)
-                .disableAutocorrection(true)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled(true)
                 .padding()
                 .background(Color.gray.opacity(0.1))
                 .cornerRadius(8)
@@ -33,7 +35,7 @@ struct ForgotPasswordView: View {
                     .font(.caption)
             }
 
-            Button("Send Reset Email") {
+            Button(LocalizedStrings.sendResetEmailButton) {
                 sendPasswordReset()
             }
             .frame(maxWidth: .infinity)
@@ -42,8 +44,8 @@ struct ForgotPasswordView: View {
             .foregroundColor(.white)
             .cornerRadius(10)
 
-            Button("Back to Login") {
-                presentationMode.wrappedValue.dismiss()
+            Button(LocalizedStrings.backToLoginButton) {
+                dismiss()
             }
             .foregroundColor(.blue)
             .font(.footnote)
@@ -58,15 +60,16 @@ struct ForgotPasswordView: View {
         message = ""
 
         guard !email.isEmpty else {
-            error = "Please enter your email."
+            error = LocalizedStrings.enterEmailError
             return
         }
 
         Auth.auth().sendPasswordReset(withEmail: email) { err in
             if let err = err {
+                // You can map Firebase error codes to localized messages later if you want.
                 error = err.localizedDescription
             } else {
-                message = "Password reset email sent."
+                message = LocalizedStrings.resetEmailSentMessage
             }
         }
     }

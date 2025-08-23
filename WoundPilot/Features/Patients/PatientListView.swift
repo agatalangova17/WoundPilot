@@ -4,6 +4,8 @@ import FirebaseAuth
 import FirebaseStorage
 
 struct PatientListView: View {
+    @ObservedObject var langManager = LocalizationManager.shared
+
     @State private var patients: [Patient] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
@@ -17,7 +19,7 @@ struct PatientListView: View {
     @State private var searchText = ""
 
     var filteredPatients: [Patient] {
-        if searchText.isEmpty {
+        if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return patients
         } else {
             return patients.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
@@ -28,7 +30,7 @@ struct PatientListView: View {
         NavigationStack {
             ScrollView {
                 if isLoading {
-                    ProgressView("Loading patients...")
+                    ProgressView(LocalizedStrings.loadingPatients)
                         .padding()
                 } else if filteredPatients.isEmpty {
                     VStack(spacing: 12) {
@@ -36,11 +38,11 @@ struct PatientListView: View {
                             .font(.system(size: 48))
                             .foregroundColor(.secondary)
 
-                        Text("No patients found")
+                        Text(LocalizedStrings.noPatientsFound)
                             .font(.title3)
                             .foregroundColor(.primary)
 
-                        Text("Start by adding a patient.")
+                        Text(LocalizedStrings.startByAddingPatient)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -54,13 +56,12 @@ struct PatientListView: View {
                                 showPatientDetail = true
                             } label: {
                                 HStack(spacing: 16) {
-                                    
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(patient.name)
                                             .font(.headline)
                                             .foregroundColor(.primary)
 
-                                        Text("Date of Birth: \(patient.dateOfBirth.formatted(date: .abbreviated, time: .omitted))")
+                                        Text("\(LocalizedStrings.dateOfBirth): \(formatDOB(patient.dateOfBirth))")
                                             .font(.subheadline)
                                             .foregroundColor(.secondary)
                                     }
@@ -83,7 +84,7 @@ struct PatientListView: View {
                                     patientToDelete = patient
                                     showDeleteConfirmation = true
                                 } label: {
-                                    Label("Delete Patient", systemImage: "trash")
+                                    Label(LocalizedStrings.deletePatientAction, systemImage: "trash")
                                 }
                             }
                             .padding(.horizontal)
@@ -92,28 +93,53 @@ struct PatientListView: View {
                     .padding(.top)
                 }
             }
-            .searchable(text: $searchText, prompt: "Search patients by name")
-            .navigationTitle("Your Patients")
+            .environment(\.locale, Locale(identifier: langManager.currentLanguage.rawValue)) // formatting & search prompt
+            .searchable(text: $searchText, prompt: LocalizedStrings.searchPatientsPrompt)
+            .navigationTitle(LocalizedStrings.yourPatientsTitle)
             .onAppear(perform: loadPatients)
-            .alert("Delete this patient and all their wound photos?", isPresented: $showDeleteConfirmation) {
-                Button("Delete", role: .destructive) {
+            .alert(LocalizedStrings.deletePatientAlertTitle, isPresented: $showDeleteConfirmation) {
+                Button(LocalizedStrings.deleteAction, role: .destructive) {
                     if let patient = patientToDelete {
                         deletePatientAndAllWounds(patient: patient)
                     }
                 }
-                Button("Cancel", role: .cancel) {}
+                Button(LocalizedStrings.cancel, role: .cancel) {}
             }
             .navigationDestination(isPresented: $showPatientDetail) {
                 if let patient = selectedPatient {
                     PatientDetailView(patient: patient)
                 }
             }
+            // Optional inline error (kept minimal)
+            .overlay {
+                if let errorMessage, !errorMessage.isEmpty {
+                    VStack {
+                        Spacer()
+                        Text(errorMessage)
+                            .font(.footnote)
+                            .padding(10)
+                            .background(Color.red.opacity(0.1))
+                            .foregroundColor(.red)
+                            .cornerRadius(10)
+                            .padding(.bottom, 12)
+                    }
+                    .padding(.horizontal)
+                }
+            }
         }
+    }
+
+    private func formatDOB(_ date: Date) -> String {
+        let df = DateFormatter()
+        df.dateStyle = .medium
+        df.timeStyle = .none
+        df.locale = Locale(identifier: langManager.currentLanguage.rawValue)
+        return df.string(from: date)
     }
 
     private func loadPatients() {
         guard let userId = Auth.auth().currentUser?.uid else {
-            self.errorMessage = "User not logged in"
+            self.errorMessage = LocalizedStrings.userNotLoggedIn
             self.isLoading = false
             return
         }
@@ -129,7 +155,7 @@ struct PatientListView: View {
                     self.isLoading = false
 
                     if let error = error {
-                        self.errorMessage = "Failed to load patients: \(error.localizedDescription)"
+                        self.errorMessage = LocalizedStrings.failedToLoadPatients(error.localizedDescription)
                         return
                     }
 
@@ -169,7 +195,7 @@ struct PatientListView: View {
 
         db.collection("wounds")
             .whereField("patientId", isEqualTo: patient.id)
-            .getDocuments { snapshot, error in
+            .getDocuments { snapshot, _ in
                 if let documents = snapshot?.documents {
                     for doc in documents {
                         if let url = doc.data()["imageURL"] as? String {
@@ -182,7 +208,7 @@ struct PatientListView: View {
 
                 db.collection("patients").document(patient.id).delete { err in
                     if let err = err {
-                        print("Error deleting patient: \(err)")
+                        self.errorMessage = LocalizedStrings.failedToDeletePatient(err.localizedDescription)
                     } else {
                         loadPatients()
                     }

@@ -4,6 +4,9 @@ import FirebaseFirestore
 
 struct RegisterView: View {
     @Binding var isUserLoggedIn: Bool
+
+    @ObservedObject var langManager = LocalizationManager.shared
+
     @State private var email = ""
     @State private var password = ""
     @State private var confirmPassword = ""
@@ -12,47 +15,44 @@ struct RegisterView: View {
     @State private var showTerms = false
     @State private var showPrivacy = false
     @State private var name = ""
-    
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
                 // Title
-                Text("Register")
+                Text(LocalizedStrings.registerTitle)
                     .font(.largeTitle)
                     .fontWeight(.bold)
-                
-                
-                // Name Input
-                TextField("Full Name", text: $name)
-                    .autocapitalization(.words)
-                    .disableAutocorrection(true)
+
+                // Name
+                TextField(LocalizedStrings.fullNameLabel, text: $name)
+                    .textInputAutocapitalization(.words)
+                    .autocorrectionDisabled(true)
                     .padding()
                     .background(Color.gray.opacity(0.1))
                     .cornerRadius(8)
-                
-                
-            
-                // Email Input
-                TextField("Email", text: $email)
+
+                // Email
+                TextField(LocalizedStrings.email, text: $email)
                     .keyboardType(.emailAddress)
-                    .autocapitalization(.none)
-                    .disableAutocorrection(true)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled(true)
                     .padding()
                     .background(Color.gray.opacity(0.1))
                     .cornerRadius(8)
-                
-                // Password Input
-                SecureField("Password", text: $password)
+
+                // Password
+                SecureField(LocalizedStrings.password, text: $password)
                     .padding()
                     .background(Color.gray.opacity(0.1))
                     .cornerRadius(8)
-                
+
                 // Confirm Password
-                SecureField("Confirm Password", text: $confirmPassword)
+                SecureField(LocalizedStrings.confirmPassword, text: $confirmPassword)
                     .padding()
                     .background(Color.gray.opacity(0.1))
                     .cornerRadius(8)
-                
+
                 // Error Message
                 if !errorMessage.isEmpty {
                     Text(errorMessage)
@@ -60,6 +60,8 @@ struct RegisterView: View {
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                 }
+
+                // Terms & Privacy
                 HStack(alignment: .center, spacing: 8) {
                     Button(action: { agreedToTerms.toggle() }) {
                         Image(systemName: agreedToTerms ? "checkmark.square.fill" : "square")
@@ -69,19 +71,18 @@ struct RegisterView: View {
 
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: 0) {
-                            Text("I agree to the ")
+                            Text(LocalizedStrings.iAgreePrefix)
                                 .font(.footnote)
-                            Text("Terms & Conditions")
+                            Text(LocalizedStrings.termsLinkText)
                                 .underline()
                                 .foregroundColor(.blue)
                                 .font(.footnote)
                                 .onTapGesture { showTerms = true }
                         }
-
                         HStack(spacing: 0) {
-                            Text("and ")
+                            Text(LocalizedStrings.andPrefix)
                                 .font(.footnote)
-                            Text("Privacy Policy")
+                            Text(LocalizedStrings.privacyLinkText)
                                 .underline()
                                 .foregroundColor(.blue)
                                 .font(.footnote)
@@ -89,12 +90,12 @@ struct RegisterView: View {
                         }
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading) 
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal)
-                
+
                 // Register Button
                 Button(action: registerUser) {
-                    Text("Register")
+                    Text(LocalizedStrings.registerButton)
                         .frame(maxWidth: .infinity)
                         .padding()
                         .background(agreedToTerms ? Color.blue : Color.gray)
@@ -102,57 +103,63 @@ struct RegisterView: View {
                         .cornerRadius(10)
                 }
                 .disabled(!agreedToTerms)
+
+                Spacer(minLength: 0)
             }
             .padding()
             .sheet(isPresented: $showTerms) {
-                    TermsAndConditionsView()
-                }
-                .sheet(isPresented: $showPrivacy) {
-                    PrivacyPolicyView()
-                }
+                TermsAndConditionsView()
+            }
+            .sheet(isPresented: $showPrivacy) {
+                PrivacyPolicyView()
+            }
         }
     }
-    
+
     // MARK: - Register User with Firebase
     private func registerUser() {
+        errorMessage = ""
+
         guard !name.isEmpty else {
-            errorMessage = "Full name is required."
+            errorMessage = LocalizedStrings.fullNameRequired
             return
         }
         guard !email.isEmpty, !password.isEmpty else {
-            errorMessage = "Email and password are required."
+            errorMessage = LocalizedStrings.emailPasswordRequired
             return
         }
-        
         guard password == confirmPassword else {
-            errorMessage = "Passwords do not match."
+            errorMessage = LocalizedStrings.passwordsDontMatch
             return
         }
-        
         guard agreedToTerms else {
-            errorMessage = "You must agree to the Terms and Privacy Policy."
+            errorMessage = LocalizedStrings.mustAgreeToTerms
             return
         }
-        
+
         Auth.auth().createUser(withEmail: email, password: password) { result, error in
             if let error = error {
+                // (Optional) Map AuthErrorCode to friendlier localized messages later
                 errorMessage = error.localizedDescription
-            } else if let user = result?.user {
-                // Store agreement in Firestore
-                let db = Firestore.firestore()
-                db.collection("users").document(user.uid).setData([
-                    "email": email,
-                    "name": name,
-                    "agreedToTerms": true,
-                    "termsVersion": "1.0",
-                    "agreedAt": Timestamp(date: Date())
-                ]) { err in
-                    if let err = err {
-                        errorMessage = "Error saving agreement: \(err.localizedDescription)"
-                    } else {
-                        isUserLoggedIn = true
-                    }
+                return
+            }
+            guard let user = result?.user else { return }
+
+            // Store agreement in Firestore
+            let db = Firestore.firestore()
+            db.collection("users").document(user.uid).setData([
+                "email": email,
+                "name": name,
+                "agreedToTerms": true,
+                "termsVersion": "1.0",
+                "agreedAt": Timestamp(date: Date())
+            ]) { err in
+                if let err = err {
+                    errorMessage = LocalizedStrings.savingAgreementError("\(err.localizedDescription)")
+                } else {
+                    isUserLoggedIn = true
                 }
             }
         }
-    }}
+    }
+}

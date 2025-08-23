@@ -9,51 +9,64 @@ struct ClinicalTip: Identifiable {
 }
 
 struct ClinicalTipsView: View {
-    let tips: [ClinicalTip] = [
-        ClinicalTip(title: "Moisture Balance",
-                    description: "Keeping wounds moist—not wet—accelerates epithelialization and tissue repair.",
-                    icon: "drop.fill",
-                    color: .blue),
+    @ObservedObject var langManager = LocalizationManager.shared  // react to language switches
 
-        ClinicalTip(title: "Edge Assessment",
-                    description: "Monitor wound edges for maceration, undermining, or rolled borders to guide interventions.",
-                    icon: "scope",
-                    color: .purple),
-
-        ClinicalTip(title: "TIME Framework",
-                    description: "Apply the TIME approach: Tissue management, Inflammation/Infection control, Moisture balance, and Edge advancement.",
-                    icon: "puzzlepiece.fill",
-                    color: .green),
-
-        ClinicalTip(title: "Granulation Tissue",
-                    description: "Bright red, bumpy tissue in the wound bed is a positive sign of healing progress.",
-                    icon: "heart.fill",
-                    color: .red),
-
-        ClinicalTip(title: "Infection Indicators",
-                    description: "Look for increased pain, redness, warmth, swelling, or odor — signs that may require antimicrobial therapy.",
-                    icon: "exclamationmark.triangle.fill",
-                    color: .orange),
-
-        ClinicalTip(title: "Size Monitoring",
-                    description: "Document wound dimensions regularly to track healing trajectory and adjust treatment.",
-                    icon: "ruler.fill",
-                    color: .indigo),
-
-        ClinicalTip(title: "Epithelialization",
-                    description: "Thin, pale pink tissue covering the wound indicates closure is approaching.",
-                    icon: "checkmark.seal.fill",
-                    color: .teal)
-    ]
+    // Recompute on language change
+    var tips: [ClinicalTip] {
+        [
+            ClinicalTip(
+                title: LocalizedStrings.tipMoistureTitle,
+                description: LocalizedStrings.tipMoistureDesc,
+                icon: "drop.fill",
+                color: .blue
+            ),
+            ClinicalTip(
+                title: LocalizedStrings.tipEdgeTitle,
+                description: LocalizedStrings.tipEdgeDesc,
+                icon: "scope",
+                color: .purple
+            ),
+            ClinicalTip(
+                title: LocalizedStrings.tipTimeTitle,
+                description: LocalizedStrings.tipTimeDesc,
+                icon: "puzzlepiece.fill",
+                color: .green
+            ),
+            ClinicalTip(
+                title: LocalizedStrings.tipGranulationTitle,
+                description: LocalizedStrings.tipGranulationDesc,
+                icon: "heart.fill",
+                color: .red
+            ),
+            ClinicalTip(
+                title: LocalizedStrings.tipInfectionTitle,
+                description: LocalizedStrings.tipInfectionDesc,
+                icon: "exclamationmark.triangle.fill",
+                color: .orange
+            ),
+            ClinicalTip(
+                title: LocalizedStrings.tipSizeTitle,
+                description: LocalizedStrings.tipSizeDesc,
+                icon: "ruler.fill",
+                color: .indigo
+            ),
+            ClinicalTip(
+                title: LocalizedStrings.tipEpithelialTitle,
+                description: LocalizedStrings.tipEpithelialDesc,
+                icon: "checkmark.seal.fill",
+                color: .teal
+            )
+        ]
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                Text("Clinical Tips")
+                Text(LocalizedStrings.clinicalTipsTitle)
                     .font(.largeTitle.bold())
                     .padding(.top, 16)
 
-                Text("Best-practice wound care guidelines for clinicians. These tips are rooted in evidence and regularly reviewed.")
+                Text(LocalizedStrings.clinicalTipsSubtitle)
                     .font(.body)
                     .foregroundColor(.secondary)
 

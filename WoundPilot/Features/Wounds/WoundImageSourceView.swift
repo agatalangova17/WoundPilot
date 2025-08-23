@@ -3,6 +3,8 @@ import SwiftUI
 struct WoundImageSourceView: View {
     let selectedPatient: Patient?
 
+    @ObservedObject var langManager = LocalizationManager.shared
+
     @State private var showImagePicker = false
     @State private var pickerSource: UIImagePickerController.SourceType = .camera
     @State private var selectedImage: UIImage?
@@ -19,14 +21,13 @@ struct WoundImageSourceView: View {
                     .ignoresSafeArea()
 
                 VStack(spacing: 32) {
-                    
 
                     // MARK: - Image Input Options
                     VStack(spacing: 16) {
                         OptionCard(
                             icon: "camera.fill",
-                            title: "Take Photo",
-                            caption: "Use your camera in real time",
+                            title: LocalizedStrings.takePhoto,
+                            caption: LocalizedStrings.takePhotoCaption,
                             color: Color.primaryBlue
                         ) {
                             pickerSource = .camera
@@ -35,8 +36,8 @@ struct WoundImageSourceView: View {
 
                         OptionCard(
                             icon: "photo.on.rectangle",
-                            title: "Choose Photo",
-                            caption: "Pick an existing photo from gallery",
+                            title: LocalizedStrings.choosePhoto,
+                            caption: LocalizedStrings.choosePhotoCaption,
                             color: Color.accentBlue.opacity(0.15),
                             foreground: .accentBlue
                         ) {
@@ -44,18 +45,18 @@ struct WoundImageSourceView: View {
                             showImagePicker = true
                         }
 
-#if targetEnvironment(simulator)
+                        #if targetEnvironment(simulator)
                         OptionCard(
                             icon: "photo.fill.on.rectangle.fill",
-                            title: "Use Dummy Wound Image",
-                            caption: "Simulator-only testing image",
+                            title: LocalizedStrings.useDummyWoundImage,
+                            caption: LocalizedStrings.simulatorOnlyTestingImage,
                             color: Color.gray.opacity(0.1),
                             foreground: .gray
                         ) {
                             selectedImage = UIImage(named: "dummy_wound")
                             showConfirmationView = true
                         }
-#endif
+                        #endif
                     }
                     .padding(.horizontal)
 
@@ -63,7 +64,8 @@ struct WoundImageSourceView: View {
                 }
                 .padding()
             }
-            .navigationTitle("New Wound")
+            .environment(\.locale, Locale(identifier: langManager.currentLanguage.rawValue))
+            .navigationTitle(LocalizedStrings.newWoundTitle)
             .navigationBarTitleDisplayMode(.inline)
 
             // MARK: - Sheets
@@ -100,6 +102,7 @@ struct WoundImageSourceView: View {
                 }
             }
 
+            // iOS 17-safe onChange (zero-parameter closure)
             .onChange(of: nextStepTriggered) {
                 if nextStepTriggered {
                     navigateToPrepare = true
@@ -111,7 +114,6 @@ struct WoundImageSourceView: View {
 }
 
 // MARK: - Card Component
-
 struct OptionCard: View {
     var icon: String
     var title: String

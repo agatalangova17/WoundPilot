@@ -7,6 +7,8 @@ struct PreparingAnalysisView: View {
     let woundGroupId: String
     let woundGroupName: String
 
+    @ObservedObject var langManager = LocalizationManager.shared
+
     @State private var savedWound: Wound?
     @State private var navigate = false
     @State private var error: String?
@@ -15,7 +17,7 @@ struct PreparingAnalysisView: View {
         VStack(spacing: 24) {
             Spacer()
 
-            ProgressView("Analysing size…")
+            ProgressView(LocalizedStrings.analyzingSizeProgress)
                 .progressViewStyle(CircularProgressViewStyle(tint: .accentColor))
                 .font(.headline)
                 .multilineTextAlignment(.center)
@@ -33,7 +35,7 @@ struct PreparingAnalysisView: View {
             print("🟦 PreparingAnalysisView appeared")
             saveWound()
 
-            // Optional: timeout fallback
+            // Optional: timeout fallback (debug only)
             DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
                 if !navigate {
                     print("🟨 Timeout: saveWound did not complete in 5 seconds.")

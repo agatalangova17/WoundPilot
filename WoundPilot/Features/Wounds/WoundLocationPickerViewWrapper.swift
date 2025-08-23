@@ -4,6 +4,8 @@ struct WoundLocationPickerViewWrapper: View {
     let image: UIImage
     let patient: Patient?
 
+    @ObservedObject var langManager = LocalizationManager.shared
+
     @State private var selectedRegion: String?
     @State private var showNextScreen = false
     @State private var selectedGroupId: String?
@@ -22,23 +24,23 @@ struct WoundLocationPickerViewWrapper: View {
                     } else {
                         // skip group picker if fast flow
                         selectedGroupId = "fast-capture"
-                        selectedGroupName = "Fast Capture"
+                        selectedGroupName = LocalizedStrings.fastCaptureName
                         showNextScreen = true
                     }
                 }
             )
 
             if selectedRegion != nil {
-                Button(action: {
+                Button {
                     if patient != nil {
                         showNextScreen = true
                     } else {
                         selectedGroupId = "fast-capture"
-                        selectedGroupName = "Fast Capture"
+                        selectedGroupName = LocalizedStrings.fastCaptureName
                         showNextScreen = true
                     }
-                }) {
-                    Text("Confirm")
+                } label: {
+                    Text(LocalizedStrings.confirm)
                         .font(.headline)
                         .foregroundColor(.white)
                         .padding()
@@ -57,6 +59,7 @@ struct WoundLocationPickerViewWrapper: View {
                 .padding(.top, 6)
             }
         }
+        .environment(\.locale, Locale(identifier: langManager.currentLanguage.rawValue))
         .navigationDestination(isPresented: $showNextScreen) {
             if let region = selectedRegion {
                 if let patient = patient, selectedGroupId == nil {

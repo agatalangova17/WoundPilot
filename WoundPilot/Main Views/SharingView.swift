@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct SharingView: View {
+    @ObservedObject var langManager = LocalizationManager.shared  // re-render on language switch
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -8,9 +10,9 @@ struct SharingView: View {
 
                     // MARK: - Title
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Case Sharing")
+                        Text(LocalizedStrings.caseSharingHeaderTitle)
                             .font(.title2.bold())
-                        Text("Easily share patient cases and wound data with colleagues for a second opinion or remote collaboration.")
+                        Text(LocalizedStrings.caseSharingHeaderSubtitle)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -31,10 +33,10 @@ struct SharingView: View {
                                 }
 
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text("Share a New Case")
+                                    Text(LocalizedStrings.shareNewCaseTitle)
                                         .font(.headline)
                                         .foregroundColor(.primary)
-                                    Text("Send patient data securely")
+                                    Text(LocalizedStrings.shareNewCaseSubtitle)
                                         .font(.subheadline)
                                         .foregroundColor(.secondary)
                                 }
@@ -61,10 +63,10 @@ struct SharingView: View {
                                 }
 
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text("View Received Cases")
+                                    Text(LocalizedStrings.viewReceivedCasesTitle)
                                         .font(.headline)
                                         .foregroundColor(.primary)
-                                    Text("Check referrals from colleagues")
+                                    Text(LocalizedStrings.viewReceivedCasesSubtitle)
                                         .font(.subheadline)
                                         .foregroundColor(.secondary)
                                 }
@@ -84,7 +86,7 @@ struct SharingView: View {
                 }
                 .padding()
             }
-            .navigationTitle("Sharing")
+            .navigationTitle(LocalizedStrings.sharingTab) // uses the same key you added for the tab title
         }
     }
 }

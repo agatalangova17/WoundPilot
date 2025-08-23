@@ -15,17 +15,19 @@ struct Wound: Identifiable {
 }
 
 struct WoundListView: View {
-    let patient: Patient?  // ✅ Now optional
+    let patient: Patient?  // optional
+
+    @ObservedObject var langManager = LocalizationManager.shared
     @State private var wounds: [Wound] = []
     @State private var isLoading = true
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack {
                 if isLoading {
-                    ProgressView("Loading wounds...")
+                    ProgressView(LocalizedStrings.loadingWounds)
                 } else if wounds.isEmpty {
-                    Text("No wounds uploaded yet.")
+                    Text(LocalizedStrings.noWoundsYet)
                         .foregroundColor(.gray)
                 } else {
                     let grouped = Dictionary(grouping: wounds, by: { $0.woundGroupId })
@@ -38,8 +40,8 @@ struct WoundListView: View {
                                 NavigationLink(
                                     destination: WoundDetailView(
                                         woundGroupId: groupId,
-                                        woundGroupName: latest.woundGroupName ?? "Unnamed Wound",
-                                        patient: patient  // ✅ now optional
+                                        woundGroupName: latest.woundGroupName ?? LocalizedStrings.unnamedWound,
+                                        patient: patient
                                     )
                                 ) {
                                     HStack {
@@ -54,11 +56,11 @@ struct WoundListView: View {
                                         }
 
                                         VStack(alignment: .leading) {
-                                            Text(latest.woundGroupName ?? "Unnamed Wound")
+                                            Text(latest.woundGroupName ?? LocalizedStrings.unnamedWound)
                                                 .font(.headline)
                                                 .foregroundColor(.blue)
 
-                                            Text("Last update:")
+                                            Text(LocalizedStrings.lastUpdateLabel)
                                             Text(latest.timestamp.formatted(date: .abbreviated, time: .shortened))
                                                 .font(.caption)
                                                 .foregroundColor(.gray)
@@ -70,7 +72,8 @@ struct WoundListView: View {
                     }
                 }
             }
-            .navigationTitle("My Wounds")
+            .environment(\.locale, Locale(identifier: langManager.currentLanguage.rawValue))
+            .navigationTitle(LocalizedStrings.myWoundsTitle)
         }
         .onAppear(perform: loadWounds)
     }
@@ -82,7 +85,7 @@ struct WoundListView: View {
         var query: Query = db.collection("wounds").whereField("userId", isEqualTo: userId)
 
         if let patient = patient {
-            query = query.whereField("patientId", isEqualTo: patient.id)  // ✅ Only filter by patient if provided
+            query = query.whereField("patientId", isEqualTo: patient.id)
         }
 
         query.order(by: "timestamp", descending: true).getDocuments { snapshot, error in
@@ -103,7 +106,6 @@ struct WoundListView: View {
                         return nil
                     }
 
-                    // patientId is optional now
                     let patientId = data["patientId"] as? String ?? ""
 
                     return Wound(

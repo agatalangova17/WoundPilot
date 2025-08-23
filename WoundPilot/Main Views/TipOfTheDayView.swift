@@ -4,6 +4,9 @@ struct TipOfTheDayView: View {
     let tip: String
     @State private var isExpanded = false
 
+    // Re-render when the language changes
+    @ObservedObject var langManager = LocalizationManager.shared
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
@@ -11,16 +14,17 @@ struct TipOfTheDayView: View {
                     .foregroundColor(.yellow)
                     .font(.title3)
 
-                Text("Tip of the Day")
+                // Localized title
+                Text(LocalizedStrings.tipOfTheDay)
                     .font(.headline)
 
                 Spacer()
 
-                Button(action: {
+                Button {
                     withAnimation(.easeInOut(duration: 0.25)) {
                         isExpanded.toggle()
                     }
-                }) {
+                } label: {
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .foregroundColor(.gray)
                 }

@@ -5,17 +5,18 @@ struct ImageConfirmationView: View {
     let onConfirm: () -> Void
     let onRetake: () -> Void
 
+    @ObservedObject var langManager = LocalizationManager.shared
     @State private var isLoading = false
 
     var body: some View {
         VStack(spacing: 28) {
             // Title
             VStack(spacing: 8) {
-                Text("Confirm Wound Photo")
+                Text(LocalizedStrings.confirmWoundPhotoTitle)
                     .font(.title2.bold())
                     .multilineTextAlignment(.center)
 
-                Text("Make sure the photo is clear and ruler is visible.")
+                Text(LocalizedStrings.confirmWoundPhotoSubtitle)
                     .font(.subheadline)
                     .foregroundColor(.gray)
                     .multilineTextAlignment(.center)
@@ -42,7 +43,7 @@ struct ImageConfirmationView: View {
                 Button(action: onRetake) {
                     HStack {
                         Image(systemName: "arrow.counterclockwise")
-                        Text("Retake")
+                        Text(LocalizedStrings.retakeButton)
                     }
                     .font(.headline)
                     .frame(maxWidth: .infinity)
@@ -53,10 +54,11 @@ struct ImageConfirmationView: View {
                 }
                 .disabled(isLoading)
 
-                Button(action: {
+                Button {
+                    guard !isLoading else { return }
                     isLoading = true
                     onConfirm()
-                }) {
+                } label: {
                     if isLoading {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
@@ -65,7 +67,7 @@ struct ImageConfirmationView: View {
                     } else {
                         HStack {
                             Image(systemName: "checkmark.circle.fill")
-                            Text("Use Photo")
+                            Text(LocalizedStrings.usePhotoButton)
                         }
                         .font(.headline)
                         .frame(maxWidth: .infinity)
@@ -75,6 +77,7 @@ struct ImageConfirmationView: View {
                 .background(Color.accentBlue)
                 .foregroundColor(.white)
                 .cornerRadius(12)
+                .disabled(isLoading)
             }
             .padding(.horizontal)
 

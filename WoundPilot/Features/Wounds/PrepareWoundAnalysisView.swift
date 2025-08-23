@@ -4,12 +4,14 @@ struct PrepareWoundAnalysisView: View {
     let image: UIImage
     let patient: Patient?
 
+    @ObservedObject var langManager = LocalizationManager.shared
     @State private var proceedToLocation = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .center, spacing: 28) {
+
                     // MARK: - Avatar + Title + Steps
                     VStack(spacing: 16) {
                         Image(systemName: "stethoscope.circle.fill")
@@ -18,7 +20,7 @@ struct PrepareWoundAnalysisView: View {
                             .foregroundColor(.accentBlue)
                             .padding(.top, 8)
 
-                        Text("You're just 3 steps away from an AI-powered wound evaluation.")
+                        Text(LocalizedStrings.prepare3StepsTitle)
                             .font(.title2.bold())
                             .multilineTextAlignment(.center)
 
@@ -29,7 +31,7 @@ struct PrepareWoundAnalysisView: View {
                     Button {
                         proceedToLocation = true
                     } label: {
-                        Text("Continue")
+                        Text(LocalizedStrings.continueButton)
                             .bold()
                             .frame(maxWidth: .infinity)
                             .padding()
@@ -40,7 +42,7 @@ struct PrepareWoundAnalysisView: View {
                 }
                 .padding()
             }
-            .navigationTitle("Get Started")
+            .navigationTitle(LocalizedStrings.getStartedNavTitle)
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(isPresented: $proceedToLocation) {
                 WoundLocationPickerViewWrapper(
@@ -54,9 +56,17 @@ struct PrepareWoundAnalysisView: View {
     // MARK: - Step List
     private var stepList: some View {
         VStack(alignment: .leading, spacing: 12) {
-            stepRow("mappin.and.ellipse", "Step 1", "Select wound location")
-            stepRow("doc.text.magnifyingglass", "Step 2", "Answer clinical questions")
-            stepRow("brain.head.profile", "Step 3", "AI analyzes wound")
+            stepRow("mappin.and.ellipse",
+                    LocalizedStrings.stepN(1),
+                    LocalizedStrings.selectWoundLocation)
+
+            stepRow("doc.text.magnifyingglass",
+                    LocalizedStrings.stepN(2),
+                    LocalizedStrings.answerClinicalQuestions)
+
+            stepRow("brain.head.profile",
+                    LocalizedStrings.stepN(3),
+                    LocalizedStrings.aiAnalyzesWound)
         }
         .padding()
         .background(Color(.systemGray6))

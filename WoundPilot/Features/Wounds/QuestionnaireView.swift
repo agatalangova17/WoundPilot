@@ -5,6 +5,8 @@ struct QuestionnaireView: View {
     let woundGroupId: String
     let patientId: String
 
+    @ObservedObject var langManager = LocalizationManager.shared
+
     @State private var isDiabetic = false
     @State private var isInfected = false
     @State private var hasExudate = false
@@ -20,33 +22,33 @@ struct QuestionnaireView: View {
                 VStack(spacing: 20) {
 
                     // Title
-                    Text("Clinical Questionnaire")
+                    Text(LocalizedStrings.clinicalQuestionnaireTitle)
                         .font(.title2.bold())
                         .padding(.top, 8)
 
                     // Questionnaire Section
                     VStack(spacing: 16) {
 
-                        ToggleRow(title: "Patient has diabetes", isOn: $isDiabetic)
-                        ToggleRow(title: "Wound shows signs of infection", isOn: $isInfected)
-                        ToggleRow(title: "Wound has exudate (fluid)", isOn: $hasExudate)
+                        ToggleRow(title: LocalizedStrings.qPatientHasDiabetes, isOn: $isDiabetic)
+                        ToggleRow(title: LocalizedStrings.qWoundShowsInfection, isOn: $isInfected)
+                        ToggleRow(title: LocalizedStrings.qWoundHasExudate, isOn: $hasExudate)
 
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Wound age (in days)")
+                            Text(LocalizedStrings.qWoundAgeDays)
                                 .font(.subheadline)
                                 .foregroundColor(.gray)
 
-                            TextField("Enter number", text: $woundAgeInDays)
+                            TextField(LocalizedStrings.enterNumberPlaceholder, text: $woundAgeInDays)
                                 .keyboardType(.numberPad)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                         }
 
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Pain level (0–10)")
+                            Text(LocalizedStrings.qPainLevelLabel)
                                 .font(.subheadline)
                                 .foregroundColor(.gray)
 
-                            Picker("Pain level", selection: $painLevel) {
+                            Picker(LocalizedStrings.qPainLevelPickerTitle, selection: $painLevel) {
                                 ForEach(0..<11) {
                                     Text("\($0)").tag($0)
                                 }
@@ -75,7 +77,7 @@ struct QuestionnaireView: View {
                         .frame(maxWidth: .infinity)
                         .padding()
                 } else {
-                    Text("Continue to AI Analysis")
+                    Text(LocalizedStrings.continueToAIAnalysisButton)
                         .bold()
                         .frame(maxWidth: .infinity)
                         .padding()
@@ -95,8 +97,9 @@ struct QuestionnaireView: View {
     }
 
     private func saveAnswers() {
-        guard let woundAge = Int(woundAgeInDays) else {
-            errorMessage = "Please enter a valid number of days"
+        let trimmed = woundAgeInDays.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let woundAge = Int(trimmed) else {
+            errorMessage = LocalizedStrings.enterValidDaysError
             return
         }
 
@@ -121,7 +124,7 @@ struct QuestionnaireView: View {
             DispatchQueue.main.async {
                 isSaving = false
                 if let error = error {
-                    errorMessage = "Failed to save: \(error.localizedDescription)"
+                    errorMessage = LocalizedStrings.failedToSave(error.localizedDescription)
                 } else {
                     showNextView = true
                 }

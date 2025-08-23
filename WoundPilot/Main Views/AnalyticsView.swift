@@ -2,12 +2,22 @@ import SwiftUI
 import FirebaseFirestore
 
 enum TimeRange: String, CaseIterable {
-    case today = "Today"
-    case thisWeek = "This Week"
-    case allTime = "All Time"
+    case today
+    case thisWeek
+    case allTime
+    // Localized label for the picker
+    var title: String {
+        switch self {
+        case .today:    return LocalizedStrings.timeToday
+        case .thisWeek: return LocalizedStrings.timeThisWeek
+        case .allTime:  return LocalizedStrings.timeAllTime
+        }
+    }
 }
 
 struct AnalyticsView: View {
+    @ObservedObject var langManager = LocalizationManager.shared   // <- make view react to language changes
+
     @State private var timeRange: TimeRange = .allTime
     @State private var patientCount: Int? = nil
     @State private var woundCount: Int? = nil
@@ -18,9 +28,9 @@ struct AnalyticsView: View {
                 VStack(alignment: .leading, spacing: 20) {
 
                     // MARK: - Time Range Picker
-                    Picker("Time Range", selection: $timeRange) {
+                    Picker(LocalizedStrings.timeRangeLabel, selection: $timeRange) {
                         ForEach(TimeRange.allCases, id: \.self) { range in
-                            Text(range.rawValue).tag(range)
+                            Text(range.title).tag(range)
                         }
                     }
                     .pickerStyle(.segmented)
@@ -29,7 +39,7 @@ struct AnalyticsView: View {
                     // MARK: - Analytics Cards
                     VStack(spacing: 16) {
                         AnalyticsCard(
-                            title: "Total Patients",
+                            title: LocalizedStrings.totalPatients,
                             value: patientCount.map(String.init) ?? "42",
                             icon: "person.2.fill",
                             iconColor: .primaryBlue,
@@ -37,7 +47,7 @@ struct AnalyticsView: View {
                         )
 
                         AnalyticsCard(
-                            title: "Total Wound Captures",
+                            title: LocalizedStrings.totalWoundCaptures,
                             value: woundCount.map(String.init) ?? "128",
                             icon: "bandage.fill",
                             iconColor: .accentBlue,
@@ -50,10 +60,8 @@ struct AnalyticsView: View {
                 }
                 .padding(.top)
             }
-            .navigationTitle("Analytics")
-            .onAppear {
-                fetchAnalyticsData()
-            }
+            .navigationTitle(LocalizedStrings.analyticsTitle)
+            .onAppear { fetchAnalyticsData() }
         }
     }
 

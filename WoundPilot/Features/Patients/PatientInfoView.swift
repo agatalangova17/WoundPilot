@@ -2,45 +2,80 @@ import SwiftUI
 
 struct PatientInfoView: View {
     let patient: Patient
+    @ObservedObject var langManager = LocalizationManager.shared
     @State private var showEdit = false
+
+    // Localized DOB
+    private var formattedDOB: String {
+        let df = DateFormatter()
+        df.dateStyle = .medium
+        df.timeStyle = .none
+        df.locale = Locale(identifier: langManager.currentLanguage.rawValue) // "en" / "sk"
+        return df.string(from: patient.dateOfBirth)
+    }
+
+    // Map stored value (code or legacy/localized) to localized display
+    private var sexDisplay: String {
+        let raw = (patient.sex ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        switch raw {
+        case "male", "m", "muž": return LocalizedStrings.sexMale
+        case "female", "f", "žena": return LocalizedStrings.sexFemale
+        case "unspecified", "unknown", "neurčené", "": fallthrough
+        default: return LocalizedStrings.sexUnspecified
+        }
+    }
+
+    private func formatWeight(_ value: Double) -> String {
+        let nf = NumberFormatter()
+        nf.numberStyle = .decimal
+        nf.minimumFractionDigits = 1
+        nf.maximumFractionDigits = 1
+        nf.locale = Locale(identifier: langManager.currentLanguage.rawValue)
+        return nf.string(from: NSNumber(value: value)) ?? String(format: "%.1f", value)
+    }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section(header: Text("Basic Info")) {
-                    Text("Full Name: \(patient.name)")
-                    Text("Date of Birth: \(patient.dateOfBirth.formatted(date: .abbreviated, time: .omitted))")
-                    Text("Sex: \(patient.sex ?? "Unspecified")")
+                // MARK: - Basic Info
+                Section(header: Text(LocalizedStrings.basicInfoSection)) {
+                    Text("\(LocalizedStrings.fullNameLabel): \(patient.name)")
+                    Text("\(LocalizedStrings.dateOfBirth): \(formattedDOB)")
+                    Text("\(LocalizedStrings.sexLabel): \(sexDisplay)")
                 }
 
-                Section(header: Text("Clinical Details")) {
-                    Toggle("Diabetic", isOn: .constant(patient.isDiabetic ?? false))
+                // MARK: - Clinical Details
+                Section(header: Text(LocalizedStrings.clinicalDetailsSection)) {
+                    Toggle(LocalizedStrings.diabetic, isOn: .constant(patient.isDiabetic ?? false))
                         .disabled(true)
-                    Toggle("Smoker", isOn: .constant(patient.isSmoker ?? false))
+                    Toggle(LocalizedStrings.smoker, isOn: .constant(patient.isSmoker ?? false))
                         .disabled(true)
-                    Toggle("Peripheral Artery Disease", isOn: .constant(patient.hasPAD ?? false))
+                    Toggle(LocalizedStrings.peripheralArteryDisease, isOn: .constant(patient.hasPAD ?? false))
                         .disabled(true)
-                    Toggle("Mobility Issues", isOn: .constant(patient.hasMobilityIssues ?? false))
+                    Toggle(LocalizedStrings.mobilityIssues, isOn: .constant(patient.hasMobilityIssues ?? false))
                         .disabled(true)
-                    Toggle("Blood Pressure Issues", isOn: .constant(patient.hasBloodPressureIssues ?? false))
+                    Toggle(LocalizedStrings.bloodPressureIssues, isOn: .constant(patient.hasBloodPressureIssues ?? false))
                         .disabled(true)
+
                     if let weight = patient.weight {
-                        Text("Weight: \(weight, specifier: "%.1f") kg")
+                        Text("\(LocalizedStrings.weightLabel): \(formatWeight(weight)) \(LocalizedStrings.kgUnit)")
                     }
                     if let allergies = patient.allergies, !allergies.isEmpty {
-                        Text("Allergies: \(allergies)")
+                        Text("\(LocalizedStrings.allergiesLabel): \(allergies)")
                     }
                 }
 
+                // MARK: - Actions
                 Section {
-                    Button(action: {
+                    Button {
                         showEdit = true
-                    }) {
-                        Label("Edit Patient Info", systemImage: "square.and.pencil")
+                    } label: {
+                        Label(LocalizedStrings.editPatientInfo, systemImage: "square.and.pencil")
                     }
                 }
             }
-            .navigationTitle("Patient Info")
+            .environment(\.locale, Locale(identifier: langManager.currentLanguage.rawValue))
+            .navigationTitle(LocalizedStrings.patientInfoTitle)
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(isPresented: $showEdit) {
                 EditPatientView(patient: patient)

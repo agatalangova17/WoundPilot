@@ -4,12 +4,15 @@ import FirebaseAuth
 
 struct AddPatientView: View {
     @Environment(\.dismiss) var dismiss
+    @ObservedObject var langManager = LocalizationManager.shared
 
     @State private var name: String = ""
     @State private var dateOfBirth = Date()
 
-    // Optional clinical fields
-    @State private var sex = "Unspecified"
+    // Store stable codes; UI shows localized titles
+    @State private var sexCode = "unspecified"
+    private let sexCodes = ["unspecified", "male", "female"]
+
     @State private var isDiabetic = false
     @State private var isSmoker = false
     @State private var hasPAD = false
@@ -22,37 +25,46 @@ struct AddPatientView: View {
     @State private var errorMessage: String?
     @State private var successMessage: String?
 
-    let sexOptions = ["Unspecified", "Male", "Female"]
-
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
-                Section(header: Text("Patient Information")) {
-                    TextField("Full Name", text: $name)
-                    DatePicker("Date of Birth", selection: $dateOfBirth, displayedComponents: .date)
-                    Picker("Sex", selection: $sex) {
-                        ForEach(sexOptions, id: \.self) {
-                            Text($0)
+                // MARK: - Patient Info
+                Section(header: Text(LocalizedStrings.patientInformationSection)) {
+                    TextField(LocalizedStrings.fullNameLabel, text: $name)
+                        .textInputAutocapitalization(.words)
+                        .autocorrectionDisabled(true)
+
+                    DatePicker(LocalizedStrings.dateOfBirth, selection: $dateOfBirth, displayedComponents: .date)
+
+                    Picker(LocalizedStrings.sexLabel, selection: $sexCode) {
+                        ForEach(sexCodes, id: \.self) { code in
+                            Text(localizedSexTitle(code)).tag(code)
                         }
                     }
                 }
 
-                Section(header: Text("Optional Clinical Info")) {
-                    Toggle("Diabetic", isOn: $isDiabetic)
-                    Toggle("Smoker", isOn: $isSmoker)
-                    Toggle("Peripheral Artery Disease", isOn: $hasPAD)
-                    Toggle("Mobility Issues", isOn: $hasMobilityIssues)
-                    Toggle("Blood Pressure Issues", isOn: $hasBloodPressureIssues)
-                    TextField("Weight (kg)", text: $weight)
+                // MARK: - Optional Clinical Info
+                Section(header: Text(LocalizedStrings.optionalClinicalInfoSection)) {
+                    Toggle(LocalizedStrings.diabetic, isOn: $isDiabetic)
+                    Toggle(LocalizedStrings.smoker, isOn: $isSmoker)
+                    Toggle(LocalizedStrings.peripheralArteryDisease, isOn: $hasPAD)
+                    Toggle(LocalizedStrings.mobilityIssues, isOn: $hasMobilityIssues)
+                    Toggle(LocalizedStrings.bloodPressureIssues, isOn: $hasBloodPressureIssues)
+
+                    TextField(LocalizedStrings.weightKgPlaceholder, text: $weight)
                         .keyboardType(.decimalPad)
-                    TextField("Known Allergies", text: $allergies)
+
+                    TextField(LocalizedStrings.knownAllergiesPlaceholder, text: $allergies)
+                        .textInputAutocapitalization(.words)
+                        .autocorrectionDisabled(true)
                 }
 
+                // MARK: - Actions & Messages
                 Section {
                     if isSaving {
-                        ProgressView("Saving...")
+                        ProgressView(LocalizedStrings.saving)
                     } else {
-                        Button("Save Patient") {
+                        Button(LocalizedStrings.savePatient) {
                             savePatient()
                         }
                         .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -69,21 +81,30 @@ struct AddPatientView: View {
                     }
                 }
             }
-            .navigationTitle("Add Patient")
+            .environment(\.locale, Locale(identifier: langManager.currentLanguage.rawValue)) // date picker & formats
+            .navigationTitle(LocalizedStrings.addPatient)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
+                    Button(LocalizedStrings.cancel) { dismiss() }
                 }
             }
         }
     }
 
+    // Localized title for sex codes (stored value remains a stable code)
+    private func localizedSexTitle(_ code: String) -> String {
+        switch code {
+        case "male": return LocalizedStrings.sexMale
+        case "female": return LocalizedStrings.sexFemale
+        default: return LocalizedStrings.sexUnspecified
+        }
+    }
+
+    // MARK: - Save
     private func savePatient() {
         guard let userId = Auth.auth().currentUser?.uid else {
-            errorMessage = "User not logged in."
+            errorMessage = LocalizedStrings.userNotLoggedIn
             return
         }
 
@@ -99,7 +120,7 @@ struct AddPatientView: View {
             "dateOfBirth": Timestamp(date: dateOfBirth),
             "ownerId": userId,
             "createdAt": Timestamp(date: Date()),
-            "sex": sex,
+            "sex": sexCode, // store stable code, not localized label
             "isDiabetic": isDiabetic,
             "isSmoker": isSmoker,
             "hasPAD": hasPAD,
@@ -115,9 +136,9 @@ struct AddPatientView: View {
         patientRef.setData(data) { error in
             isSaving = false
             if let error = error {
-                errorMessage = "Failed to save: \(error.localizedDescription)"
+                errorMessage = LocalizedStrings.failedToSave(error.localizedDescription)
             } else {
-                successMessage = "Patient saved successfully!"
+                successMessage = LocalizedStrings.patientSavedSuccessfully
                 resetForm()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                     dismiss()
@@ -129,7 +150,7 @@ struct AddPatientView: View {
     private func resetForm() {
         name = ""
         dateOfBirth = Date()
-        sex = "Unspecified"
+        sexCode = "unspecified"
         isDiabetic = false
         isSmoker = false
         hasPAD = false

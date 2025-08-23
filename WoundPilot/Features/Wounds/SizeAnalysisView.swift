@@ -6,6 +6,8 @@ import UIKit
 struct SizeAnalysisView: View {
     let wound: Wound
 
+    @ObservedObject var langManager = LocalizationManager.shared
+
     // Dummy AI analysis (replace later)
     let width: Double = 3.5
     let height: Double = 4.0
@@ -39,12 +41,22 @@ struct SizeAnalysisView: View {
 
                 // MARK: - AI Estimated Size
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Estimated Wound Size")
+                    Text(LocalizedStrings.estimatedWoundSize)
                         .font(.headline)
 
                     HStack(spacing: 20) {
-                        measurementCard(title: "Width", value: width, unit: "cm", icon: "ruler")
-                        measurementCard(title: "Height", value: height, unit: "cm", icon: "arrow.up.and.down")
+                        measurementCard(
+                            title: LocalizedStrings.widthLabel,
+                            value: width,
+                            unit: LocalizedStrings.cmUnit,
+                            icon: "ruler"
+                        )
+                        measurementCard(
+                            title: LocalizedStrings.heightLabel,
+                            value: height,
+                            unit: LocalizedStrings.cmUnit,
+                            icon: "arrow.up.and.down"
+                        )
                     }
                 }
 
@@ -52,7 +64,7 @@ struct SizeAnalysisView: View {
 
                 // MARK: - Manual Toggle
                 Toggle(isOn: $manualEntry) {
-                    Label("Edit Size Manually", systemImage: "pencil")
+                    Label(LocalizedStrings.editSizeManually, systemImage: "pencil")
                         .font(.subheadline)
                         .foregroundColor(.primary)
                 }
@@ -61,13 +73,13 @@ struct SizeAnalysisView: View {
                 // MARK: - Manual Inputs
                 if manualEntry {
                     VStack(spacing: 16) {
-                        TextField("Enter Width (cm)", text: $manualWidth)
+                        TextField(LocalizedStrings.enterWidthCm, text: $manualWidth)
                             .keyboardType(.decimalPad)
                             .padding()
                             .background(Color(.secondarySystemBackground))
                             .cornerRadius(10)
 
-                        TextField("Enter Height (cm)", text: $manualHeight)
+                        TextField(LocalizedStrings.enterHeightCm, text: $manualHeight)
                             .keyboardType(.decimalPad)
                             .padding()
                             .background(Color(.secondarySystemBackground))
@@ -78,10 +90,10 @@ struct SizeAnalysisView: View {
                 Spacer(minLength: 30)
 
                 // MARK: - Continue Button
-                Button(action: {
+                Button {
                     navigateToQuestionnaire = true
-                }) {
-                    Text("Continue")
+                } label: {
+                    Text(LocalizedStrings.continueButton)
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding()
@@ -92,7 +104,8 @@ struct SizeAnalysisView: View {
             }
             .padding()
         }
-        .navigationTitle("Size Analysis")
+        .environment(\.locale, Locale(identifier: langManager.currentLanguage.rawValue))
+        .navigationTitle(LocalizedStrings.sizeAnalysisTitle)
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $navigateToQuestionnaire) {
             QuestionnaireView(
@@ -110,7 +123,7 @@ struct SizeAnalysisView: View {
                 .font(.title2)
                 .foregroundColor(.accentColor)
 
-            Text("\(value, specifier: "%.1f") \(unit)")
+            Text("\(formatNumber(value)) \(unit)")
                 .font(.title3.bold())
 
             Text(title)
@@ -123,5 +136,13 @@ struct SizeAnalysisView: View {
         .cornerRadius(14)
         .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
     }
-}
 
+    private func formatNumber(_ value: Double) -> String {
+        let nf = NumberFormatter()
+        nf.numberStyle = .decimal
+        nf.minimumFractionDigits = 1
+        nf.maximumFractionDigits = 1
+        nf.locale = Locale(identifier: langManager.currentLanguage.rawValue)
+        return nf.string(from: NSNumber(value: value)) ?? String(format: "%.1f", value)
+    }
+}

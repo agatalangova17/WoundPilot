@@ -2,30 +2,30 @@ import SwiftUI
 
 struct WelcomeView: View {
     @Binding var isUserLoggedIn: Bool
+
+    // 🔹 Use the shared localization manager
+    @ObservedObject var langManager = LocalizationManager.shared
+
     @State private var currentTab = 0
     @State private var selectedStep = 1
     @State private var expandedQuestion: String?
     @State private var displayedText = ""
-    @State var selectedLanguage: String = ""
-    
-    let fullAssistantText = "I am here to guide you through fast and secure wound assessments powered by AI."
-    
-    let steps = [
-        (1, "Securely log in or register your account", "log"),
-        (2, "Access the dashboard and begin a new wound assessment", "start analysis"),
-        (3, "Capture a clear wound photo using your camera", "photo"),
-        (4, "Mark the wound location on the body diagram", "location"),
-        (5, "Automatically analyze wound size and dimensions", "size"),
-        (6, "Answer key clinical questions about the wound", "questions"),
-        (7, "Receive AI-powered insights and healing guidance", "ai")
-    ]
-    
-    let faqList: [(question: String, answer: String)] = [
-        ("Is my data secure?", "Yes. All data is encrypted and stored securely in compliance with healthcare standards."),
-        ("Can I use WoundPilot offline?", "Some features work offline, but AI analysis and syncing require internet."),
-        ("Is WoundPilot free?", "The core version is free. Some advanced tools may require a subscription.")
-    ]
-    
+
+    // 🔹 Computed so it updates when language changes
+    var fullAssistantText: String { LocalizedStrings.assistantTypingText }
+
+    // 🔹 Steps re-localize; keeps your image names
+    var steps: [(Int, String, String)] {
+        let imgs = ["log","start analysis","photo","location","size","questions","ai"]
+        return (1...7).map { i in (i, LocalizedStrings.stepDescription(i), imgs[i-1]) }
+    }
+
+    // 🔹 FAQ re-localizes
+    var faqList: [(question: String, answer: String)] {
+        LocalizedStrings.faqList
+    }
+
+    // MARK: - Typing effect
     func typeWriterEffect() {
         displayedText = ""
         var index = 0
@@ -39,28 +39,27 @@ struct WelcomeView: View {
             }
         }
     }
-    
+
     var body: some View {
         NavigationStack {
             TabView(selection: $currentTab) {
-                
+
                 // Page 0: Language Selection
                 VStack(spacing: 30) {
                     VStack(spacing: 8) {
                         Image(systemName: "globe")
                             .font(.system(size: 40))
                             .foregroundColor(.accentBlue)
-                        Text("Select your language / Zvoľte jazyk")
+                        Text(LocalizedStrings.welcomeTitle) // e.g., "Choose your language"
                             .font(.title3.weight(.semibold))
                             .multilineTextAlignment(.center)
                     }
-                    
+
                     VStack(spacing: 16) {
-                        Button(action: {
-                            selectedLanguage = "en"
-                            UserDefaults.standard.set(selectedLanguage, forKey: "selectedLanguage")
+                        Button {
+                            langManager.setLanguage(.en)
                             withAnimation { currentTab = 1 }
-                        }) {
+                        } label: {
                             HStack {
                                 Text("🇬🇧 English")
                                     .font(.headline)
@@ -75,11 +74,10 @@ struct WelcomeView: View {
                             .cornerRadius(12)
                         }
 
-                        Button(action: {
-                            selectedLanguage = "sk"
-                            UserDefaults.standard.set(selectedLanguage, forKey: "selectedLanguage")
+                        Button {
+                            langManager.setLanguage(.sk)
                             withAnimation { currentTab = 1 }
-                        }) {
+                        } label: {
                             HStack {
                                 Text("🇸🇰 Slovenčina")
                                     .font(.headline)
@@ -101,11 +99,11 @@ struct WelcomeView: View {
 
                 // Page 1: Assistant Greeting
                 VStack(spacing: 30) {
-                    Text("WoundPilot")
+                    Text(LocalizedStrings.appTitle) // "WoundPilot"
                         .font(.largeTitle.bold())
                         .foregroundColor(.black)
 
-                    Text("AI-powered wound analysis in your pocket")
+                    Text(LocalizedStrings.appSubtitle)
                         .font(.subheadline)
                         .foregroundColor(.gray)
                         .multilineTextAlignment(.center)
@@ -117,7 +115,7 @@ struct WelcomeView: View {
                         .shadow(radius: 3)
                         .onAppear { typeWriterEffect() }
 
-                    Text("👋 Hi, I’m your clinical assistant.")
+                    Text(LocalizedStrings.assistantIntroLine)
                         .font(.headline)
                         .foregroundColor(.black)
 
@@ -132,19 +130,21 @@ struct WelcomeView: View {
                         .padding(.horizontal)
 
                     NavigationLink(destination: LoginView(isUserLoggedIn: $isUserLoggedIn)) {
-                        Text("Already using WoundPilot?")
+                        Text(LocalizedStrings.alreadyUsing)
                             .font(.footnote.weight(.medium))
                             .foregroundColor(.accentBlue)
                             .padding(.top, 10)
                     }
                 }
                 .padding()
+                // iOS 17+ safe change listener (with iOS 16 fallback via helper below)
+                .onChangeCompat(langManager.currentLanguage) { typeWriterEffect() }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .tag(1)
 
                 // Page 2: Intro Video Placeholder
                 VStack(spacing: 24) {
-                    Text("Watch Introduction Video")
+                    Text(LocalizedStrings.introVideoTitle)
                         .font(.headline)
                         .foregroundColor(.black)
 
@@ -158,7 +158,7 @@ struct WelcomeView: View {
                                 .resizable()
                                 .frame(width: 60, height: 60)
                                 .foregroundColor(.accentBlue)
-                            Text("Tap to play the quick overview")
+                            Text(LocalizedStrings.introVideoSubtitle)
                                 .foregroundColor(.accentBlue)
                                 .font(.subheadline)
                         }
@@ -169,7 +169,7 @@ struct WelcomeView: View {
 
                 // Page 3: How It Works
                 VStack(spacing: 20) {
-                    Text("How It Works")
+                    Text(LocalizedStrings.howItWorksTitle)
                         .font(.headline)
                         .foregroundColor(.black)
 
@@ -213,7 +213,7 @@ struct WelcomeView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "questionmark.circle.fill")
                             .foregroundColor(.accentBlue)
-                        Text("FAQ")
+                        Text(LocalizedStrings.faqTitle)
                             .font(.title3.bold())
                             .foregroundColor(.black)
                     }
@@ -245,17 +245,17 @@ struct WelcomeView: View {
 
                 // Page 5: Login/Register
                 VStack(spacing: 30) {
-                    Text("Let's Get Started")
+                    Text(LocalizedStrings.getStartedTitle)
                         .font(.largeTitle.bold())
                         .foregroundColor(.black)
 
-                    Text("Log in or create your account to begin")
+                    Text(LocalizedStrings.getStartedSubtitle)
                         .font(.subheadline)
                         .foregroundColor(.gray)
 
                     VStack(spacing: 16) {
                         NavigationLink(destination: LoginView(isUserLoggedIn: $isUserLoggedIn)) {
-                            Text("Log In")
+                            Text(LocalizedStrings.loginButton)
                                 .frame(maxWidth: .infinity)
                                 .padding()
                                 .background(Color.primaryBlue)
@@ -264,7 +264,7 @@ struct WelcomeView: View {
                         }
 
                         NavigationLink(destination: RegisterView(isUserLoggedIn: $isUserLoggedIn)) {
-                            Text("Register")
+                            Text(LocalizedStrings.registerButton)
                                 .frame(maxWidth: .infinity)
                                 .padding()
                                 .background(Color.accentBlue.opacity(0.15))
@@ -279,6 +279,18 @@ struct WelcomeView: View {
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
             .indexViewStyle(PageIndexViewStyle(backgroundDisplayMode: .always))
+        }
+    }
+}
+
+// MARK: - iOS 17+ / 16 compatibility helper for onChange
+extension View {
+    @ViewBuilder
+    func onChangeCompat<T: Equatable>(_ value: T, perform action: @escaping () -> Void) -> some View {
+        if #available(iOS 17.0, *) {
+            self.onChange(of: value) { _, _ in action() }
+        } else {
+            self.onChange(of: value) { _ in action() }
         }
     }
 }

@@ -8,12 +8,13 @@ struct WoundDetailView: View {
     let woundGroupName: String
     let patient: Patient?
 
+    @ObservedObject var langManager = LocalizationManager.shared
+
     @State private var wounds: [Wound] = []
     @State private var isLoading = true
     @State private var showDeleteConfirmation = false
     @State private var woundToDelete: Wound?
     @State private var showGroupDeleteConfirmation = false
-    
 
     var body: some View {
         ScrollView {
@@ -22,8 +23,13 @@ struct WoundDetailView: View {
                     .font(.title2)
                     .fontWeight(.bold)
 
-                Text("Healing Progress")
+                Text(LocalizedStrings.healingProgress)
                     .font(.headline)
+
+                if isLoading {
+                    ProgressView()
+                        .padding(.bottom, 8)
+                }
 
                 if wounds.count >= 2 {
                     Chart {
@@ -36,10 +42,9 @@ struct WoundDetailView: View {
                     }
                     .frame(height: 200)
                 } else {
-                    Text("Not enough data for graph.")
+                    Text(LocalizedStrings.notEnoughDataForGraph)
                         .foregroundColor(.gray)
                 }
-                
 
                 ForEach(wounds) { wound in
                     NavigationLink(destination: SingleWoundDetailView(wound: wound)) {
@@ -50,15 +55,21 @@ struct WoundDetailView: View {
                                     .frame(width: 70, height: 70)
                                     .cornerRadius(8)
                             } placeholder: {
-                                ProgressView()
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(Color.gray.opacity(0.1))
+                                    ProgressView()
+                                }
+                                .frame(width: 70, height: 70)
                             }
 
-                            VStack(alignment: .leading) {
+                            VStack(alignment: .leading, spacing: 4) {
                                 if let location = wound.location {
                                     Text(location.replacingOccurrences(of: "_", with: " ").capitalized)
                                         .foregroundColor(.blue)
                                 }
-                                Text(wound.timestamp.formatted(date: .abbreviated, time: .shortened))
+
+                                Text(formatTimestamp(wound.timestamp))
                                     .font(.caption)
                                     .foregroundColor(.gray)
 
@@ -66,43 +77,61 @@ struct WoundDetailView: View {
                                     woundToDelete = wound
                                     showDeleteConfirmation = true
                                 } label: {
-                                    Label("Delete", systemImage: "trash")
+                                    Label(LocalizedStrings.deleteAction, systemImage: "trash")
                                 }
                                 .font(.caption)
                             }
+
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.gray)
                         }
                     }
                 }
             }
             .padding()
         }
-        .navigationTitle("Wound Details")
-        .navigationBarItems(trailing:
-            Button(role: .destructive) {
-                showGroupDeleteConfirmation = true
-            } label: {
-                Label("Delete Group", systemImage: "trash")
+        .environment(\.locale, Locale(identifier: langManager.currentLanguage.rawValue))
+        .navigationTitle(LocalizedStrings.woundDetailsTitle)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(role: .destructive) {
+                    showGroupDeleteConfirmation = true
+                } label: {
+                    Label(LocalizedStrings.deleteGroupAction, systemImage: "trash")
+                }
             }
-        )
+        }
         .onAppear(perform: loadWoundGroup)
-        .alert("Delete this wound photo?", isPresented: $showDeleteConfirmation, presenting: woundToDelete) { wound in
-            Button("Delete", role: .destructive) {
+        .alert(LocalizedStrings.deleteWoundPhotoAlertTitle, isPresented: $showDeleteConfirmation, presenting: woundToDelete) { wound in
+            Button(LocalizedStrings.deleteAction, role: .destructive) {
                 deleteWound(wound)
             }
-            Button("Cancel", role: .cancel) {}
+            Button(LocalizedStrings.cancel, role: .cancel) {}
         } message: { _ in
-            Text("This cannot be undone.")
+            Text(LocalizedStrings.cannotBeUndone)
         }
-        .alert("Delete ALL photos in this group?", isPresented: $showGroupDeleteConfirmation) {
-            Button("Delete All", role: .destructive) {
+        .alert(LocalizedStrings.deleteAllInGroupAlertTitle, isPresented: $showGroupDeleteConfirmation) {
+            Button(LocalizedStrings.deleteAllAction, role: .destructive) {
                 deleteEntireWoundGroup()
             }
-            Button("Cancel", role: .cancel) {}
+            Button(LocalizedStrings.cancel, role: .cancel) {}
         } message: {
-            Text("This will permanently delete all wound entries in '\(woundGroupName)'.")
+            Text(LocalizedStrings.deleteAllInGroupWarning(woundGroupName))
         }
     }
 
+    // MARK: - Helpers
+    private func formatTimestamp(_ date: Date) -> String {
+        let df = DateFormatter()
+        df.dateStyle = .medium
+        df.timeStyle = .short
+        df.locale = Locale(identifier: langManager.currentLanguage.rawValue)
+        return df.string(from: date)
+    }
+
+    // MARK: - Data
     func loadWoundGroup() {
         let db = Firestore.firestore()
         db.collection("wounds")

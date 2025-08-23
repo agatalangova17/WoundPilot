@@ -1,14 +1,20 @@
 import SwiftUI
-import Firebase
 import FirebaseAuth
+import FirebaseFirestore
 
 struct EditPatientView: View {
     @Environment(\.dismiss) var dismiss
+    @ObservedObject var langManager = LocalizationManager.shared
+
     let patient: Patient
 
     @State private var name: String
     @State private var dateOfBirth: Date
-    @State private var sex: String
+
+    // Store a stable code; UI shows localized label
+    @State private var sexCode: String
+    private let sexCodes = ["unspecified", "male", "female"]
+
     @State private var isDiabetic: Bool
     @State private var isSmoker: Bool
     @State private var hasPAD: Bool
@@ -24,7 +30,7 @@ struct EditPatientView: View {
         self.patient = patient
         _name = State(initialValue: patient.name)
         _dateOfBirth = State(initialValue: patient.dateOfBirth)
-        _sex = State(initialValue: patient.sex ?? "")
+        _sexCode = State(initialValue: EditPatientView.computeSexCode(from: patient.sex))
         _isDiabetic = State(initialValue: patient.isDiabetic ?? false)
         _isSmoker = State(initialValue: patient.isSmoker ?? false)
         _hasPAD = State(initialValue: patient.hasPAD ?? false)
@@ -36,28 +42,43 @@ struct EditPatientView: View {
 
     var body: some View {
         Form {
-            Section(header: Text("Basic Info")) {
-                TextField("Full Name", text: $name)
-                DatePicker("Date of Birth", selection: $dateOfBirth, displayedComponents: .date)
-                TextField("Sex", text: $sex)
+            // MARK: - Basic Info
+            Section(header: Text(LocalizedStrings.basicInfoSection)) {
+                TextField(LocalizedStrings.fullNameLabel, text: $name)
+                    .textInputAutocapitalization(.words)
+                    .autocorrectionDisabled(true)
+
+                DatePicker(LocalizedStrings.dateOfBirth, selection: $dateOfBirth, displayedComponents: .date)
+
+                Picker(LocalizedStrings.sexLabel, selection: $sexCode) {
+                    ForEach(sexCodes, id: \.self) { code in
+                        Text(localizedSexTitle(code)).tag(code)
+                    }
+                }
             }
 
-            Section(header: Text("Clinical Details")) {
-                Toggle("Diabetic", isOn: $isDiabetic)
-                Toggle("Smoker", isOn: $isSmoker)
-                Toggle("Peripheral Artery Disease", isOn: $hasPAD)
-                Toggle("Mobility Issues", isOn: $hasMobilityIssues)
-                Toggle("Blood Pressure Issues", isOn: $hasBloodPressureIssues)
-                TextField("Weight (kg)", text: $weight)
+            // MARK: - Clinical Details
+            Section(header: Text(LocalizedStrings.clinicalDetailsSection)) {
+                Toggle(LocalizedStrings.diabetic, isOn: $isDiabetic)
+                Toggle(LocalizedStrings.smoker, isOn: $isSmoker)
+                Toggle(LocalizedStrings.peripheralArteryDisease, isOn: $hasPAD)
+                Toggle(LocalizedStrings.mobilityIssues, isOn: $hasMobilityIssues)
+                Toggle(LocalizedStrings.bloodPressureIssues, isOn: $hasBloodPressureIssues)
+
+                TextField(LocalizedStrings.weightKgPlaceholder, text: $weight)
                     .keyboardType(.decimalPad)
-                TextField("Allergies", text: $allergies)
+
+                TextField(LocalizedStrings.knownAllergiesPlaceholder, text: $allergies)
+                    .textInputAutocapitalization(.words)
+                    .autocorrectionDisabled(true)
             }
 
+            // MARK: - Actions
             Section {
                 if isSaving {
-                    ProgressView("Saving...")
+                    ProgressView(LocalizedStrings.saving)
                 } else {
-                    Button("Save Changes") {
+                    Button(LocalizedStrings.saveChangesButton) {
                         saveChanges()
                     }
                 }
@@ -68,13 +89,32 @@ struct EditPatientView: View {
                 }
             }
         }
-        .navigationTitle("Edit Patient")
+        .environment(\.locale, Locale(identifier: langManager.currentLanguage.rawValue)) // date/format localization
+        .navigationTitle(LocalizedStrings.editPatientTitle)
         .navigationBarTitleDisplayMode(.inline)
     }
 
+    // Map stored/legacy values (possibly localized) to stable codes
+    private static func computeSexCode(from raw: String?) -> String {
+        let v = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if ["male", "m", "muž"].contains(v) { return "male" }
+        if ["female", "f", "žena"].contains(v) { return "female" }
+        if ["unspecified", "unknown", "neurčené"].contains(v) { return "unspecified" }
+        return "unspecified"
+    }
+
+    private func localizedSexTitle(_ code: String) -> String {
+        switch code {
+        case "male": return LocalizedStrings.sexMale
+        case "female": return LocalizedStrings.sexFemale
+        default: return LocalizedStrings.sexUnspecified
+        }
+    }
+
+    // MARK: - Save
     private func saveChanges() {
         guard let userId = Auth.auth().currentUser?.uid else {
-            errorMessage = "User not logged in."
+            errorMessage = LocalizedStrings.userNotLoggedIn
             return
         }
 
@@ -87,7 +127,7 @@ struct EditPatientView: View {
         var data: [String: Any] = [
             "name": name.trimmingCharacters(in: .whitespaces),
             "dateOfBirth": Timestamp(date: dateOfBirth),
-            "sex": sex.trimmingCharacters(in: .whitespaces),
+            "sex": sexCode, // store stable code
             "isDiabetic": isDiabetic,
             "isSmoker": isSmoker,
             "hasPAD": hasPAD,
@@ -98,20 +138,23 @@ struct EditPatientView: View {
 
         if let weightValue = Double(weight.trimmingCharacters(in: .whitespaces)) {
             data["weight"] = weightValue
+        } else {
+            data["weight"] = FieldValue.delete()
         }
 
         if !allergies.trimmingCharacters(in: .whitespaces).isEmpty {
             data["allergies"] = allergies.trimmingCharacters(in: .whitespaces)
+        } else {
+            data["allergies"] = FieldValue.delete()
         }
 
         docRef.updateData(data) { error in
             isSaving = false
             if let error = error {
-                errorMessage = "Failed to update: \(error.localizedDescription)"
+                errorMessage = LocalizedStrings.failedToUpdate(error.localizedDescription)
             } else {
                 dismiss()
             }
         }
     }
 }
-

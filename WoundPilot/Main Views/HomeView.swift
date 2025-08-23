@@ -4,25 +4,31 @@ import FirebaseFirestore
 
 struct HomeView: View {
     @Binding var isUserLoggedIn: Bool
+
+    // React to language changes
+    @ObservedObject var langManager = LocalizationManager.shared
+
     @State private var showAddPatient = false
     @State private var showPatientList = false
     @State private var showProfile = false
     @State private var showClinicalTips = false
     @State private var userName: String = ""
 
-    // MARK: - Daily Clinical Tips
-    let clinicalTips = [
-        "Maintain moisture balance for faster healing.",
-        "Assess wound edges for signs of maceration.",
-        "Use the TIME framework: Tissue, Infection, Moisture, Edge.",
-        "Granulation tissue is a sign of healing progress.",
-        "Check for signs of infection: redness, swelling, odor.",
-        "Regularly measure wound size to monitor healing trends.",
-        "Epithelialization signals wound closure is near.",
-        "Sharp debridement can accelerate healing when indicated.",
-        "Excess exudate may indicate infection or delayed healing."
-    ]
-    
+    // MARK: - Daily Clinical Tips (localized, recomputed on language change)
+    var clinicalTips: [String] {
+        [
+            LocalizedStrings.dailyTipMoisture,
+            LocalizedStrings.dailyTipEdges,
+            LocalizedStrings.dailyTipTIME,
+            LocalizedStrings.dailyTipGranulation,
+            LocalizedStrings.dailyTipInfection,
+            LocalizedStrings.dailyTipMeasure,
+            LocalizedStrings.dailyTipEpithelial,
+            LocalizedStrings.dailyTipDebridement,
+            LocalizedStrings.dailyTipExudate
+        ]
+    }
+
     var todaysTip: String {
         let dayOfYear = Calendar.current.ordinality(of: .day, in: .year, for: Date()) ?? 0
         return clinicalTips[dayOfYear % clinicalTips.count]
@@ -42,7 +48,7 @@ struct HomeView: View {
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
 
-                            Text("Dashboard")
+                            Text(LocalizedStrings.dashboard)
                                 .font(.title2.bold())
                         }
 
@@ -74,12 +80,12 @@ struct HomeView: View {
                             showQuickScan()
                         } label: {
                             DashboardCard(
-                                title: "Quick Wound Scan",
-                                subtitle: "Start fast analysis",
+                                title: LocalizedStrings.quickScanTitle,
+                                subtitle: LocalizedStrings.quickScanSubtitle,
                                 systemImage: "bolt.fill",
-                                bgColor: Color(red: 0.84, green: 0.92, blue: 1.0), // Softer, brighter blue
+                                bgColor: Color(red: 0.84, green: 0.92, blue: 1.0),
                                 layout: .square,
-                                textColor: Color(red: 0.00, green: 0.30, blue: 0.75), // Stronger, vibrant deep blue
+                                textColor: Color(red: 0.00, green: 0.30, blue: 0.75),
                                 showsChevron: true
                             )
                         }
@@ -89,12 +95,12 @@ struct HomeView: View {
                             showAddPatient = true
                         } label: {
                             DashboardCard(
-                                title: "Add Patient",
-                                subtitle: "Create profile",
+                                title: LocalizedStrings.addPatient,
+                                subtitle: LocalizedStrings.createProfile,
                                 systemImage: "person.crop.circle.badge.plus",
-                                bgColor: Color(red: 0.88, green: 0.90, blue: 0.98), // Soft Indigo Tint
+                                bgColor: Color(red: 0.88, green: 0.90, blue: 0.98),
                                 layout: .square,
-                                textColor: Color(red: 0.22, green: 0.24, blue: 0.60), // Deep Indigo-Blue
+                                textColor: Color(red: 0.22, green: 0.24, blue: 0.60),
                                 showsChevron: true
                             )
                         }
@@ -104,12 +110,12 @@ struct HomeView: View {
                             showPatientList = true
                         } label: {
                             DashboardCard(
-                                title: "View Patients",
-                                subtitle: "Browse histories",
+                                title: LocalizedStrings.viewPatients,
+                                subtitle: LocalizedStrings.browseHistories,
                                 systemImage: "folder.fill",
-                                bgColor: Color(red: 0.90, green: 0.91, blue: 0.92), // Deeper soft gray with neutral tone
+                                bgColor: Color(red: 0.90, green: 0.91, blue: 0.92),
                                 layout: .square,
-                                textColor: Color(red: 0.14, green: 0.15, blue: 0.17), // Cooler charcoal gray
+                                textColor: Color(red: 0.14, green: 0.15, blue: 0.17),
                                 showsChevron: true
                             )
                         }
@@ -119,12 +125,12 @@ struct HomeView: View {
                             showClinicalTips = true
                         } label: {
                             DashboardCard(
-                                title: "Clinical Tips",
-                                subtitle: "Evidence-based advice",
+                                title: LocalizedStrings.clinicalTipsTitle,
+                                subtitle: LocalizedStrings.evidenceBasedAdvice,
                                 systemImage: "lightbulb.fill",
-                                bgColor: Color(red: 0.85, green: 0.96, blue: 0.92), // Brighter mint aqua
+                                bgColor: Color(red: 0.85, green: 0.96, blue: 0.92),
                                 layout: .square,
-                                textColor: Color(red: 0.00, green: 0.38, blue: 0.30), // Confident green-blue
+                                textColor: Color(red: 0.00, green: 0.38, blue: 0.30),
                                 showsChevron: true
                             )
                         }
@@ -133,7 +139,7 @@ struct HomeView: View {
                     .padding(.bottom, 32)
                 }
             }
-            
+
             .navigationDestination(isPresented: $showAddPatient) {
                 AddPatientView()
             }
@@ -170,6 +176,8 @@ struct HomeView: View {
     func formattedDate() -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .long
+        // Localize by current app language ("en" / "sk")
+        formatter.locale = Locale(identifier: LocalizationManager.shared.currentLanguage.rawValue)
         return formatter.string(from: Date())
     }
 

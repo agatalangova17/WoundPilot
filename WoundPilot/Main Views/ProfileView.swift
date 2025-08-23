@@ -8,39 +8,41 @@ struct ProfileView: View {
     @Environment(\.dismiss) var dismiss
     @Binding var isUserLoggedIn: Bool
 
+    // Re-render on language changes
+    @ObservedObject var langManager = LocalizationManager.shared
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 24) {
-                
+
                 // MARK: - Avatar & Title
                 VStack(spacing: 8) {
-                    Image(systemName: "person.text.rectangle.fill") // or any option above
+                    Image(systemName: "person.text.rectangle.fill")
                         .resizable()
                         .scaledToFit()
                         .frame(width: 80, height: 80)
                         .foregroundColor(.primaryBlue)
 
-                    Text("Your Profile")
+                    Text(LocalizedStrings.profileHeaderTitle)
                         .font(.title2.bold())
                 }
                 .padding(.top)
 
                 // MARK: - Info Cards
                 VStack(spacing: 12) {
-                    infoCard(icon: "person.fill", label: "Full Name", value: fullName)
-                    infoCard(icon: "envelope.fill", label: "Email", value: email)
-                    infoCard(icon: "calendar", label: "Joined", value: dateJoined)
+                    infoCard(icon: "person.fill", label: LocalizedStrings.fullNameLabel, value: fullName)
+                    infoCard(icon: "envelope.fill", label: LocalizedStrings.emailLabel, value: email)
+                    infoCard(icon: "calendar", label: LocalizedStrings.joinedLabel, value: dateJoined)
                 }
                 .padding(.horizontal)
 
                 // MARK: - Contact Support
                 Button {
-                    // Action for support
                     if let url = URL(string: "mailto:support@woundpilot.com") {
                         UIApplication.shared.open(url)
                     }
                 } label: {
-                    Label("Contact Support", systemImage: "questionmark.circle")
+                    Label(LocalizedStrings.contactSupport, systemImage: "questionmark.circle")
                         .font(.body.bold())
                         .padding()
                         .frame(maxWidth: .infinity)
@@ -56,7 +58,7 @@ struct ProfileView: View {
                     isUserLoggedIn = false
                     dismiss()
                 } label: {
-                    Text("Log Out")
+                    Text(LocalizedStrings.logOut)
                         .font(.body.bold())
                         .frame(maxWidth: .infinity)
                         .padding()
@@ -68,7 +70,7 @@ struct ProfileView: View {
 
                 Spacer()
             }
-            .navigationTitle("Profile")
+            .navigationTitle(LocalizedStrings.profileNavTitle)
             .navigationBarTitleDisplayMode(.inline)
             .onAppear(perform: loadUserInfo)
         }
@@ -102,11 +104,12 @@ struct ProfileView: View {
     func loadUserInfo() {
         if let user = Auth.auth().currentUser {
             self.email = user.email ?? ""
-            self.fullName = user.displayName ?? "Unknown"
+            self.fullName = user.displayName ?? LocalizedStrings.unknownName
+
             let formatter = DateFormatter()
             formatter.dateStyle = .medium
+            formatter.locale = Locale(identifier: LocalizationManager.shared.currentLanguage.rawValue) // "en"/"sk"
             self.dateJoined = formatter.string(from: user.metadata.creationDate ?? Date())
         }
     }
 }
-

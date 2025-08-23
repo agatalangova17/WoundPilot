@@ -1,10 +1,25 @@
-
 import SwiftUI
 
 struct SingleWoundDetailView: View {
     let wound: Wound
 
+    @ObservedObject var langManager = LocalizationManager.shared
     @State private var navigateToSizeAnalysis = false
+
+    // Localized date+time
+    private var formattedTimestamp: String {
+        let df = DateFormatter()
+        df.dateStyle = .long
+        df.timeStyle = .short
+        df.locale = Locale(identifier: langManager.currentLanguage.rawValue) // "en" / "sk"
+        return df.string(from: wound.timestamp)
+    }
+
+    // Human-friendly location from stored code like "left_foot"
+    private var displayLocation: String? {
+        guard let loc = wound.location, !loc.isEmpty else { return nil }
+        return loc.replacingOccurrences(of: "_", with: " ").capitalized
+    }
 
     var body: some View {
         ScrollView {
@@ -30,23 +45,14 @@ struct SingleWoundDetailView: View {
 
                 // Left-aligned metadata
                 VStack(alignment: .leading, spacing: 10) {
-                    if let location = wound.location {
-                        Label(
-                            location.replacingOccurrences(of: "_", with: " ").capitalized,
-                            systemImage: "mappin.circle.fill"
-                        )
+                    if let location = displayLocation {
+                        Label(location, systemImage: "mappin.circle.fill")
                     }
 
-                    Label(
-                        wound.timestamp.formatted(date: .long, time: .shortened),
-                        systemImage: "calendar"
-                    )
+                    Label(formattedTimestamp, systemImage: "calendar")
 
                     if let name = wound.woundGroupName {
-                        Label(
-                            name,
-                            systemImage: "folder.fill"
-                        )
+                        Label(name, systemImage: "folder.fill")
                     }
                 }
                 .font(.subheadline)
@@ -58,7 +64,7 @@ struct SingleWoundDetailView: View {
                 Button {
                     navigateToSizeAnalysis = true
                 } label: {
-                    Text("Analyze Wound")
+                    Text(LocalizedStrings.analyzeWound)
                         .bold()
                         .frame(maxWidth: .infinity)
                         .padding()
@@ -72,7 +78,8 @@ struct SingleWoundDetailView: View {
             }
             .padding(.top)
         }
-        .navigationTitle("Wound Entry")
+        .environment(\.locale, Locale(identifier: langManager.currentLanguage.rawValue))
+        .navigationTitle(LocalizedStrings.woundEntryTitle)
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $navigateToSizeAnalysis) {
             SizeAnalysisView(wound: wound)

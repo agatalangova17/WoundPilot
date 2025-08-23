@@ -3,19 +3,20 @@ import SwiftUI
 struct WoundLocationPickerView: View {
     @Binding var selectedRegion: String?
     var onConfirm: (String) -> Void
-    
+
+    @ObservedObject var langManager = LocalizationManager.shared
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
         VStack(spacing: 20) {
-            Text("Select Wound Location")
+            Text(LocalizedStrings.selectWoundLocationTitle)
                 .font(.title2)
                 .fontWeight(.semibold)
                 .padding(.top)
 
             GeometryReader { geo in
                 ZStack {
-                    // Body diagram (side-by-side front & back)
+                    // Body diagram (front & back)
                     Image("graph")
                         .resizable()
                         .scaledToFit()
@@ -48,8 +49,8 @@ struct WoundLocationPickerView: View {
                         regionButton(region: "left_shin", x: 0.32, y: 0.73, size: geo.size)
                         regionButton(region: "front_right_toes", x: 0.255, y: 0.82, size: geo.size)
                         regionButton(region: "front_left_toes", x: 0.32, y: 0.82, size: geo.size)
-                        
-                        //BACK
+
+                        // BACK
                         regionButton(region: "back_head", x: 0.715, y: 0.22, size: geo.size)
                         regionButton(region: "back_neck", x: 0.715, y: 0.27, size: geo.size)
                         regionButton(region: "back_left_shoulder", x: 0.63, y: 0.31, size: geo.size)
@@ -76,34 +77,50 @@ struct WoundLocationPickerView: View {
                         regionButton(region: "right_calf", x: 0.745, y: 0.73, size: geo.size)
                         regionButton(region: "right_heel", x: 0.745, y: 0.82, size: geo.size)
                         regionButton(region: "left_heel", x: 0.685, y: 0.82, size: geo.size)
-                        
                     }
                 }
             }
             .frame(height: 500)
 
-            // Show selected region
+            // Selected region label
             if let region = selectedRegion {
                 Text(region.replacingOccurrences(of: "_", with: " ").capitalized)
                     .font(.headline)
                     .foregroundColor(.black)
             }
 
+            // Confirm button
+            Button {
+                if let region = selectedRegion {
+                    onConfirm(region)
+                    dismiss()
+                }
+            } label: {
+                Text(LocalizedStrings.confirmSelection)
+                    .bold()
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background((selectedRegion == nil) ? Color.gray.opacity(0.3) : Color.accentBlue)
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+            }
+            .disabled(selectedRegion == nil)
         }
         .padding()
+        .environment(\.locale, Locale(identifier: langManager.currentLanguage.rawValue))
     }
 
     // MARK: - Button Builder with Responsive Positioning
     func regionButton(region: String, x: CGFloat, y: CGFloat, size: CGSize) -> some View {
-        Button(action: {
-            selectedRegion = region
-        }) {
+        Button(action: { selectedRegion = region }) {
             Circle()
-                .fill(selectedRegion == region ? Color.blue.opacity(0.3) : Color.clear)
-                .frame(width: 20, height: 20)
+                .strokeBorder(Color.blue.opacity(0.45), lineWidth: 2)
+                .background(
+                    Circle().fill(selectedRegion == region ? Color.blue.opacity(0.25) : Color.clear)
+                )
+                .frame(width: 24, height: 24) // a bit larger hit target
         }
         .position(x: x * size.width, y: y * size.height)
     }
 }
-
 
