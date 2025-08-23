@@ -3,120 +3,154 @@ import FirebaseAuth
 
 struct LoginView: View {
     @Binding var isUserLoggedIn: Bool
-
     @ObservedObject var langManager = LocalizationManager.shared
 
     @State private var email = ""
     @State private var password = ""
     @State private var errorMessage = ""
 
-    // Real-time validation
+    // Inline validation messages
     @State private var emailError = ""
     @State private var passwordError = ""
 
+    @State private var showPassword = false
+    @FocusState private var focusedField: Field?
+    private enum Field { case email, password }
+
+    // Derived
+    private var isEmailValid: Bool {
+        let t = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        return t.contains("@") && t.contains(".")
+    }
+    private var isPasswordValid: Bool {
+        let pattern = #"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$"#
+        return NSPredicate(format: "SELF MATCHES %@", pattern).evaluate(with: password)
+    }
+    private var formValid: Bool { isEmailValid && isPasswordValid }
+
     var body: some View {
-        VStack(spacing: 20) {
-            Text(LocalizedStrings.loginTitle)
-                .font(.largeTitle)
-                .fontWeight(.bold)
+        ScrollView {
+            VStack(spacing: 16) {
 
-            // Email field
-            TextField(LocalizedStrings.email, text: $email)
-                .keyboardType(.emailAddress)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled(true)
-                .padding()
-                .background(Color.gray.opacity(0.1))
-                .cornerRadius(8)
-                .onChange(of: email) { _, newValue in
-                    validateEmail(newValue)
+                // Email
+                TextField(LocalizedStrings.email, text: $email)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled(true)
+                    .keyboardType(.emailAddress)
+                    .textContentType(.emailAddress)
+                    .submitLabel(.next)
+                    .focused($focusedField, equals: .email)
+                    .onSubmit { focusedField = .password }
+                    .padding(14)
+                    .background(Color(.secondarySystemBackground))
+                    .overlay(RoundedRectangle(cornerRadius: 12)
+                        .stroke(emailError.isEmpty ? Color.accentBlue.opacity(0.20) : .red.opacity(0.5), lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                if !emailError.isEmpty {
+                    Text(emailError).wpCaption().foregroundColor(.red)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
-            if !emailError.isEmpty {
-                Text(emailError)
-                    .foregroundColor(.red)
-                    .font(.caption)
-            }
+                // Password with eye toggle
+                ZStack(alignment: .trailing) {
+                    Group {
+                        if showPassword {
+                            TextField(LocalizedStrings.password, text: $password)
+                        } else {
+                            SecureField(LocalizedStrings.password, text: $password)
+                        }
+                    }
+                    .textContentType(.password)
+                    .submitLabel(.go)
+                    .focused($focusedField, equals: .password)
+                    .onSubmit { loginUser() }
+                    .padding(14)
+                    .background(Color(.secondarySystemBackground))
+                    .overlay(RoundedRectangle(cornerRadius: 12)
+                        .stroke(passwordError.isEmpty ? Color.accentBlue.opacity(0.20) : .red.opacity(0.5), lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
 
-            // Password field
-            SecureField(LocalizedStrings.password, text: $password)
-                .padding()
-                .background(Color.gray.opacity(0.1))
-                .cornerRadius(8)
-                .onChange(of: password) { _, _ in
-                    validatePassword()
+                    Button {
+                        showPassword.toggle()
+                    } label: {
+                        Image(systemName: showPassword ? "eye.slash" : "eye")
+                            .font(.body)
+                            .padding(.trailing, 12)
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(showPassword ? "Hide password" : "Show password")
                 }
 
-            if !passwordError.isEmpty {
-                Text(passwordError)
-                    .foregroundColor(.red)
-                    .font(.caption)
-            }
+                if !passwordError.isEmpty {
+                    Text(passwordError).wpCaption().foregroundColor(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
 
-            if !errorMessage.isEmpty {
-                Text(errorMessage)
-                    .foregroundColor(.red)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-            }
+                // Global error
+                if !errorMessage.isEmpty {
+                    Text(errorMessage)
+                        .wpCaption()
+                        .foregroundColor(.red)
+                        .multilineTextAlignment(.center)
+                }
 
-            // Login button
-            Button(action: loginUser) {
-                Text(LocalizedStrings.loginButton)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
-            }
+                // Login
+                Button(LocalizedStrings.loginButton) { loginUser() }
+                    .buttonStyle(WPPrimaryButtonStyle())
+                    .disabled(!formValid)
+                    .opacity(formValid ? 1 : 0.6)
+                    .padding(.top, 4)
 
-            // Forgot password
-            NavigationLink(destination: ForgotPasswordView()) {
-                Text(LocalizedStrings.forgotPassword)
-                    .font(.footnote)
-                    .foregroundColor(.blue)
-            }
+                // Links — small, centered, true link style
+                VStack(spacing: 8) {
+                    NavigationLink(destination: ForgotPasswordView()) {
+                        Text(LocalizedStrings.forgotPassword).wpCaption()
+                    }
+                    .buttonStyle(.plain)
+                    .tint(.accentBlue)
 
-            // Register link
-            NavigationLink(destination: RegisterView(isUserLoggedIn: $isUserLoggedIn)) {
-                Text(LocalizedStrings.noAccountRegister)
-                    .foregroundColor(.blue)
-                    .font(.footnote)
-            }
+                    NavigationLink(destination: RegisterView(isUserLoggedIn: $isUserLoggedIn)) {
+                        Text(LocalizedStrings.noAccountRegister).wpCaption()
+                    }
+                    .buttonStyle(.plain)
+                    .tint(.accentBlue)
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.top, 2)
 
-            Spacer()
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
         }
-        .padding()
-    }
-
-    // MARK: - Validation
-    private func validateEmail(_ email: String) {
-        if !email.contains("@") || !email.contains(".") {
-            emailError = LocalizedStrings.invalidEmail
-        } else {
-            emailError = ""
+        .scrollDismissesKeyboard(.interactively)
+        .navigationTitle(LocalizedStrings.loginTitle)
+        .navigationBarTitleDisplayMode(.inline)
+        // Real-time validation (iOS 16/17 safe)
+        .onChangeCompat(email) {
+            errorMessage = ""
+            emailError = isEmailValid ? "" : LocalizedStrings.invalidEmail
         }
-    }
-
-    private func validatePassword() {
-        let passwordRegex = #"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$"#
-        if !NSPredicate(format: "SELF MATCHES %@", passwordRegex).evaluate(with: password) {
-            passwordError = LocalizedStrings.passwordRequirement
-        } else {
-            passwordError = ""
+        .onChangeCompat(password) {
+            errorMessage = ""
+            passwordError = isPasswordValid ? "" : LocalizedStrings.passwordRequirement
         }
     }
 
-    // MARK: - Firebase Actions
+    // Actions
     private func loginUser() {
-        guard emailError.isEmpty, passwordError.isEmpty else {
+        emailError = isEmailValid ? "" : LocalizedStrings.invalidEmail
+        passwordError = isPasswordValid ? "" : LocalizedStrings.passwordRequirement
+        guard formValid else {
             errorMessage = LocalizedStrings.fixValidationFirst
             return
         }
 
-        Auth.auth().signIn(withEmail: email, password: password) { _, error in
+        Auth.auth().signIn(withEmail: email.trimmingCharacters(in: .whitespacesAndNewlines),
+                           password: password) { _, error in
             if let error = error {
-                // (Optional) Map AuthErrorCode to friendlier localized strings later
                 errorMessage = error.localizedDescription
             } else {
                 isUserLoggedIn = true
