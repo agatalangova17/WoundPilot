@@ -2,21 +2,25 @@ import SwiftUI
 
 struct MainTabView: View {
     @Binding var isUserLoggedIn: Bool
-    @ObservedObject var langManager = LocalizationManager.shared   // re-render on language change
 
     var body: some View {
         TabView {
-            // 1) Dashboard
+            // 1. Dashboard Tab
             HomeView(isUserLoggedIn: $isUserLoggedIn)
-                .tabItem { Label(LocalizedStrings.dashboardTab, systemImage: "house.fill") }
+                .tabItem {
+                    Label("Dashboard", systemImage: "house.fill")
+                }
 
-            // 2) Analytics
+            // 2. Analytics Tab (placeholder for now)
             AnalyticsView()
-                .tabItem { Label(LocalizedStrings.analyticsTab, systemImage: "chart.bar.fill") }
+                .tabItem {
+                    Label("Analytics", systemImage: "chart.bar.fill")
+                }
 
-            // 3) Sharing
             SharingView()
-                .tabItem { Label(LocalizedStrings.sharingTab, systemImage: "person.2.circle") }
+                .tabItem {
+                    Label("Sharing", systemImage: "person.2.circle")
+                }
         }
     }
 }

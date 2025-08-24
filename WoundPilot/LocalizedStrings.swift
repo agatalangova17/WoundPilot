@@ -942,4 +942,16 @@ struct LocalizedStrings {
     static var fastCaptureName: String { t("Fast Capture", "Rýchle zachytenie") }
     static var profile: String { t("Profile", "Profil") }
     static var start: String { t("Start", "Štart") }
+    
+    static var shareCaseNavTitle: String {
+            t("Share Case", "Zdieľať prípad")
+        }
+    static var shareCaseSubtitle: String {
+            t("Securely share case details with a colleague.",
+              "Bezpečne odošlite údaje prípadu kolegovi.")
+        }
+    static var cancelButton: String {
+            t("Cancel", "Zrušiť")
+        }
+    static var smokerShort: String   { t("Smoker", "Fajčiar") } 
 }
