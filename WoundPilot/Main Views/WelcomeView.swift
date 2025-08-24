@@ -11,7 +11,7 @@ struct WelcomeView: View {
     @State private var expandedQuestion: String?
     @State private var displayedText = ""
 
-    // ✅ Single running typewriter task
+    // Single running typewriter task (prevents duplicated letters)
     @State private var typingTask: Task<Void, Never>? = nil
 
     var fullAssistantText: String { LocalizedStrings.assistantTypingText }
@@ -48,8 +48,9 @@ struct WelcomeView: View {
                         subtitle: LocalizedStrings.appSubtitle,
                         introLine: LocalizedStrings.assistantIntroLine,
                         displayedText: $displayedText,
-                        onAppearTyping: { typeWriterEffect() },      // start (cancels any previous)
-                        onDisappearTyping: { stopTyping() },          // stop when leaving
+                        onAppearTyping: { typeWriterEffect() },        // start (auto-cancels previous)
+                        onDisappearTyping: { stopTyping() },            // stop when leaving
+                        onContinue: { withAnimation(.spring()) { currentTab = 2 } }, // CTA -> next page
                         loginLinkTitle: LocalizedStrings.alreadyUsing,
                         isUserLoggedIn: $isUserLoggedIn
                     )
@@ -88,7 +89,7 @@ struct WelcomeView: View {
                 .indexViewStyle(PageIndexViewStyle(backgroundDisplayMode: .always))
             }
         }
-        // Restart on language change (auto-cancels previous run)
+        // Restart typing on language change (previous run is cancelled first)
         .onChangeCompat(langManager.currentLanguage) { typeWriterEffect() }
     }
 
@@ -98,7 +99,6 @@ struct WelcomeView: View {
     }
 
     private func startTyping(_ text: String) {
-        // cancel any previous run
         typingTask?.cancel()
         displayedText = ""
         guard !text.isEmpty else { return }
@@ -141,7 +141,7 @@ private struct LanguageSelectionPage: View {
                 Text(title)
                     .font(.title2.weight(.semibold))
                     .multilineTextAlignment(.center)
-                    .foregroundColor(.primaryText)
+                    .foregroundColor(.primary)
                     .accessibilityAddTraits(.isHeader)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -180,17 +180,17 @@ private struct LanguageCard: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(label)
                         .font(.title3.weight(.semibold))
-                        .foregroundColor(.primaryText)
+                        .foregroundColor(.primary)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(hint)
                         .font(.body)
-                        .foregroundColor(.secondaryText)
+                        .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 8)
                 Image(systemName: "chevron.right")
                     .font(.title3.weight(.semibold))
-                    .foregroundColor(.secondaryText)
+                    .foregroundColor(.secondary)
                     .accessibilityHidden(true)
             }
             .padding(padding)
@@ -206,85 +206,112 @@ private struct LanguageCard: View {
     }
 }
 
-// MARK: - Page 1: Assistant Greeting
+// MARK: - Page 1: Assistant Greeting (with CTA + pulsing halo)
 private struct AssistantGreetingPage: View {
     let appTitle: String
     let subtitle: String
     let introLine: String
     @Binding var displayedText: String
     let onAppearTyping: () -> Void
-    let onDisappearTyping: () -> Void   // ✅ new
+    let onDisappearTyping: () -> Void
+    let onContinue: () -> Void
 
     let loginLinkTitle: String
     @Binding var isUserLoggedIn: Bool
 
-    @ScaledMetric(relativeTo: .title)  private var avatarSize: CGFloat = 140
+    @ScaledMetric(relativeTo: .title)  private var avatarSize: CGFloat = 132
     @ScaledMetric(relativeTo: .title3) private var bubblePadding: CGFloat = 16
     @ScaledMetric(relativeTo: .title3) private var bubbleRadius: CGFloat = 16
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
+            VStack(spacing: 22) {
                 Text(appTitle)
                     .font(.largeTitle.weight(.bold))
-                    .foregroundColor(.primaryText)
+                    .foregroundColor(.primary)
                     .accessibilityAddTraits(.isHeader)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Text(subtitle)
                     .font(.title3)
-                    .foregroundColor(.secondaryText)
+                    .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Image("avatar")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: avatarSize, height: avatarSize)
-                    .clipShape(Circle())
-                    .shadow(color: .black.opacity(0.08), radius: 12, y: 6)
-                    .overlay(Circle().stroke(Color.accentBlue.opacity(0.25), lineWidth: 2))
-                    .padding(.top, 4)
+                AvatarWithHalo(size: avatarSize)
                     .accessibilityHidden(true)
 
                 VStack(spacing: 12) {
                     Text(introLine)
                         .font(.title3.weight(.semibold))
-                        .foregroundColor(.primaryText)
+                        .foregroundColor(.primary)
                         .fixedSize(horizontal: false, vertical: true)
 
                     Text(displayedText)
                         .font(.body)
                         .padding(bubblePadding)
                         .frame(maxWidth: .infinity, alignment: .center)
-                        .background(.ultraThinMaterial)
-                        .overlay(RoundedRectangle(cornerRadius: bubbleRadius).stroke(Color.accentBlue.opacity(0.25), lineWidth: 1))
+                        .background(Color(.secondarySystemBackground))
+                        .overlay(RoundedRectangle(cornerRadius: bubbleRadius)
+                            .stroke(Color.accentBlue.opacity(0.20), lineWidth: 1))
                         .clipShape(RoundedRectangle(cornerRadius: bubbleRadius))
-                        .foregroundColor(.secondaryText)
+                        .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .lineSpacing(4)
                         .textSelection(.enabled)
                         .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityLabel(displayedText.isEmpty ? "Assistant message typing" : displayedText)
                 }
                 .padding(.horizontal)
 
+                // ONLY THIS BUTTON CHANGED → narrower rectangle (centered)
+                Button(LocalizedStrings.getStartedTitle) { onContinue() }
+                    .buttonStyle(WPRectCTAStyle())   // rectangle style, fixed narrow width
+
                 NavigationLink(destination: LoginView(isUserLoggedIn: $isUserLoggedIn)) {
                     Text(loginLinkTitle)
-                        .font(.title3.weight(.medium))
+                        .font(.body)
                         .foregroundColor(.accentBlue)
-                        .padding(.top, 6)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 2)
                 }
-                .buttonStyle(ScaleButtonStyle())
+                .buttonStyle(.plain)
+
+                Spacer(minLength: 0)
             }
             .padding(.vertical, 28)
             .frame(maxWidth: .infinity)
         }
-        // Start/stop typing strictly on view lifecycle
         .onAppear { onAppearTyping() }
         .onDisappear { onDisappearTyping() }
+    }
+}
+
+// Subtle breathing halo behind the avatar
+private struct AvatarWithHalo: View {
+    let size: CGFloat
+    @State private var pulse = false
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(Color.accentBlue.opacity(0.10))
+                .frame(width: size * 1.25, height: size * 1.25)
+                .scaleEffect(pulse ? 1.05 : 0.95)
+                .animation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true), value: pulse)
+
+            Circle()
+                .stroke(Color.accentBlue.opacity(0.18), lineWidth: 2)
+                .frame(width: size * 1.15, height: size * 1.15)
+
+            Image("avatar")
+                .resizable()
+                .scaledToFill()
+                .frame(width: size, height: size)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Color.accentBlue.opacity(0.25), lineWidth: 2))
+                .shadow(color: .black.opacity(0.06), radius: 10, y: 5)
+        }
+        .onAppear { pulse = true }
     }
 }
 
@@ -299,7 +326,7 @@ private struct IntroVideoPage: View {
         VStack(spacing: 20) {
             Text(title)
                 .font(.title3.weight(.semibold))
-                .foregroundColor(.primaryText)
+                .foregroundColor(.primary)
                 .accessibilityAddTraits(.isHeader)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -366,7 +393,7 @@ private struct HowItWorksPage: View {
         VStack(spacing: 22) {
             Text(title)
                 .font(.title3.weight(.semibold))
-                .foregroundColor(.primaryText)
+                .foregroundColor(.primary)
                 .accessibilityAddTraits(.isHeader)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -389,7 +416,7 @@ private struct HowItWorksPage: View {
                     Text(s.1)
                         .font(.body)
                         .multilineTextAlignment(.center)
-                        .foregroundColor(.secondaryText)
+                        .foregroundColor(.secondary)
                         .padding(.horizontal)
                         .lineSpacing(4)
                         .fixedSize(horizontal: false, vertical: true)
@@ -439,7 +466,7 @@ private struct HowItWorksPage: View {
                                                         startPoint: .topLeading, endPoint: .bottomTrailing))
                         : AnyShapeStyle(Color.gray.opacity(0.15))
                     )
-                    .foregroundColor(selectedStep == index ? .white : .primaryText)
+                    .foregroundColor(selectedStep == index ? .white : .primary)
                     .clipShape(Circle())
                     .shadow(color: selectedStep == index ? Color.primaryBlue.opacity(0.25) : .clear,
                             radius: 8, y: 4)
@@ -467,7 +494,8 @@ private struct FAQPage: View {
                         .imageScale(.large)
                         .accessibilityHidden(true)
                     Text(title)
-                        .wpH2()
+                        .font(.title2.weight(.semibold))
+                        .foregroundColor(.primary)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 12)
@@ -495,7 +523,6 @@ private struct FAQPage: View {
     }
 }
 
-// MARK: - FAQ Row
 private struct FAQRow: View {
     let faq: (question: String, answer: String)
     let isExpanded: Bool
@@ -508,8 +535,8 @@ private struct FAQRow: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
                 Text(faq.question)
-                    .wpBody()
-                    .fontWeight(.semibold)
+                    .font(.body.weight(.semibold))
+                    .foregroundColor(.primary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Spacer(minLength: 10)
@@ -525,9 +552,10 @@ private struct FAQRow: View {
 
             if isExpanded {
                 Text(faq.answer)
-                    .wpCaption()
+                    .font(.callout)
+                    .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .transition(.opacity.combined(with: .move(edge: .top))) // fixed (no parentheses)
             }
         }
         .padding(pad)
@@ -556,13 +584,13 @@ private struct GetStartedPage: View {
         VStack(spacing: 26) {
             Text(title)
                 .font(.largeTitle.bold())
-                .foregroundColor(.primaryText)
+                .foregroundColor(.primary)
                 .accessibilityAddTraits(.isHeader)
                 .fixedSize(horizontal: false, vertical: true)
 
             Text(subtitle)
                 .font(.title3)
-                .foregroundColor(.secondaryText)
+                .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
                 .fixedSize(horizontal: false, vertical: true)
@@ -626,6 +654,32 @@ struct ScaleButtonStyle: ButtonStyle {
         configuration.label
             .contentShape(Rectangle())
             .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .animation(.spring(response: 0.25, dampingFraction: 0.8), value: configuration.isPressed)
+    }
+}
+
+// NEW: narrower rectangle CTA used ONLY for the "Začnime" button on the greeting page
+struct WPRectCTAStyle: ButtonStyle {
+    var width: CGFloat = 220   // adjust to make narrower/wider
+    var corner: CGFloat = 14
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.title3.weight(.semibold))
+            .lineLimit(1)
+            .minimumScaleFactor(0.9)
+            .foregroundColor(.white)
+            .padding(.vertical, 12)
+            .frame(width: width) // fixed narrow width
+            .background(
+                LinearGradient(colors: [Color.primaryBlue, Color.accentBlue],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: corner))
+            .shadow(color: Color.primaryBlue.opacity(0.20), radius: 8, y: 4)
+            // center without stretching the background
+            .frame(maxWidth: .infinity)
+            .opacity(configuration.isPressed ? 0.9 : 1.0)
+            .scaleEffect(configuration.isPressed ? 0.99 : 1.0)
             .animation(.spring(response: 0.25, dampingFraction: 0.8), value: configuration.isPressed)
     }
 }

@@ -940,4 +940,6 @@ struct LocalizedStrings {
     
     static var confirm: String { t("Confirm", "Potvrdiť") }
     static var fastCaptureName: String { t("Fast Capture", "Rýchle zachytenie") }
+    static var profile: String { t("Profile", "Profil") }
+    static var start: String { t("Start", "Štart") }
 }
