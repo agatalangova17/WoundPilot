@@ -953,5 +953,59 @@ struct LocalizedStrings {
     static var cancelButton: String {
             t("Cancel", "Zrušiť")
         }
-    static var smokerShort: String   { t("Smoker", "Fajčiar") } 
+    static var smokerShort: String   { t("Smoker", "Fajčiar") }
+    // Greeting under the Dashboard title
+    static func welcomeBack(_ name: String) -> String {
+        t("Welcome back, \(name)", "Vitajte späť, \(name)")
+    }
+
+    // Section title above the chips row
+    static var recentPatientsTitle: String {
+        t("Recent patients", "Nedávni pacienti")
+    }
+
+    // Small link on the right of that row
+    static var seeAll: String {
+        t("See all", "Zobraziť všetko")
+    }
+
+    // Banner text for pending reviews (simple pluralization)
+    static func pendingReviewsCount(_ n: Int) -> String {
+        if n == 1 {
+            return t("1 case awaiting review", "1 prípad čaká na kontrolu")
+        } else if (2...4).contains(n) {
+            return t("\(n) cases awaiting review", "\(n) prípady čakajú na kontrolu")
+        } else {
+            return t("\(n) cases awaiting review", "\(n) prípadov čaká na kontrolu")
+        }
+    }
+    
+    // MARK: - Photo Guide (Tips card on ImageConfirmationView)
+    static var photoGuideTitle: String {
+        t("Tips for a good wound photo", "Tipy pre dobrú fotku rany")
+    }
+    static var photoGuideTipCaptureCenter: String {
+        t("Capture the entire wound centered in the frame.",
+          "Zachyťte celú ranu, nech je uprostred záberu.")
+    }
+    static var photoGuideTipAddScale: String {
+        t("Add a scale (ruler or finger) next to the wound.",
+          "Pridajte mierku (pravítko alebo prst) vedľa rany.")
+    }
+    static var photoGuideTipLighting: String {
+        t("Ensure good light: near a window, avoid strong shadows.",
+          "Dostatok svetla: pri okne, bez silného tieňa.")
+    }
+    static var photoGuideTipTopDown: String {
+        t("Shoot top-down (perpendicular), not at an angle.",
+          "Foťte kolmo zhora – nie pod uhlom.")
+    }
+    static var photoGuideTipCleanLens: String {
+        t("Clean the camera lens.",
+          "Vyčistite objektív.")
+    }
+    static var photoGuideTipRemoveObstructions: String {
+        t("Remove obstructions: gauze, glove, glare.",
+          "Odstráňte prekážky: gáza, rukavica, odlesky.")
+    }
 }

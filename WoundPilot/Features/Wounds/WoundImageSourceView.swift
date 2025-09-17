@@ -28,7 +28,8 @@ struct WoundImageSourceView: View {
                             icon: "camera.fill",
                             title: LocalizedStrings.takePhoto,
                             caption: LocalizedStrings.takePhotoCaption,
-                            color: Color.primaryBlue
+                            color: Color.primaryBlue,
+                            foreground: Color.white
                         ) {
                             pickerSource = .camera
                             showImagePicker = true
@@ -39,7 +40,7 @@ struct WoundImageSourceView: View {
                             title: LocalizedStrings.choosePhoto,
                             caption: LocalizedStrings.choosePhotoCaption,
                             color: Color.accentBlue.opacity(0.15),
-                            foreground: .accentBlue
+                            foreground: Color.accentBlue.darker(by: 0.25) // darker turquoise
                         ) {
                             pickerSource = .photoLibrary
                             showImagePicker = true
@@ -51,7 +52,7 @@ struct WoundImageSourceView: View {
                             title: LocalizedStrings.useDummyWoundImage,
                             caption: LocalizedStrings.simulatorOnlyTestingImage,
                             color: Color.gray.opacity(0.1),
-                            foreground: .gray
+                            foreground: Color.gray.darker(by: 0.25) // darker gray
                         ) {
                             selectedImage = UIImage(named: "dummy_wound")
                             showConfirmationView = true
@@ -119,7 +120,7 @@ struct OptionCard: View {
     var title: String
     var caption: String
     var color: Color
-    var foreground: Color = .white
+    var foreground: Color
     var action: () -> Void
 
     var body: some View {
@@ -135,11 +136,11 @@ struct OptionCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(.headline)
-                        .foregroundColor(foreground)
+                        .foregroundColor(foreground) // darker applied here
 
                     Text(caption)
                         .font(.caption)
-                        .foregroundColor(foreground.opacity(0.7))
+                        .foregroundColor(foreground.opacity(0.85)) // slightly stronger opacity
                 }
 
                 Spacer()
@@ -148,5 +149,23 @@ struct OptionCard: View {
             .background(color)
             .cornerRadius(14)
         }
+    }
+}
+
+extension Color {
+    func darker(by amount: CGFloat = 0.05) -> Color {
+        let uiColor = UIColor(self)
+        var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+
+        if uiColor.getHue(&h, saturation: &s, brightness: &b, alpha: &a) {
+            return Color(uiColor: UIColor(
+                hue: h,
+                saturation: s,
+                brightness: max(b - amount, 0),
+                alpha: a
+            ))
+        }
+
+        return self
     }
 }

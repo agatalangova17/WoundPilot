@@ -2,7 +2,7 @@ import SwiftUI
 
 struct WoundLocationPickerView: View {
     @Binding var selectedRegion: String?
-    var onConfirm: (String) -> Void
+    var onConfirm: (String) -> Void   // kept for parent compatibility
 
     @ObservedObject var langManager = LocalizationManager.shared
     @Environment(\.dismiss) var dismiss
@@ -89,22 +89,10 @@ struct WoundLocationPickerView: View {
                     .foregroundColor(.black)
             }
 
-            // Confirm button
-            Button {
-                if let region = selectedRegion {
-                    onConfirm(region)
-                    dismiss()
-                }
-            } label: {
-                Text(LocalizedStrings.confirmSelection)
-                    .bold()
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background((selectedRegion == nil) ? Color.gray.opacity(0.3) : Color.accentBlue)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
-            }
-            .disabled(selectedRegion == nil)
+            // Removed the inner "Confirm Selection" button.
+            // Parent screen's main "Potvrdiť" should handle onConfirm with selectedRegion.
+
+            Spacer(minLength: 8) // ← fixed label here
         }
         .padding()
         .environment(\.locale, Locale(identifier: langManager.currentLanguage.rawValue))
@@ -118,9 +106,11 @@ struct WoundLocationPickerView: View {
                 .background(
                     Circle().fill(selectedRegion == region ? Color.blue.opacity(0.25) : Color.clear)
                 )
-                .frame(width: 24, height: 24) // a bit larger hit target
+                .frame(width: 24, height: 24)
+                .contentShape(Circle())
         }
+        .buttonStyle(.plain)
         .position(x: x * size.width, y: y * size.height)
+        .accessibilityLabel(Text(region.replacingOccurrences(of: "_", with: " ").capitalized))
     }
 }
-
