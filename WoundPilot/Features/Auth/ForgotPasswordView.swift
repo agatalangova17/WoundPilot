@@ -44,11 +44,11 @@ struct ForgotPasswordView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                // Primary action only
+                // Primary action (solid blue, no gradient)
                 Button(LocalizedStrings.sendResetEmailButton) {
                     sendPasswordReset()
                 }
-                .buttonStyle(WPPrimaryButtonStyle())
+                .buttonStyle(WPSolidPrimaryButtonStyle_Forgot())
                 .disabled(!isEmailValid)
                 .opacity(isEmailValid ? 1 : 0.6)
                 .padding(.top, 4)
@@ -82,5 +82,31 @@ struct ForgotPasswordView: View {
                 message = LocalizedStrings.resetEmailSentMessage
             }
         }
+    }
+}
+
+// MARK: - Solid Blue Primary Button (local copy)
+private struct WPSolidPrimaryButtonStyle_Forgot: ButtonStyle {
+    @ScaledMetric private var height: CGFloat = 52
+    @ScaledMetric private var corner: CGFloat = 12
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.body.weight(.semibold))
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity, minHeight: height)
+            .background(
+                RoundedRectangle(cornerRadius: corner, style: .continuous)
+                    .fill(Color.primaryBlue) // solid brand blue
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: corner, style: .continuous)
+                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+            )
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .shadow(color: Color.primaryBlue.opacity(configuration.isPressed ? 0.10 : 0.18),
+                    radius: 10, y: 6)
+            .animation(.spring(response: 0.25, dampingFraction: 0.85),
+                       value: configuration.isPressed)
     }
 }

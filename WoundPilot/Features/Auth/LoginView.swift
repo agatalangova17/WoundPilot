@@ -1,6 +1,9 @@
 import SwiftUI
 import FirebaseAuth
 
+import SwiftUI
+import FirebaseAuth
+
 struct LoginView: View {
     @Binding var isUserLoggedIn: Bool
     @ObservedObject var langManager = LocalizationManager.shared
@@ -43,8 +46,10 @@ struct LoginView: View {
                     .onSubmit { focusedField = .password }
                     .padding(14)
                     .background(Color(.secondarySystemBackground))
-                    .overlay(RoundedRectangle(cornerRadius: 12)
-                        .stroke(emailError.isEmpty ? Color.accentBlue.opacity(0.20) : .red.opacity(0.5), lineWidth: 1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(emailError.isEmpty ? Color.accentBlue.opacity(0.20) : .red.opacity(0.5), lineWidth: 1)
+                    )
                     .clipShape(RoundedRectangle(cornerRadius: 12))
 
                 if !emailError.isEmpty {
@@ -67,8 +72,10 @@ struct LoginView: View {
                     .onSubmit { loginUser() }
                     .padding(14)
                     .background(Color(.secondarySystemBackground))
-                    .overlay(RoundedRectangle(cornerRadius: 12)
-                        .stroke(passwordError.isEmpty ? Color.accentBlue.opacity(0.20) : .red.opacity(0.5), lineWidth: 1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(passwordError.isEmpty ? Color.accentBlue.opacity(0.20) : .red.opacity(0.5), lineWidth: 1)
+                    )
                     .clipShape(RoundedRectangle(cornerRadius: 12))
 
                     Button {
@@ -96,9 +103,9 @@ struct LoginView: View {
                         .multilineTextAlignment(.center)
                 }
 
-                // Login
+                // Login (solid blue, no gradient)
                 Button(LocalizedStrings.loginButton) { loginUser() }
-                    .buttonStyle(WPPrimaryButtonStyle())
+                    .buttonStyle(WPSolidPrimaryButtonStyle())
                     .disabled(!formValid)
                     .opacity(formValid ? 1 : 0.6)
                     .padding(.top, 4)
@@ -156,5 +163,31 @@ struct LoginView: View {
                 isUserLoggedIn = true
             }
         }
+    }
+}
+
+// MARK: - Solid Blue Primary Button (shared style)
+private struct WPSolidPrimaryButtonStyle: ButtonStyle {
+    @ScaledMetric private var height: CGFloat = 52
+    @ScaledMetric private var corner: CGFloat = 12
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.body.weight(.semibold))
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity, minHeight: height)
+            .background(
+                RoundedRectangle(cornerRadius: corner, style: .continuous)
+                    .fill(Color.primaryBlue) // solid brand blue
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: corner, style: .continuous)
+                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+            )
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .shadow(color: Color.primaryBlue.opacity(configuration.isPressed ? 0.10 : 0.18),
+                    radius: 10, y: 6)
+            .animation(.spring(response: 0.25, dampingFraction: 0.85),
+                       value: configuration.isPressed)
     }
 }

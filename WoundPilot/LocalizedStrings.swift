@@ -3,7 +3,9 @@ import Foundation
 struct LocalizedStrings {
     // Access current language from your manager
     private static var lang: Language { LocalizationManager.shared.currentLanguage }
-    private static func t(_ en: String, _ sk: String) -> String { lang == .sk ? sk : en }
+    static func t(_ en: String, _ sk: String) -> String {
+        lang == .sk ? sk : en
+    }
 
     // MARK: - Common
     static var ok: String { t("OK", "OK") }
@@ -1008,4 +1010,342 @@ struct LocalizedStrings {
         t("Remove obstructions: gauze, glove, glare.",
           "Odstráňte prekážky: gáza, rukavica, odlesky.")
     }
-}
+    
+    static var qTitle: String { t("Clinical Questionnaire", "Klinický dotazník") }
+        static var btnContinue: String { t("Continue", "Pokračovať") }
+
+        // Sections
+        static var secEtiology: String { t("Etiology (pick one)", "Etiológia (vyberte jednu)") }
+        static var secDuration: String { t("Duration", "Trvanie") }
+        static var secTissue: String { t("Tissue", "Tkanivo") }
+        static var secInfection: String { t("Infection / Inflammation", "Infekcia / zápal") }
+        static var secMoisture: String { t("Moisture", "Vlhkosť") }
+        static var secEdge: String { t("Edge", "Okraje rany") }
+        static var secPerfusion: String { t("Perfusion", "Perfúzia") }
+        static var secComorbidities: String { t("Comorbidities", "Komorbidity") }
+        static var secRedFlags: String { t("Red flags", "Varovné príznaky") }
+
+        // Rows / toggles
+        static var rowExposedBone: String { t("Exposed bone", "Odhalená kosť") }
+        static var rowProbeToBone: String { t("Probe-to-bone positive", "Pozitívne sonda na kosť") }
+        static var rowPulses: String { t("Foot pulses", "Pulzy na nohe") }
+
+        // Shared options
+        static var optYes: String { t("Yes", "Áno") }
+        static var optNo: String { t("No", "Nie") }
+        static var optUnknown: String { t("Unknown", "Nevedno") }
+
+        // Etiology options
+        static var optEtiologyVenous: String   { t("Venous", "Venózna") }
+        static var optEtiologyArterial: String { t("Arterial", "Arteriálna") }
+        static var optEtiologyDiabetic: String { t("Diabetic foot", "Diabetická noha") }
+        static var optEtiologyPressure: String { t("Pressure", "Preležanina") }
+        static var optEtiologyTrauma: String   { t("Trauma", "Trauma") }
+        static var optEtiologySurgical: String { t("Surgical", "Pooperačná") }
+
+        // Duration options
+        static var optDurationLt4w: String  { t("< 4 weeks", "< 4 týždne") }
+        static var optDuration4to12: String { t("4–12 weeks", "4–12 týždňov") }
+        static var optDurationGt12w: String { t("> 12 weeks", "> 12 týždňov") }
+
+        // Tissue options
+        static var optTissueGranulation: String { t("Granulation", "Granulácia") }
+        static var optTissueSlough: String      { t("Slough", "Fibrín / povlak") }
+        static var optTissueNecrosis: String    { t("Necrosis", "Nekróza") }
+
+        // Infection options
+        static var optInfectionNone: String     { t("None", "Žiadna") }
+        static var optInfectionLocal: String    { t("Local", "Lokálna") }
+        static var optInfectionSystemic: String { t("Systemic", "Systémová") }
+
+        // Moisture options
+        static var optMoistureDry: String      { t("Dry", "Suchá") }
+        static var optMoistureLow: String      { t("Low", "Nízka") }
+        static var optMoistureModerate: String { t("Moderate", "Stredná") }
+        static var optMoistureHigh: String     { t("High", "Vysoká") }
+
+        // Edge options
+        static var optEdgeAttached: String   { t("Attached", "Priľahlé") }
+        static var optEdgeRolled: String     { t("Rolled", "Zahrnuté/rolované") }
+        static var optEdgeUndermined: String { t("Undermined", "Podmínované") }
+
+        // ABI options
+        static var optAbiGE0_8: String     { t("ABI ≥ 0.8", "ABI ≥ 0,8") }
+        static var optAbi0_5to0_79: String { t("ABI 0.5–0.79", "ABI 0,5–0,79") }
+        static var optAbiLT0_5: String     { t("ABI < 0.5", "ABI < 0,5") }
+
+        // Comorbidities
+        static var optCoDiabetes: String   { t("Diabetes", "Diabetes") }
+        static var optCoPAD: String        { t("Peripheral arterial disease", "Periférne artériové ochorenie") }
+        static var optCoNeuropathy: String { t("Neuropathy", "Neuropatia") }
+        static var optCoImmuno: String     { t("Immunosuppressed", "Imunosupresia") }
+        static var optCoAnticoag: String   { t("Anticoagulants", "Antikoagulanciá") }
+
+        // Red flags
+        static var optRFSpread: String   { t("Spreading erythema", "Šíriace sa začervenanie") }
+        static var optRFPain: String     { t("Severe pain out of proportion", "Silná bolesť neprimeraná nálezu") }
+        static var optRFCrepitus: String { t("Crepitus / gas", "Krepitácie / plyn") }
+        static var optRFSystemic: String { t("Systemically unwell (fever, rigors)", "Systémové príznaky (horúčka, triaška)") }
+
+    static func answeredProgress(_ answered: Int, _ total: Int) -> String {
+            t("Answered \(answered) / \(total)", "Zodpovedaných \(answered) / \(total)")
+        }
+        static func reviewProgress(_ answered: Int, _ total: Int) -> String {
+            t("\(answered)/\(total) sections answered • Finish anyway",
+              "\(answered)/\(total) sekcií hotových • Dokončiť aj tak")
+        }
+
+        // Top banners (urgent states)
+        static var bannerUrgentAssessment: String {
+            t("Urgent assessment required", "Vyžaduje sa urgentné vyšetrenie")
+        }
+        static var bannerSevereIschaemia: String {
+            t("Severe ischemia suspected (ABI < 0.5) — urgent vascular referral.",
+              "Pravdepodobná ťažká ischémia (ABI < 0,5) — urgentné cievne vyšetrenie.")
+        }
+
+        // Inline guardrail badges
+        static var badgeCompressionContraindicated: String {
+            t("Compression contraindicated (ABI < 0.5)", "Kompresia kontraindikovaná (ABI < 0,5)")
+        }
+        static var badgeSystemicInfectionUrgent: String {
+            t("Systemic infection — urgent management", "Systémová infekcia — nutný urgentný postup")
+        }
+        static var badgeProbeToBone: String {
+            t("Probe-to-bone positive — suspect osteomyelitis",
+              "Pozitívna sonda na kosť — myslite na osteomyelitídu")
+        }
+        static var badgeRedFlagsEscalate: String {
+            t("Red flags present — escalate care", "Prítomné varovné príznaky — nutná eskalácia starostlivosti")
+        }
+    
+    static var preparingAnalysis: String {
+            t("Preparing analysis…", "Pripravuje sa analýza…")
+        }
+        static var failedToLoadAnalysis: String {
+            t("Failed to load analysis.", "Analýzu sa nepodarilo načítať.")
+        }
+        static var retryAction: String {
+            t("Retry", "Skúsiť znova")
+        }
+        static var noQuestionnaireFound: String {
+            t("No questionnaire found.", "Dotazník sa nenašiel.")
+        }
+
+       
+        
+
+        // Wound Type labels
+        static var woundTypeVenous: String       { t("Venous ulcer", "Venózny vred") }
+        static var woundTypeArterial: String     { t("Arterial ulcer", "Arteriálny vred") }
+        static var woundTypeDFU: String          { t("Diabetic foot ulcer", "Diabetický vred nohy") }
+        static var woundTypePressure: String     { t("Pressure injury", "Preležanina") }
+        static var woundTypeTrauma: String       { t("Traumatic wound", "Traumatická rana") }
+        static var woundTypeSurgical: String     { t("Surgical wound", "Pooperačná rana") }
+        static var woundTypeUnspecified: String  { t("Unspecified wound", "Nešpecifikovaná rana") }
+
+        // Healing Stage labels
+        static var healingGranulating: String        { t("Granulating", "Granulujúca fáza") }
+        static var healingSloughInflamed: String     { t("Sloughy / inflamed", "Povlak / zápal") }
+        static var healingNecroticIschemic: String   { t("Necrotic / ischemic", "Nekrotická / ischemická") }
+        static var healingNotDefined: String         { t("Not defined", "Nedefinované") }
+
+        // Wound Stage labels
+        static var woundStageNotStaged: String       { t("Not staged", "Nestupňované") }
+        static var woundStageWagnerSuspected: String { t("Likely Wagner 2–3 (suspected)", "Pravdepodobne Wagner 2–3 (predpoklad)") }
+
+        // Diagnosis lines
+        static var dxArterialCLI: String         { t("Arterial ulcer with critical limb ischemia", "Arteriálny vred s kritickou ischémiou končatiny") }
+        static var dxVenousLegUlcer: String      { t("Venous leg ulcer", "Venózny vred predkolenia") }
+        static var dxDFULocalInfection: String   { t("Diabetic foot ulcer with local infection", "Diabetický vred nohy s lokálnou infekciou") }
+        static var dxVenousGeneric: String       { t("Venous leg ulcer", "Venózny vred predkolenia") }
+        static var dxArterialGeneric: String     { t("Arterial ulcer", "Arteriálny vred") }
+        static var dxDFUGeneric: String          { t("Diabetic foot ulcer", "Diabetický vred nohy") }
+        static var dxPressureGeneric: String     { t("Pressure injury", "Preležanina") }
+        static var dxTraumaGeneric: String       { t("Traumatic wound", "Traumatická rana") }
+        static var dxSurgicalGeneric: String     { t("Surgical wound", "Pooperačná rana") }
+        static var dxUnspecified: String         { t("Wound (unspecified)", "Rana (nešpecifikované)") }
+
+        // Etiology one-liners
+        static var etiologyLineVenous: String    { t("Poor venous return / venous hypertension", "Zhoršený venózny návrat / venózna hypertenzia") }
+        static var etiologyLineArterial: String  { t("Peripheral arterial disease with reduced perfusion", "Periférne artériové ochorenie so zníženou perfúziou") }
+        static var etiologyLineDFU: String       { t("Neuropathy + pressure on background of diabetes", "Neuropatia + tlak na podklade diabetu") }
+        static var etiologyLinePressure: String  { t("Pressure/shear over bony prominence", "Tlak/šmyk nad kostným výčnelkom") }
+        static var etiologyLineTrauma: String    { t("Traumatic mechanism", "Traumatický mechanizmus") }
+        static var etiologyLineSurgical: String  { t("Post-surgical wound", "Pooperačná rana") }
+        static var etiologyLineUnclear: String   { t("Unclear etiology", "Nejasná etiológia") }
+
+        // Recommendation sentences (1:1 with Rec cases)
+        static var recCleanse: String {
+            t("Clean the wound gently with sterile saline.",
+              "Jemne vyčistite ranu sterilným fyziologickým roztokom.")
+        }
+        static var recPeriwound: String {
+            t("Protect peri-wound skin with barrier film.",
+              "Chráňte okolie rany bariérovým filmom.")
+        }
+        static var recCompressionFull: String {
+            t("Apply therapeutic compression (e.g., 2-layer/short-stretch) if tolerated.",
+              "Aplikujte terapeutickú kompresiu (napr. 2-vrstvovú/krátkotažnú), ak je tolerovaná.")
+        }
+        static var recCompressionAvoidHigh: String {
+            t("Avoid high compression; consider light compression pending vascular assessment.",
+              "Vyhnite sa silnej kompresii; zvažujte ľahkú kompresiu do cievneho vyšetrenia.")
+        }
+        static var recCompressionContra: String {
+            t("Compression is contraindicated (ABI < 0.5).",
+              "Kompresia je kontraindikovaná (ABI < 0,5).")
+        }
+        static var recDebrideEpibole: String {
+            t("Address rolled edges (epibole) with conservative sharp/mechanical debridement.",
+              "Riešte zahrnuté okraje (epibole) konzervatívnym ostrým/mechanickým debridementom.")
+        }
+        static var recPackUndermining: String {
+            t("Lightly pack undermining/tunnels as indicated.",
+              "Jemne vypĺňajte podmínovanie/tunely podľa potreby.")
+        }
+        static var recMoistureDryHydrogel: String {
+            t("Dry wound: consider hydrogel/occlusive to rehydrate.",
+              "Suchá rana: zvažujte hydrogel/okluzívnu terapiu na rehydratáciu.")
+        }
+        static var recMoistureModerateFoam: String {
+            t("Moderate exudate: use foam dressing; change daily–q48h.",
+              "Stredný exsudát: použite penový obväz; výmena denne–každých 48 h.")
+        }
+        static var recMoistureHighAlginate: String {
+            t("High exudate: use alginate/absorptive dressing with secondary retention.",
+              "Vysoký exsudát: použite alginát/absorpčný obväz so sekundárnou fixáciou.")
+        }
+        static var recElevationMobility: String {
+            t("Elevate limb when resting and encourage calf-pump mobilization.",
+              "Pri odpočinku končatinu elevujte a podporujte mobilizáciu lýtkovej pumpy.")
+        }
+        static var recVenousEducation: String {
+            t("Educate on compression adherence and leg elevation.",
+              "Poučte o dodržiavaní kompresie a elevácii končatiny.")
+        }
+        static var recArterialNoDebridementUntilPerfused: String {
+            t("Keep dry eschar dry; avoid debridement until perfusion is restored.",
+              "Suchú eschar ponechajte suchú; debridement až po obnovení perfúzie.")
+        }
+        static var recArterialVascularReferral: String {
+            t("Urgent vascular referral for revascularization assessment.",
+              "Urgentné odoslanie na cievne vyšetrenie a zhodnotenie revaskularizácie.")
+        }
+        static var recArterialPainSupport: String {
+            t("Provide analgesia; keep limb warm; avoid high elevation if it worsens pain.",
+              "Zabezpečte analgéziu; udržujte končatinu v teple; vyhnite sa vysokej elevácii pri zhoršení bolesti.")
+        }
+        static var recDFUOffloading: String {
+            t("Enforce off-loading (TCC or removable walker); strict pressure relief.",
+              "Zabezpečte off-loading (TCC alebo odnímateľná ortéza); striktne odľahčiť tlak.")
+        }
+        static var recDFUOsteoWorkup: String {
+            t("Probe-to-bone positive: evaluate for osteomyelitis (imaging ± bone culture).",
+              "Pozitívna sonda na kosť: vyšetrite osteomyelitídu (zobrazovanie ± kultivácia kosti).")
+        }
+        static var recAntibioticsIfInfected: String {
+            t("Start antibiotics per local guidance; adjust to culture.",
+              "Nasadiť antibiotiká podľa lokálnych odporúčaní; upraviť podľa kultivácie.")
+        }
+        static var recGlycemicControl: String {
+            t("Optimize glycemic control; coordinate with diabetic care.",
+              "Optimalizujte glykemickú kontrolu; koordinujte s diabetologickou starostlivosťou.")
+        }
+        static var recFootwearReview: String {
+            t("Review footwear and off-loading devices.",
+              "Skontrolujte obuv a odľahčovacie pomôcky.")
+        }
+        static var recFollowUp7d: String {
+            t("Reassess in ~7 days; expect measurable improvement within 4 weeks.",
+              "Kontrola o ~7 dní; očakávajte merateľné zlepšenie do 4 týždňov.")
+        }
+        static var recCloseReview48h: String {
+            t("Close review in 24–72 h or sooner if deterioration.",
+              "Kontrola do 24–72 h, prípadne skôr pri zhoršení.")
+        }
+        static var recImmunoCloserReview: String {
+            t("Immunosuppressed: lower threshold for antibiotics and closer follow-up.",
+              "Imunosupresia: nižší prah pre antibiotiká a tesnejšie kontroly.")
+        }
+        static var recAnticoagBleedingRisk: String {
+            t("On anticoagulants: consider bleeding risk during debridement.",
+              "Pri antikoagulanciách: zohľadnite riziko krvácania pri debridemente.")
+        }
+    // Simple label used in PDF metadata
+    static var generatedReportDate: String { t("Date", "Dátum") }
+
+        // Helper to map Rec -> string (plug straight into your engine)
+        static func recommendationText(_ r: Rec) -> String {
+            switch r {
+            case .cleanse:                           return recCleanse
+            case .protectPeriwound:                  return recPeriwound
+            case .compressionFull:                   return recCompressionFull
+            case .compressionAvoidHigh:              return recCompressionAvoidHigh
+            case .compressionContra:                 return recCompressionContra
+            case .debrideEpibole:                    return recDebrideEpibole
+            case .packUndermining:                   return recPackUndermining
+            case .moistureDryHydrogel:               return recMoistureDryHydrogel
+            case .moistureModerateFoam:              return recMoistureModerateFoam
+            case .moistureHighAlginate:              return recMoistureHighAlginate
+            case .elevationAndMobility:              return recElevationMobility
+            case .venousEducation:                   return recVenousEducation
+            case .arterialNoDebridementUntilPerfused:return recArterialNoDebridementUntilPerfused
+            case .arterialVascularReferral:          return recArterialVascularReferral
+            case .arterialPainSupport:               return recArterialPainSupport
+            case .dfuOffloading:                     return recDFUOffloading
+            case .dfuOsteoWorkup:                    return recDFUOsteoWorkup
+            case .antibioticsIfInfected:             return recAntibioticsIfInfected
+            case .glycemicControl:                   return recGlycemicControl
+            case .footwearReview:                    return recFootwearReview
+            case .followUp7d:                        return recFollowUp7d
+            case .closeReview48h:                    return recCloseReview48h
+            case .immunoCloserReview:                return recImmunoCloserReview
+            case .anticoagBleedingRisk:              return recAnticoagBleedingRisk
+            }
+        }
+
+        // Public helpers for mapping (if you want to avoid inline t(...) in the engine)
+        static func mapWoundTypeLabel(for etiologyId: String) -> String {
+            switch etiologyId {
+            case "venous":       return woundTypeVenous
+            case "arterial":     return woundTypeArterial
+            case "diabeticFoot": return woundTypeDFU
+            case "pressure":     return woundTypePressure
+            case "trauma":       return woundTypeTrauma
+            case "surgical":     return woundTypeSurgical
+            default:             return woundTypeUnspecified
+            }
+        }
+        static func mapHealingStageLabel(for tissueId: String) -> String {
+            switch tissueId {
+            case "granulation": return healingGranulating
+            case "slough":      return healingSloughInflamed
+            case "necrosis":    return healingNecroticIschemic
+            default:            return healingNotDefined
+            }
+        }
+        static func mapEtiologyLine(for etiologyId: String) -> String {
+            switch etiologyId {
+            case "venous":       return etiologyLineVenous
+            case "arterial":     return etiologyLineArterial
+            case "diabeticFoot": return etiologyLineDFU
+            case "pressure":     return etiologyLinePressure
+            case "trauma":       return etiologyLineTrauma
+            case "surgical":     return etiologyLineSurgical
+            default:             return etiologyLineUnclear
+            }
+        }
+        static func mapDiagnosisGeneric(for etiologyId: String) -> String {
+            switch etiologyId {
+            case "venous":       return dxVenousGeneric
+            case "arterial":     return dxArterialGeneric
+            case "diabeticFoot": return dxDFUGeneric
+            case "pressure":     return dxPressureGeneric
+            case "trauma":       return dxTraumaGeneric
+            case "surgical":     return dxSurgicalGeneric
+            default:             return dxUnspecified
+            }
+        }
+    }
+

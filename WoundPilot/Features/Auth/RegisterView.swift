@@ -111,9 +111,9 @@ struct RegisterView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                // Register
+                // Register (solid blue, no gradient)
                 Button(LocalizedStrings.registerButton) { registerUser() }
-                    .buttonStyle(WPPrimaryButtonStyle())
+                    .buttonStyle(WPSolidPrimaryButtonStyle_Register())
                     .disabled(!formValid)
                     .opacity(formValid ? 1 : 0.6)
                     .padding(.top, 4)
@@ -269,5 +269,31 @@ private struct TermsRow: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, 4)
+    }
+}
+
+// MARK: - Solid Blue Primary Button (local copy to avoid cross-file conflicts)
+private struct WPSolidPrimaryButtonStyle_Register: ButtonStyle {
+    @ScaledMetric private var height: CGFloat = 52
+    @ScaledMetric private var corner: CGFloat = 12
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.body.weight(.semibold))
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity, minHeight: height)
+            .background(
+                RoundedRectangle(cornerRadius: corner, style: .continuous)
+                    .fill(Color.primaryBlue) // solid brand blue
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: corner, style: .continuous)
+                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+            )
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .shadow(color: Color.primaryBlue.opacity(configuration.isPressed ? 0.10 : 0.18),
+                    radius: 10, y: 6)
+            .animation(.spring(response: 0.25, dampingFraction: 0.85),
+                       value: configuration.isPressed)
     }
 }

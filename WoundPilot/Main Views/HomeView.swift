@@ -1,6 +1,7 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
+import UIKit
 
 struct HomeView: View {
     @Binding var isUserLoggedIn: Bool
@@ -11,12 +12,16 @@ struct HomeView: View {
     @State private var showPatientList = false
     @State private var showProfile = false
     @State private var showClinicalTips = false
+    @State private var showSharedCases = false   // NEW
 
     // Sharing / reviews
     @State private var pendingReviewCount: Int = 0
 
     // Tip section
     @State private var showTip = false
+
+    // Recent patients
+    @State private var recentPatients: [RecentPatient] = []
 
     // MARK: - Daily Clinical Tips (localized)
     var clinicalTips: [String] {
@@ -62,7 +67,7 @@ struct HomeView: View {
                                 .font(.footnote)
                                 .foregroundColor(.secondary)
 
-                            Text(LocalizedStrings.dashboard) // “Prehľad”
+                            Text(LocalizedStrings.dashboard)
                                 .font(.title.weight(.bold))
                         }
                         Spacer()
@@ -70,12 +75,21 @@ struct HomeView: View {
                             lightHaptic()
                             showProfile = true
                         } label: {
-                            Image(systemName: "person.crop.circle.fill")
-                                .symbolRenderingMode(.hierarchical)
-                                .font(.system(size: 26, weight: .semibold))
-                                .foregroundStyle(.primary)
-                                .padding(8)
-                                .background(Color(.systemGray6), in: Circle())
+                            ZStack(alignment: .topTrailing) {
+                                Image(systemName: "person.crop.circle.fill")
+                                    .symbolRenderingMode(.hierarchical)
+                                    .font(.system(size: 26, weight: .semibold))
+                                    .foregroundStyle(.primary)
+                                    .padding(8)
+                                    .background(Color(.systemGray6), in: Circle())
+
+                                if pendingReviewCount > 0 {
+                                    Circle()
+                                        .fill(Color.orange)
+                                        .frame(width: 10, height: 10)
+                                        .offset(x: 2, y: -2)
+                                }
+                            }
                         }
                         .buttonStyle(HomeScaleButtonStyle())
                         .accessibilityLabel(LocalizedStrings.profile)
@@ -83,11 +97,11 @@ struct HomeView: View {
                     .padding(.horizontal)
                     .padding(.top, 6)
 
-                    // MARK: Pending Reviews
+                    // MARK: Pending Reviews banner
                     if pendingReviewCount > 0 {
                         Button {
                             lightHaptic()
-                            showClinicalTips = true
+                            showSharedCases = true
                         } label: {
                             HStack(spacing: 10) {
                                 Image(systemName: "tray.full.fill")
@@ -114,8 +128,9 @@ struct HomeView: View {
                     }
 
                     // ===== ORDER =====
-                    // 1) TIP OF THE DAY
-                    VStack(spacing: 8) {
+
+                    // 1) TIP OF THE DAY (compact)
+                    VStack(spacing: 6) {
                         Button {
                             withAnimation(.easeInOut(duration: 0.22)) { showTip.toggle() }
                             lightHaptic()
@@ -141,27 +156,51 @@ struct HomeView: View {
                             .transition(.opacity.combined(with: .move(edge: .top)))
                         }
                     }
-                    .padding(.top, 8)     // reduced padding so it feels anchored
-                    .padding(.bottom, 28) // keep separation before the grid
+                    .padding(.top, 2)
+                    .padding(.bottom, 10)
 
-                    // 2) ACTIONS GRID
-                    LazyVGrid(columns: columns, spacing: 18) {
+                    // 2) HERO: QUICK SCAN (full-width card)
+                    Button {
+                        lightHaptic()
+                        showQuickScan()
+                    } label: {
+                        ActionCard(
+                            title: LocalizedStrings.quickScanTitle,
+                            subtitle: nil,
+                            systemImage: "bolt.fill",
+                            gradient: [WPPrimaryBlue.opacity(0.20), WPAccentBlue.opacity(0.10)],
+                            iconTint: WPPrimaryBlue,
+                            height: 164,
+                            corner: cardCorner
+                        )
+                    }
+                    .buttonStyle(HomeScaleButtonStyle())
+                    .padding(.horizontal)
 
-                        Button {
-                            lightHaptic()
-                            showQuickScan()
-                        } label: {
-                            ActionCard(
-                                title: LocalizedStrings.quickScanTitle,
-                                subtitle: nil,
-                                systemImage: "bolt.fill",
-                                gradient: [WPPrimaryBlue.opacity(0.18), WPAccentBlue.opacity(0.10)],
-                                iconTint: WPPrimaryBlue,
-                                height: 140,
-                                corner: cardCorner
-                            )
+                    // 3) RECENT PATIENTS ROW (optional)
+                    if !recentPatients.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 12) {
+                                ForEach(recentPatients) { p in
+                                    Button {
+                                        lightHaptic()
+                                        showPatientList = true
+                                    } label: {
+                                        RecentPatientCard(
+                                            name: p.name,
+                                            subtitle: p.updatedAt.map { relativeDate($0) } ?? ""
+                                        )
+                                    }
+                                    .buttonStyle(HomeScaleButtonStyle())
+                                }
+                            }
+                            .padding(.horizontal)
                         }
-                        .buttonStyle(HomeScaleButtonStyle())
+                        .padding(.top, 2)
+                    }
+
+                    // 4) ACTIONS GRID
+                    LazyVGrid(columns: columns, spacing: 18) {
 
                         Button {
                             lightHaptic()
@@ -195,6 +234,34 @@ struct HomeView: View {
                         }
                         .buttonStyle(HomeScaleButtonStyle())
 
+                        // NEW: SHARED CASES
+                        Button {
+                            lightHaptic()
+                            showSharedCases = true
+                        } label: {
+                            ActionCard(
+                                title: "Zdieľané prípady", // use your LocalizedStrings key later if you have one
+                                subtitle: nil,
+                                systemImage: "person.2.circle.fill",
+                                gradient: [Color.cyan.opacity(0.16), Color.teal.opacity(0.10)],
+                                iconTint: .teal,
+                                height: 140,
+                                corner: cardCorner
+                            )
+                            .overlay(alignment: .topTrailing) {
+                                if pendingReviewCount > 0 {
+                                    Text("\(pendingReviewCount)")
+                                        .font(.caption2.weight(.semibold))
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(Capsule().fill(Color.orange))
+                                        .offset(x: -10, y: 10)
+                                }
+                            }
+                        }
+                        .buttonStyle(HomeScaleButtonStyle())
+
                         Button {
                             lightHaptic()
                             showClinicalTips = true
@@ -212,7 +279,7 @@ struct HomeView: View {
                         .buttonStyle(HomeScaleButtonStyle())
                     }
                     .padding(.horizontal)
-                    .padding(.bottom, 40)
+                    .padding(.bottom, 48)
                 }
             }
             // Destinations
@@ -220,8 +287,14 @@ struct HomeView: View {
             .navigationDestination(isPresented: $showPatientList) { PatientListView() }
             .navigationDestination(isPresented: $showProfile) { ProfileView(isUserLoggedIn: $isUserLoggedIn) }
             .navigationDestination(isPresented: $showClinicalTips) { ClinicalTipsView() }
+            .navigationDestination(isPresented: $showSharedCases) { SharingView() } // NEW
             .onAppear {
+                if !UserDefaults.standard.bool(forKey: "sawTip") {
+                    showTip = true
+                    UserDefaults.standard.set(true, forKey: "sawTip")
+                }
                 loadPendingReviews()
+                loadRecentPatients()
             }
         }
     }
@@ -246,6 +319,45 @@ struct HomeView: View {
             }
     }
 
+    func loadRecentPatients(limit: Int = 10) {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        let base = Firestore.firestore()
+            .collection("users").document(uid)
+            .collection("patients")
+
+        base.order(by: "updatedAt", descending: true).limit(to: limit).getDocuments { snap, err in
+            if let err = err {
+                base.order(by: "createdAt", descending: true).limit(to: limit).getDocuments { snap2, _ in
+                    self.recentPatients = self.mapPatients(snap2)
+                }
+                print("loadRecentPatients updatedAt error: \(err.localizedDescription)")
+                return
+            }
+            if let snap = snap, !snap.isEmpty {
+                self.recentPatients = self.mapPatients(snap)
+            } else {
+                base.order(by: "createdAt", descending: true).limit(to: limit).getDocuments { snap2, _ in
+                    self.recentPatients = self.mapPatients(snap2)
+                }
+            }
+        }
+    }
+
+    private func mapPatients(_ snapshot: QuerySnapshot?) -> [RecentPatient] {
+        guard let docs = snapshot?.documents else { return [] }
+        return docs.compactMap { doc in
+            let data = doc.data()
+            let name = (data["fullName"] as? String) ??
+                       (data["name"] as? String) ??
+                       (data["displayName"] as? String) ??
+                       "—"
+            let updatedTs = (data["updatedAt"] as? Timestamp) ?? (data["lastUpdated"] as? Timestamp)
+            let createdTs = (data["createdAt"] as? Timestamp)
+            let date = updatedTs?.dateValue() ?? createdTs?.dateValue()
+            return RecentPatient(id: doc.documentID, name: name, updatedAt: date)
+        }
+    }
+
     func formattedDate() -> String {
         let f = DateFormatter()
         f.dateStyle = .long
@@ -253,9 +365,23 @@ struct HomeView: View {
         return f.string(from: Date())
     }
 
+    func relativeDate(_ date: Date) -> String {
+        let r = RelativeDateTimeFormatter()
+        r.locale = Locale(identifier: LocalizationManager.shared.currentLanguage.rawValue)
+        r.unitsStyle = .short
+        return r.localizedString(for: date, relativeTo: Date())
+    }
+
     func lightHaptic() {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
+}
+
+// MARK: - Lightweight model for the row
+struct RecentPatient: Identifiable {
+    let id: String
+    let name: String
+    let updatedAt: Date?
 }
 
 //
@@ -267,7 +393,7 @@ private struct TipDisclosureRowContent: View {
     let isExpanded: Bool
     let tint: Color
 
-    @ScaledMetric(relativeTo: .title3) private var height: CGFloat = 44
+    @ScaledMetric(relativeTo: .title3) private var height: CGFloat = 40
 
     var body: some View {
         HStack(spacing: 12) {
@@ -295,7 +421,7 @@ private struct TipContentCard: View {
     let tip: String
     var cardCorner: CGFloat
 
-    @ScaledMetric(relativeTo: .title3) private var vpad: CGFloat = 14
+    @ScaledMetric(relativeTo: .title3) private var vpad: CGFloat = 10
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: cardCorner, style: .continuous)
@@ -380,6 +506,36 @@ private struct ActionCard: View {
         }
         .frame(height: height)
         .contentShape(shape)
+    }
+}
+
+// Recent Patient chip/card
+private struct RecentPatientCard: View {
+    let name: String
+    let subtitle: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Image(systemName: "person.crop.square")
+                .font(.system(size: 18, weight: .semibold))
+                .frame(width: 44, height: 44)
+                .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 12))
+
+            Text(name)
+                .font(.subheadline)
+                .foregroundColor(.primary)
+                .lineLimit(1)
+
+            if !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .padding(12)
+        .background(RoundedRectangle(cornerRadius: 16).fill(Color(.secondarySystemBackground)))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.black.opacity(0.05), lineWidth: 0.5))
     }
 }
 

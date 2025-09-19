@@ -118,47 +118,74 @@ struct WelcomeView: View {
     }
 }
 
-// MARK: - Page 0: Language Selection
+// MARK: - Page 0: Language Selection (compact)
 private struct LanguageSelectionPage: View {
     let title: String
     let onEnglish: () -> Void
     let onSlovak: () -> Void
 
-    @ScaledMetric(relativeTo: .title2) private var iconSize: CGFloat = 48
-    @ScaledMetric(relativeTo: .title3) private var cardPadding: CGFloat = 16
-    @ScaledMetric(relativeTo: .title3) private var cardRadius: CGFloat = 14
-    @ScaledMetric(relativeTo: .title3) private var minButtonHeight: CGFloat = 56
+    @ScaledMetric(relativeTo: .title2) private var iconSize: CGFloat = 44
+    @ScaledMetric(relativeTo: .title3) private var cardPadding: CGFloat = 12
+    @ScaledMetric(relativeTo: .title3) private var cardRadius: CGFloat = 12
+    @ScaledMetric(relativeTo: .title3) private var minButtonHeight: CGFloat = 50
 
     var body: some View {
-        VStack(spacing: 28) {
-            VStack(spacing: 10) {
-                Image(systemName: "globe")
-                    .font(.system(size: iconSize, weight: .semibold))
-                    .foregroundColor(.accentBlue)
-                    .padding(12)
-                    .background(.ultraThinMaterial, in: Circle())
-                    .shadow(radius: 6, y: 3)
+        VStack(spacing: 20) {
+
+            // Header
+            VStack(spacing: 8) {
+                ZStack {
+                    Circle()
+                        .fill(LinearGradient(
+                            colors: [Color.primaryBlue.opacity(0.14), Color.accentBlue.opacity(0.14)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        ))
+                        .frame(width: iconSize + 22, height: iconSize + 22)
+                        .overlay(Circle().stroke(Color.primaryBlue.opacity(0.15), lineWidth: 1))
+                        .shadow(color: .black.opacity(0.04), radius: 6, y: 3)
+
+                    Image(systemName: "globe")
+                        .font(.system(size: iconSize, weight: .semibold))
+                        .foregroundColor(.primaryBlue)
+                }
+
                 Text(title)
-                    .font(.title2.weight(.semibold))
+                    .font(.title3.weight(.semibold)) // smaller than before
                     .multilineTextAlignment(.center)
                     .foregroundColor(.primary)
                     .accessibilityAddTraits(.isHeader)
-                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.top, 8)
+            .padding(.top, 4)
 
-            VStack(spacing: 16) {
-                LanguageCard(flag: "🇬🇧", label: "English", hint: "Tap to continue",
-                             tint: .primaryBlue, minHeight: minButtonHeight,
-                             padding: cardPadding, radius: cardRadius, action: onEnglish)
-                LanguageCard(flag: "🇸🇰", label: "Slovenčina", hint: "Ťuknite pre pokračovanie",
-                             tint: .accentBlue, minHeight: minButtonHeight,
-                             padding: cardPadding, radius: cardRadius, action: onSlovak)
+            // Options
+            VStack(spacing: 10) {
+                LanguageCard(
+                    flag: "🇬🇧",
+                    label: "English",
+                    hint: "Tap to continue",
+                    tint: .primaryBlue,
+                    minHeight: minButtonHeight,
+                    padding: cardPadding,
+                    radius: cardRadius,
+                    action: onEnglish
+                )
+
+                LanguageCard(
+                    flag: "🇸🇰",
+                    label: "Slovenčina",
+                    hint: "Ťuknite pre pokračovanie",
+                    tint: .accentBlue,
+                    minHeight: minButtonHeight,
+                    padding: cardPadding,
+                    radius: cardRadius,
+                    action: onSlovak
+                )
             }
             .padding(.horizontal)
+
             Spacer(minLength: 0)
         }
-        .padding(.top, 24)
+        .padding(.top, 16)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
@@ -173,33 +200,55 @@ private struct LanguageCard: View {
     let radius: CGFloat
     let action: () -> Void
 
+    @ScaledMetric private var chip: CGFloat = 34
+
     var body: some View {
-        Button(action: { Haptics.light(); action() }) {
-            HStack(spacing: 14) {
-                Text(flag).font(.title2)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(label)
-                        .font(.title3.weight(.semibold))
-                        .foregroundColor(.primary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(hint)
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+        Button {
+            Haptics.light()
+            action()
+        } label: {
+            let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
+
+            HStack(spacing: 12) {
+                // Flag chip
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(tint.opacity(0.10))
+                    Text(flag).font(.headline)
                 }
+                .frame(width: chip, height: chip)
+
+                // Texts
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(label)
+                        .font(.headline)            // smaller than .title3
+                        .foregroundColor(.primary)
+                    Text(hint)
+                        .font(.footnote)            // smaller than .subheadline
+                        .foregroundColor(.secondary)
+                }
+
                 Spacer(minLength: 8)
-                Image(systemName: "chevron.right")
-                    .font(.title3.weight(.semibold))
+
+                Image(systemName: "chevron.right")   // no extra chip
+                    .font(.footnote.weight(.bold))
                     .foregroundColor(.secondary)
                     .accessibilityHidden(true)
             }
             .padding(padding)
             .frame(maxWidth: .infinity, minHeight: minHeight)
-            .background(.ultraThinMaterial)
-            .overlay(RoundedRectangle(cornerRadius: radius).stroke(tint.opacity(0.25), lineWidth: 1))
-            .clipShape(RoundedRectangle(cornerRadius: radius))
-            .shadow(color: tint.opacity(0.10), radius: 10, y: 4)
-            .contentShape(RoundedRectangle(cornerRadius: radius))
+            .background(shape.fill(Color(.secondarySystemBackground)))
+            .overlay(
+                // thin accent at left, subtle border
+                HStack(spacing: 0) {
+                    Rectangle().fill(tint.opacity(0.16)).frame(width: 4)
+                    Spacer()
+                }
+                .clipShape(shape)
+            )
+            .overlay(shape.stroke(Color.black.opacity(0.05), lineWidth: 0.5))
+            .shadow(color: .black.opacity(0.03), radius: 4, y: 2)
+            .contentShape(shape)
         }
         .buttonStyle(ScaleButtonStyle())
         .accessibilityHint(hint)
@@ -207,6 +256,7 @@ private struct LanguageCard: View {
 }
 
 // MARK: - Page 1: Assistant Greeting (with CTA + pulsing halo)
+// MARK: - Page 0: Assistant Greeting (solid blue CTA)
 private struct AssistantGreetingPage: View {
     let appTitle: String
     let subtitle: String
@@ -253,8 +303,10 @@ private struct AssistantGreetingPage: View {
                         .padding(bubblePadding)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .background(Color(.secondarySystemBackground))
-                        .overlay(RoundedRectangle(cornerRadius: bubbleRadius)
-                            .stroke(Color.accentBlue.opacity(0.20), lineWidth: 1))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: bubbleRadius)
+                                .stroke(Color.accentBlue.opacity(0.20), lineWidth: 1)
+                        )
                         .clipShape(RoundedRectangle(cornerRadius: bubbleRadius))
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
@@ -264,9 +316,11 @@ private struct AssistantGreetingPage: View {
                 }
                 .padding(.horizontal)
 
-                // ONLY THIS BUTTON CHANGED → narrower rectangle (centered)
-                Button(LocalizedStrings.getStartedTitle) { onContinue() }
-                    .buttonStyle(WPRectCTAStyle())   // rectangle style, fixed narrow width
+                // Solid blue CTA (narrow rectangle)
+                Button(LocalizedStrings.getStartedTitle) {
+                    onContinue()
+                }
+                .buttonStyle(WPRectPrimaryStyle())
 
                 NavigationLink(destination: LoginView(isUserLoggedIn: $isUserLoggedIn)) {
                     Text(loginLinkTitle)
@@ -286,7 +340,7 @@ private struct AssistantGreetingPage: View {
     }
 }
 
-// Subtle breathing halo behind the avatar
+// MARK: - Avatar Halo
 private struct AvatarWithHalo: View {
     let size: CGFloat
     @State private var pulse = false
@@ -315,6 +369,31 @@ private struct AvatarWithHalo: View {
     }
 }
 
+// MARK: - Solid Blue Narrow Rect Button
+private struct WPRectPrimaryStyle: ButtonStyle {
+    @ScaledMetric private var height: CGFloat = 52
+    @ScaledMetric private var corner: CGFloat = 14
+    var width: CGFloat = 260
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.body.weight(.semibold))
+            .foregroundColor(.white)
+            .frame(width: width, height: height)
+            .background(
+                RoundedRectangle(cornerRadius: corner, style: .continuous)
+                    .fill(Color.primaryBlue) // solid blue
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: corner, style: .continuous)
+                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+            )
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .shadow(color: Color.primaryBlue.opacity(configuration.isPressed ? 0.10 : 0.18),
+                    radius: 10, y: 6)
+            .animation(.spring(response: 0.25, dampingFraction: 0.85), value: configuration.isPressed)
+    }
+}
 // MARK: - Page 2: Intro Video Placeholder (scales with width)
 private struct IntroVideoPage: View {
     let title: String
@@ -462,8 +541,7 @@ private struct HowItWorksPage: View {
                     .frame(width: diameter, height: diameter)
                     .background(
                         selectedStep == index
-                        ? AnyShapeStyle(.linearGradient(colors: [Color.primaryBlue, Color.accentBlue],
-                                                        startPoint: .topLeading, endPoint: .bottomTrailing))
+                        ? AnyShapeStyle(Color.primaryBlue)          // ← solid blue (no gradient)
                         : AnyShapeStyle(Color.gray.opacity(0.15))
                     )
                     .foregroundColor(selectedStep == index ? .white : .primary)
@@ -596,31 +674,41 @@ private struct GetStartedPage: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             VStack(spacing: 16) {
+                // Solid blue (no gradient) — primary action
                 NavigationLink(destination: LoginView(isUserLoggedIn: $isUserLoggedIn)) {
                     Text(loginTitle)
                         .font(.title3.weight(.semibold))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, buttonVPad)
-                        .background(LinearGradient(colors: [Color.primaryBlue, Color.accentBlue],
-                                                   startPoint: .topLeading, endPoint: .bottomTrailing))
                         .foregroundColor(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: corner))
-                        .shadow(color: Color.primaryBlue.opacity(0.25), radius: 10, y: 6)
+                        .background(
+                            RoundedRectangle(cornerRadius: corner, style: .continuous)
+                                .fill(Color.primaryBlue)                                   // ← solid blue
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: corner, style: .continuous)
+                                .stroke(Color.white.opacity(0.08), lineWidth: 1)            // subtle highlight
+                        )
+                        .shadow(color: Color.primaryBlue.opacity(0.18), radius: 10, y: 6)
                         .accessibilityHint("Opens login screen")
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .buttonStyle(ScaleButtonStyle())
 
+                // Secondary action (outlined)
                 NavigationLink(destination: RegisterView(isUserLoggedIn: $isUserLoggedIn)) {
                     Text(registerTitle)
                         .font(.title3.weight(.semibold))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, buttonVPad)
-                        .background(.ultraThinMaterial)
-                        .overlay(RoundedRectangle(cornerRadius: corner).stroke(Color.accentBlue.opacity(0.25), lineWidth: 1))
                         .foregroundColor(.accentBlue)
-                        .clipShape(RoundedRectangle(cornerRadius: corner))
-                        .shadow(color: Color.accentBlue.opacity(0.15), radius: 8, y: 4)
+                        .background(.ultraThinMaterial)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: corner, style: .continuous)
+                                .stroke(Color.accentBlue.opacity(0.25), lineWidth: 1)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: corner, style: .continuous))
+                        .shadow(color: Color.accentBlue.opacity(0.12), radius: 8, y: 4)
                         .accessibilityHint("Opens registration screen")
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -634,7 +722,6 @@ private struct GetStartedPage: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
-
 // MARK: - Shared styles/utilities
 
 // iOS 17+/16 compatibility for onChange

@@ -22,13 +22,7 @@ struct MainTabView: View {
                 }
                 .accessibilityLabel(LocalizedStrings.analyticsTab)
 
-            // 3) Sharing
-            SharingView()
-                .tabItem {
-                    Image(systemName: "person.2.circle")
-                    Text(LocalizedStrings.sharingTab)
-                }
-                .accessibilityLabel(LocalizedStrings.sharingTab)
+           
         }
         // make the whole tab bar react to language change
         .environment(\.locale, Locale(identifier: langManager.currentLanguage.rawValue))

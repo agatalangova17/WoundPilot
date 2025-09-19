@@ -64,6 +64,7 @@ struct ProfileView: View {
 
                     // MARK: - Actions
                     VStack(spacing: 12) {
+                        // Solid dark-blue primary button
                         Button {
                             if let url = URL(string: "mailto:support@woundpilot.com") {
                                 UIApplication.shared.open(url)
@@ -75,11 +76,14 @@ struct ProfileView: View {
                                 .font(.body.weight(.semibold))
                                 .foregroundColor(.white)
                                 .background(
-                                    LinearGradient(colors: [Color.primaryBlue, Color.accentBlue],
-                                                   startPoint: .topLeading, endPoint: .bottomTrailing)
+                                    RoundedRectangle(cornerRadius: cardRadius, style: .continuous)
+                                        .fill(Color.primaryBlue) // solid dark blue
                                 )
-                                .clipShape(RoundedRectangle(cornerRadius: cardRadius, style: .continuous))
-                                .shadow(color: Color.primaryBlue.opacity(0.25), radius: 10, y: 6)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: cardRadius, style: .continuous)
+                                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                                )
+                                .shadow(color: Color.primaryBlue.opacity(0.18), radius: 10, y: 6)
                         }
                         .buttonStyle(ScaleButtonStyle())
                         .padding(.horizontal)
@@ -235,5 +239,3 @@ private struct InfoRowCard: View {
         .shadow(color: .black.opacity(0.04), radius: 6, y: 3)
     }
 }
-
-
