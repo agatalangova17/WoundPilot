@@ -1,9 +1,24 @@
-//
 //  ARMeasureView.swift
 //  WoundPilot
 //
-//  4-Tap Length/Width AR ruler using ARKit + RealityKit (no LiDAR required).
+//  AR‑first, 4‑tap wound measurement with ARKit + RealityKit (LiDAR optional).
+//  Flow: Tap long‑axis endpoints (2 taps) → tap width side 1 → (optional) width side 2.
+//  Computes: length (m), width1/width2 (m), average width (m), Rect & Ellipse areas (m²).
 //
+//  Includes:
+//  • Tracking quality HUD (Good / Limited with reason) so users know when to measure
+//  • Cleanup via dismantleUIView to avoid leaks
+//  • Safe quaternion helper for broad SDK compatibility
+//  • Undo / Reset state machine
+//  • User “Capture Guide” sheet with best‑practice tips
+//
+//  UI/UX capture guidance (also shown in the in‑app Guide):
+//  1) Good lighting, avoid glare/shadows on the wound.
+//  2) Hold the phone ~20–40 cm from the wound, lens centered over it.
+//  3) Keep the phone as perpendicular to the wound surface as possible.
+//  4) Wait until the HUD says “AR: Good” before placing points.
+//  5) Tap two opposite edges along the longest dimension, then two along the short axis.
+//  6) If AR stays “Limited”, move slightly or improve texture/lighting; as last resort use photo‑based calibration.
 
 import SwiftUI
 import UIKit
@@ -19,6 +34,9 @@ struct ARMeasurementResult {
     let widthAvgM: Float?
     let areaRectM2: Float?
     let areaEllM2: Float?
+    // Optional quality metadata
+    let arQualityLabel: String
+    let deviceHasLiDAR: Bool
 }
 
 // MARK: - Public SwiftUI wrapper
@@ -38,6 +56,17 @@ struct ARMeasureView: View {
 
     @State private var canUndo = false
     @State private var canReset = false
+
+    // Tracking quality HUD (set by ARSession delegate)
+    @State private var trackingLabel: String = "AR: Initializing…"
+    @State private var trackingIsGood: Bool = false
+
+    // Device capability chip
+    @State private var hasLiDAR: Bool = false
+
+    // Help sheet
+    @State private var showGuide = false
+
     @Environment(\.dismiss) private var dismiss
 
     // Save is enabled once we have L and at least one width (3rd tap)
@@ -56,26 +85,60 @@ struct ARMeasureView: View {
                 areaRectM2: $areaRectM2,
                 areaEllM2: $areaEllM2,
                 canUndo: $canUndo,
-                canReset: $canReset
+                canReset: $canReset,
+                trackingLabel: $trackingLabel,
+                trackingIsGood: $trackingIsGood,
+                hasLiDAR: $hasLiDAR
             )
 
             // HUD
             VStack(spacing: 10) {
                 // Top bar
-                HStack {
+                HStack(spacing: 8) {
                     Button { dismiss() } label: {
                         Image(systemName: "chevron.left")
                             .font(.headline)
                             .padding(10)
                             .background(.ultraThinMaterial, in: Capsule())
                     }
+
                     Spacer()
+
+                    // Tracking quality chip
+                    HStack(spacing: 6) {
+                        Image(systemName: trackingIsGood ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
+                            .imageScale(.small)
+                        Text(trackingLabel)
+                            .font(.caption.weight(.semibold))
+                    }
+                    .padding(.horizontal, 10).padding(.vertical, 6)
+                    .background(trackingIsGood ? Color.green.opacity(0.2) : Color.orange.opacity(0.25), in: Capsule())
+
+                    // LiDAR chip
+                    if hasLiDAR {
+                        HStack(spacing: 6) {
+                            Image(systemName: "cube.transparent")
+                                .imageScale(.small)
+                            Text("LiDAR")
+                                .font(.caption.weight(.semibold))
+                        }
+                        .padding(.horizontal, 10).padding(.vertical, 6)
+                        .background(Color.blue.opacity(0.2), in: Capsule())
+                    }
+
+                    // Help button
+                    Button { showGuide = true } label: {
+                        Image(systemName: "questionmark.circle")
+                            .font(.headline)
+                            .padding(10)
+                            .background(.ultraThinMaterial, in: Capsule())
+                    }
                 }
                 .padding([.top, .horizontal])
 
                 // Title + Metrics
                 VStack(spacing: 8) {
-                    Text("AR L/W Measure (4-tap)")
+                    Text("AR L/W Measure (4‑tap)")
                         .font(.headline)
 
                     // Primary metrics
@@ -83,9 +146,7 @@ struct ARMeasureView: View {
                         let shownW = widthAvgM ?? width1M
                         HStack(spacing: 12) {
                             Text("L: \(prettyCM(L))")
-                            if let W = shownW {
-                                Text("W: \(prettyCM(W))")
-                            }
+                            if let W = shownW { Text("W: \(prettyCM(W))") }
                         }
                         .font(.subheadline.weight(.semibold))
                         .padding(.horizontal, 12).padding(.vertical, 6)
@@ -122,7 +183,7 @@ struct ARMeasureView: View {
                 Spacer()
 
                 // Tip
-                Text("Tip: Hold the phone roughly head-on to the wound for best accuracy.")
+                Text("Tip: Keep the phone perpendicular to the wound for best accuracy.")
                     .font(.caption2)
                     .padding(.horizontal, 10).padding(.vertical, 6)
                     .background(.ultraThinMaterial, in: Capsule())
@@ -137,7 +198,9 @@ struct ARMeasureView: View {
                                 width2M: width2M,
                                 widthAvgM: widthAvgM,
                                 areaRectM2: areaRectM2,
-                                areaEllM2: areaEllM2
+                                areaEllM2: areaEllM2,
+                                arQualityLabel: trackingLabel,
+                                deviceHasLiDAR: hasLiDAR
                             )
                             onComplete?(result)
                             dismiss()
@@ -173,6 +236,10 @@ struct ARMeasureView: View {
             }
         }
         .ignoresSafeArea()
+        .sheet(isPresented: $showGuide) {
+            CaptureGuideView()
+                .presentationDetents([.medium, .large])
+        }
     }
 
     // MARK: - HUD helpers
@@ -211,24 +278,49 @@ private struct ARViewContainer: UIViewRepresentable {
     @Binding var canUndo: Bool
     @Binding var canReset: Bool
 
+    @Binding var trackingLabel: String
+    @Binding var trackingIsGood: Bool
+
+    @Binding var hasLiDAR: Bool
+
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeUIView(context: Context) -> ARView {
         let arView = ARView(frame: .zero)
         context.coordinator.arView = arView
 
+        // Bindings immediately (avoid race before updateUIView)
+        context.coordinator.bindings = .init(
+            tapStage: $tapStage,
+            lengthM: $lengthM,
+            width1M: $width1M,
+            width2M: $width2M,
+            widthAvgM: $widthAvgM,
+            areaRectM2: $areaRectM2,
+            areaEllM2: $areaEllM2,
+            canUndo: $canUndo,
+            canReset: $canReset,
+            trackingLabel: $trackingLabel,
+            trackingIsGood: $trackingIsGood,
+            hasLiDAR: $hasLiDAR
+        )
+
+        // Config
         let config = ARWorldTrackingConfiguration()
         config.planeDetection = [.horizontal, .vertical]
         if ARWorldTrackingConfiguration.supportsFrameSemantics(.sceneDepth) {
             config.frameSemantics.insert(.sceneDepth) // LiDAR/Depth if available
+            DispatchQueue.main.async { self.hasLiDAR = true }
         }
         arView.session.delegate = context.coordinator
         arView.session.run(config, options: [])
 
+        // Gestures
         let tap = UITapGestureRecognizer(target: context.coordinator,
                                          action: #selector(Coordinator.handleTap(_:)))
         arView.addGestureRecognizer(tap)
 
+        // Observers
         NotificationCenter.default.addObserver(context.coordinator,
                                                selector: #selector(Coordinator.handleUndo),
                                                name: .arMeasureUndo, object: nil)
@@ -240,6 +332,7 @@ private struct ARViewContainer: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: ARView, context: Context) {
+        // Keep bindings fresh
         context.coordinator.bindings = Coordinator.Bindings(
             tapStage: $tapStage,
             lengthM: $lengthM,
@@ -249,8 +342,18 @@ private struct ARViewContainer: UIViewRepresentable {
             areaRectM2: $areaRectM2,
             areaEllM2: $areaEllM2,
             canUndo: $canUndo,
-            canReset: $canReset
+            canReset: $canReset,
+            trackingLabel: $trackingLabel,
+            trackingIsGood: $trackingIsGood,
+            hasLiDAR: $hasLiDAR
         )
+    }
+
+    func dismantleUIView(_ uiView: ARView, coordinator: Coordinator) {
+        uiView.session.pause()
+        NotificationCenter.default.removeObserver(coordinator, name: .arMeasureUndo, object: nil)
+        NotificationCenter.default.removeObserver(coordinator, name: .arMeasureReset, object: nil)
+        coordinator.teardown()
     }
 
     // MARK: - Coordinator
@@ -266,6 +369,9 @@ private struct ARViewContainer: UIViewRepresentable {
             var areaEllM2: Binding<Float?>
             var canUndo: Binding<Bool>
             var canReset: Binding<Bool>
+            var trackingLabel: Binding<String>
+            var trackingIsGood: Binding<Bool>
+            var hasLiDAR: Binding<Bool>
         }
 
         weak var arView: ARView!
@@ -296,16 +402,7 @@ private struct ARViewContainer: UIViewRepresentable {
 
             let pt = gr.location(in: arView)
 
-            // Prefer real planes; fall back gracefully
-            var result: ARRaycastResult?
-            if let q = arView.makeRaycastQuery(from: pt, allowing: .existingPlaneGeometry, alignment: .any),
-               let r = arView.session.raycast(q).first { result = r }
-            else if let q = arView.makeRaycastQuery(from: pt, allowing: .existingPlaneInfinite, alignment: .any),
-                    let r = arView.session.raycast(q).first { result = r }
-            else if let q = arView.makeRaycastQuery(from: pt, allowing: .estimatedPlane, alignment: .any),
-                    let r = arView.session.raycast(q).first { result = r }
-
-            guard let hit = result else { return }
+            guard let hit = smartRaycast(arView: arView, screenPoint: pt) else { return }
 
             let worldPos = SIMD3<Float>(hit.worldTransform.columns.3.x,
                                         hit.worldTransform.columns.3.y,
@@ -340,6 +437,17 @@ private struct ARViewContainer: UIViewRepresentable {
             }
 
             updateButtons()
+        }
+
+        // Prefer existing plane geometry → infinite plane → estimated plane
+        private func smartRaycast(arView: ARView, screenPoint pt: CGPoint) -> ARRaycastResult? {
+            if let q = arView.makeRaycastQuery(from: pt, allowing: .existingPlaneGeometry, alignment: .any),
+               let r = arView.session.raycast(q).first { return r }
+            if let q = arView.makeRaycastQuery(from: pt, allowing: .existingPlaneInfinite, alignment: .any),
+               let r = arView.session.raycast(q).first { return r }
+            if let q = arView.makeRaycastQuery(from: pt, allowing: .estimatedPlane, alignment: .any),
+               let r = arView.session.raycast(q).first { return r }
+            return nil
         }
 
         // MARK: Undo/Reset
@@ -419,14 +527,10 @@ private struct ARViewContainer: UIViewRepresentable {
 
         // MARK: Rendering helpers
 
-        private func simpleColor(_ ui: UIColor, alpha: CGFloat = 1.0) -> UIColor {
-            ui.withAlphaComponent(alpha)
-        }
-
         private func placeDot(at world: SIMD3<Float>) {
             guard let arView else { return }
             let mesh = MeshResource.generateSphere(radius: dotRadius)
-            let material = SimpleMaterial(color: simpleColor(.systemTeal), isMetallic: false)
+            let material = SimpleMaterial(color: UIColor.systemTeal, isMetallic: false)
             let entity = ModelEntity(mesh: mesh, materials: [material])
             let anchor = AnchorEntity(world: world)
             entity.position = SIMD3<Float>(repeating: 0)
@@ -452,14 +556,31 @@ private struct ARViewContainer: UIViewRepresentable {
 
             let box = MeshResource.generateBox(size: SIMD3<Float>(lineThickness, lineThickness, length),
                                                cornerRadius: lineThickness / 2)
-            let material = SimpleMaterial(color: simpleColor(color, alpha: alpha), isMetallic: false)
+            let material = SimpleMaterial(color: color.withAlphaComponent(alpha), isMetallic: false)
             let entity = ModelEntity(mesh: box, materials: [material])
 
             // Mesh initially along +Z -> rotate to dir
             let zAxis = SIMD3<Float>(0, 0, 1)
-            let rot = simd_quatf(from: zAxis, to: dir)
+            let rot = rotation(from: zAxis, to: dir)
             entity.transform.rotation = rot
             return entity
+        }
+
+        // Safe quaternion helper (works even when vectors are opposite)
+        private func rotation(from: SIMD3<Float>, to: SIMD3<Float>) -> simd_quatf {
+            let v = simd_cross(from, to)
+            let c = simd_dot(from, to)
+            if c <= -0.9999 {
+                // Opposite direction: pick any orthogonal axis
+                let axisCandidate = SIMD3<Float>(1, 0, 0)
+                let axis = simd_length(simd_cross(from, axisCandidate)) > 0.01
+                    ? simd_normalize(simd_cross(from, axisCandidate))
+                    : simd_normalize(simd_cross(from, SIMD3<Float>(0, 1, 0)))
+                return simd_quatf(angle: .pi, axis: axis)
+            }
+            let s = sqrt((1 + c) * 2)
+            let q = simd_quatf(ix: v.x / s, iy: v.y / s, iz: v.z / s, r: s / 2)
+            return simd_normalize(q)
         }
 
         // MARK: Computation utilities
@@ -586,9 +707,9 @@ private struct ARViewContainer: UIViewRepresentable {
             var perpDir = simd_normalize(simd_cross(dir, ref))
             if simd_length(perpDir) < 1e-4 { perpDir = SIMD3<Float>(0, 0, 1) } // last resort
 
-            // Guide length: ~60% of L (clamped)
+            // Guide length: ~60% of L, clamped to <= 6 cm half each side, >= 1 cm
             let L = simd_length(p2 - p1)
-            let guideHalf: Float = max(0.01, 0.3 * L) // each side
+            let guideHalf: Float = min(0.06, max(0.01, 0.3 * L))
             let g1 = mid - perpDir * guideHalf
             let g2 = mid + perpDir * guideHalf
 
@@ -641,6 +762,75 @@ private struct ARViewContainer: UIViewRepresentable {
             let perp  = delta - along
             let mirrored = o + along - perp
             return mirrored
+        }
+
+        // MARK: ARSessionDelegate (tracking quality HUD)
+
+        func session(_ session: ARSession, cameraDidChangeTrackingState camera: ARCamera) {
+            let (label, good) = describe(state: camera.trackingState)
+            DispatchQueue.main.async {
+                self.bindings.trackingLabel.wrappedValue = label
+                self.bindings.trackingIsGood.wrappedValue = good
+            }
+        }
+
+        private func describe(state: ARCamera.TrackingState) -> (String, Bool) {
+            switch state {
+            case .normal:
+                return ("AR: Good", true)
+            case .notAvailable:
+                return ("AR: Not available", false)
+            case .limited(let reason):
+                switch reason {
+                case .initializing:      return ("AR: Limited (initializing)", false)
+                case .relocalizing:      return ("AR: Limited (relocalizing)", false)
+                case .excessiveMotion:   return ("AR: Limited (excessive motion)", false)
+                case .insufficientFeatures: return ("AR: Limited (low features)", false)
+                @unknown default:        return ("AR: Limited", false)
+                }
+            }
+        }
+
+        // MARK: Teardown
+
+        func teardown() {
+            guard let arView else { return }
+            dotAnchors.forEach { arView.scene.removeAnchor($0) }
+            [lengthAnchor, guideAnchor, width1Anchor, width2Anchor].forEach { a in
+                if let a { arView.scene.removeAnchor(a) }
+            }
+            dotAnchors.removeAll()
+            lengthAnchor = nil; guideAnchor = nil; width1Anchor = nil; width2Anchor = nil
+        }
+    }
+}
+
+// MARK: - Capture Guide (user tips)
+
+private struct CaptureGuideView: View {
+    var body: some View {
+        NavigationStack {
+            List {
+                Section("Before you start") {
+                    Label("Ensure good, even lighting; avoid glare and hard shadows.", systemImage: "sun.max")
+                    Label("Clean lens; center the wound on screen.", systemImage: "camera")
+                }
+                Section("Phone position") {
+                    Label("Hold ~20–40 cm from the wound.", systemImage: "ruler")
+                    Label("Keep the phone perpendicular to the wound surface.", systemImage: "gyroscope")
+                    Label("Hold steady for 2–3 seconds; wait for ‘AR: Good’.", systemImage: "hourglass")
+                }
+                Section("Placement steps") {
+                    Label("Tap two opposite edges along the longest axis.", systemImage: "line.diagonal")
+                    Label("Then tap two opposite edges along the short axis (optional second tap).", systemImage: "arrow.left.and.right")
+                }
+                Section("If AR is Limited") {
+                    Label("Slow down; reduce motion.", systemImage: "tortoise")
+                    Label("Add texture (e.g., nearby gauze) or improve lighting.", systemImage: "flashlight.on.fill")
+                    Label("As a fallback, use photo‑based ruler calibration.", systemImage: "ruler.fill")
+                }
+            }
+            .navigationTitle("Measurement Guide")
         }
     }
 }
