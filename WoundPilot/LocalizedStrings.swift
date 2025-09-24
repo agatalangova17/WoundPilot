@@ -681,7 +681,7 @@ struct LocalizedStrings {
     static var andPrefix: String { t("and ", "a ") }
     static var termsLinkText: String { t("Terms & Conditions", "Podmienkami používania") }
     static var privacyLinkText: String { t("Privacy Policy", "Zásadami ochrany osobných údajov") }
-
+    static var cm2Unit: String { t("cm²", "cm²")}
     // Firestore save error
     static func savingAgreementError(_ details: String) -> String {
         t("Error saving agreement: \(details)", "Chyba pri ukladaní súhlasu: \(details)")
