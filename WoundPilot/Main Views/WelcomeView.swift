@@ -1,26 +1,19 @@
 import SwiftUI
 import UIKit
 
-// MARK: - WelcomeView (container)
 struct WelcomeView: View {
     @Binding var isUserLoggedIn: Bool
     @ObservedObject var langManager = LocalizationManager.shared
 
     @State private var currentTab = 0
-    @State private var selectedStep = 1
-    @State private var expandedQuestion: String?
     @State private var displayedText = ""
 
-    // Single running typewriter task (prevents duplicated letters)
+    // Typewriter
     @State private var typingTask: Task<Void, Never>? = nil
-
     var fullAssistantText: String { LocalizedStrings.assistantTypingText }
 
-    var steps: [(Int, String, String)] {
-        let imgs = ["log","start analysis","photo","location","size","questions","ai"]
-        return (1...7).map { i in (i, LocalizedStrings.stepDescription(i), imgs[i-1]) }
-    }
-    var faqList: [(question: String, answer: String)] { LocalizedStrings.faqList }
+    // Navigation to auth chooser (Login/Register)
+    @State private var showAuthChooser = false
 
     var body: some View {
         NavigationStack {
@@ -28,6 +21,8 @@ struct WelcomeView: View {
                 Color(.systemBackground).ignoresSafeArea()
 
                 TabView(selection: $currentTab) {
+
+                    // TAB 0: Language selection
                     LanguageSelectionPage(
                         title: LocalizedStrings.welcomeTitle,
                         onEnglish: {
@@ -43,60 +38,38 @@ struct WelcomeView: View {
                     )
                     .tag(0)
 
+                    // TAB 1: Assistant greeting + single CTA
                     AssistantGreetingPage(
                         appTitle: LocalizedStrings.appTitle,
                         subtitle: LocalizedStrings.appSubtitle,
                         introLine: LocalizedStrings.assistantIntroLine,
                         displayedText: $displayedText,
-                        onAppearTyping: { typeWriterEffect() },        // start (auto-cancels previous)
-                        onDisappearTyping: { stopTyping() },            // stop when leaving
-                        onContinue: { withAnimation(.spring()) { currentTab = 2 } }, // CTA -> next page
-                        loginLinkTitle: LocalizedStrings.alreadyUsing,
-                        isUserLoggedIn: $isUserLoggedIn
+                        onAppearTyping: { typeWriterEffect() },
+                        onDisappearTyping: { stopTyping() },
+                        onContinue: { showAuthChooser = true }
                     )
                     .tag(1)
-
-                    IntroVideoPage(
-                        title: LocalizedStrings.introVideoTitle,
-                        subtitle: LocalizedStrings.introVideoSubtitle
-                    )
-                    .tag(2)
-
-                    HowItWorksPage(
-                        title: LocalizedStrings.howItWorksTitle,
-                        selectedStep: $selectedStep,
-                        steps: steps
-                    )
-                    .tag(3)
-
-                    FAQPage(
-                        title: LocalizedStrings.faqTitle,
-                        faqList: faqList,
-                        expandedQuestion: $expandedQuestion
-                    )
-                    .tag(4)
-
-                    GetStartedPage(
-                        title: LocalizedStrings.getStartedTitle,
-                        subtitle: LocalizedStrings.getStartedSubtitle,
-                        loginTitle: LocalizedStrings.loginButton,
-                        registerTitle: LocalizedStrings.registerButton,
-                        isUserLoggedIn: $isUserLoggedIn
-                    )
-                    .tag(5)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .always))
                 .indexViewStyle(PageIndexViewStyle(backgroundDisplayMode: .always))
             }
+            // Push the Login/Register chooser
+            .navigationDestination(isPresented: $showAuthChooser) {
+                GetStartedPage(
+                    title: LocalizedStrings.getStartedTitle,
+                    subtitle: LocalizedStrings.getStartedSubtitle,
+                    loginTitle: LocalizedStrings.loginButton,
+                    registerTitle: LocalizedStrings.registerButton,
+                    isUserLoggedIn: $isUserLoggedIn
+                )
+            }
         }
-        // Restart typing on language change (previous run is cancelled first)
+        // restart typing when language changes
         .onChangeCompat(langManager.currentLanguage) { typeWriterEffect() }
     }
 
-    // MARK: - Typing effect (Task-based, cancellable)
-    func typeWriterEffect() {
-        startTyping(fullAssistantText)
-    }
+    // MARK: - Typing effect
+    private func typeWriterEffect() { startTyping(fullAssistantText) }
 
     private func startTyping(_ text: String) {
         typingTask?.cancel()
@@ -118,7 +91,7 @@ struct WelcomeView: View {
     }
 }
 
-// MARK: - Page 0: Language Selection (compact)
+// MARK: - Page 0: Language Selection
 private struct LanguageSelectionPage: View {
     let title: String
     let onEnglish: () -> Void
@@ -131,7 +104,6 @@ private struct LanguageSelectionPage: View {
 
     var body: some View {
         VStack(spacing: 20) {
-
             // Header
             VStack(spacing: 8) {
                 ZStack {
@@ -150,7 +122,7 @@ private struct LanguageSelectionPage: View {
                 }
 
                 Text(title)
-                    .font(.title3.weight(.semibold)) // smaller than before
+                    .font(.title3.weight(.semibold))
                     .multilineTextAlignment(.center)
                     .foregroundColor(.primary)
                     .accessibilityAddTraits(.isHeader)
@@ -173,7 +145,7 @@ private struct LanguageSelectionPage: View {
                 LanguageCard(
                     flag: "🇸🇰",
                     label: "Slovenčina",
-                    hint: "Ťuknite pre pokračovanie",
+                    hint: "Zvoľte pre pokračovanie",
                     tint: .accentBlue,
                     minHeight: minButtonHeight,
                     padding: cardPadding,
@@ -221,16 +193,16 @@ private struct LanguageCard: View {
                 // Texts
                 VStack(alignment: .leading, spacing: 2) {
                     Text(label)
-                        .font(.headline)            // smaller than .title3
+                        .font(.headline)
                         .foregroundColor(.primary)
                     Text(hint)
-                        .font(.footnote)            // smaller than .subheadline
+                        .font(.footnote)
                         .foregroundColor(.secondary)
                 }
 
                 Spacer(minLength: 8)
 
-                Image(systemName: "chevron.right")   // no extra chip
+                Image(systemName: "chevron.right")
                     .font(.footnote.weight(.bold))
                     .foregroundColor(.secondary)
                     .accessibilityHidden(true)
@@ -239,7 +211,6 @@ private struct LanguageCard: View {
             .frame(maxWidth: .infinity, minHeight: minHeight)
             .background(shape.fill(Color(.secondarySystemBackground)))
             .overlay(
-                // thin accent at left, subtle border
                 HStack(spacing: 0) {
                     Rectangle().fill(tint.opacity(0.16)).frame(width: 4)
                     Spacer()
@@ -255,8 +226,7 @@ private struct LanguageCard: View {
     }
 }
 
-// MARK: - Page 1: Assistant Greeting (with CTA + pulsing halo)
-// MARK: - Page 0: Assistant Greeting (solid blue CTA)
+// MARK: - Page 1: Assistant Greeting (single CTA)
 private struct AssistantGreetingPage: View {
     let appTitle: String
     let subtitle: String
@@ -265,9 +235,6 @@ private struct AssistantGreetingPage: View {
     let onAppearTyping: () -> Void
     let onDisappearTyping: () -> Void
     let onContinue: () -> Void
-
-    let loginLinkTitle: String
-    @Binding var isUserLoggedIn: Bool
 
     @ScaledMetric(relativeTo: .title)  private var avatarSize: CGFloat = 132
     @ScaledMetric(relativeTo: .title3) private var bubblePadding: CGFloat = 16
@@ -296,7 +263,6 @@ private struct AssistantGreetingPage: View {
                     Text(introLine)
                         .font(.title3.weight(.semibold))
                         .foregroundColor(.primary)
-                        .fixedSize(horizontal: false, vertical: true)
 
                     Text(displayedText)
                         .font(.body)
@@ -312,23 +278,14 @@ private struct AssistantGreetingPage: View {
                         .multilineTextAlignment(.center)
                         .lineSpacing(4)
                         .textSelection(.enabled)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.horizontal)
 
-                // Solid blue CTA (narrow rectangle)
+                // Single primary CTA
                 Button(LocalizedStrings.getStartedTitle) {
                     onContinue()
                 }
                 .buttonStyle(WPRectPrimaryStyle())
-
-                NavigationLink(destination: LoginView(isUserLoggedIn: $isUserLoggedIn)) {
-                    Text(loginLinkTitle)
-                        .font(.body)
-                        .foregroundColor(.accentBlue)
-                        .padding(.top, 2)
-                }
-                .buttonStyle(.plain)
 
                 Spacer(minLength: 0)
             }
@@ -369,291 +326,15 @@ private struct AvatarWithHalo: View {
     }
 }
 
-// MARK: - Solid Blue Narrow Rect Button
-private struct WPRectPrimaryStyle: ButtonStyle {
-    @ScaledMetric private var height: CGFloat = 52
-    @ScaledMetric private var corner: CGFloat = 14
-    var width: CGFloat = 260
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.body.weight(.semibold))
-            .foregroundColor(.white)
-            .frame(width: width, height: height)
-            .background(
-                RoundedRectangle(cornerRadius: corner, style: .continuous)
-                    .fill(Color.primaryBlue) // solid blue
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: corner, style: .continuous)
-                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
-            )
-            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
-            .shadow(color: Color.primaryBlue.opacity(configuration.isPressed ? 0.10 : 0.18),
-                    radius: 10, y: 6)
-            .animation(.spring(response: 0.25, dampingFraction: 0.85), value: configuration.isPressed)
-    }
-}
-// MARK: - Page 2: Intro Video Placeholder (scales with width)
-private struct IntroVideoPage: View {
-    let title: String
-    let subtitle: String
-
-    @ScaledMetric(relativeTo: .title3) private var corner: CGFloat = 18
-
-    var body: some View {
-        VStack(spacing: 20) {
-            Text(title)
-                .font(.title3.weight(.semibold))
-                .foregroundColor(.primary)
-                .accessibilityAddTraits(.isHeader)
-                .fixedSize(horizontal: false, vertical: true)
-
-            GeometryReader { proxy in
-                let maxW = min(proxy.size.width - 32, 520)
-                let h = maxW * 0.6
-
-                ZStack {
-                    RoundedRectangle(cornerRadius: corner)
-                        .fill(LinearGradient(
-                            colors: [Color.primaryBlue.opacity(0.12), Color.accentBlue.opacity(0.12)],
-                            startPoint: .topLeading, endPoint: .bottomTrailing
-                        ))
-                        .frame(width: maxW, height: h)
-                        .shadow(color: .black.opacity(0.06), radius: 12, y: 6)
-
-                    VStack(spacing: 10) {
-                        Image(systemName: "play.circle.fill")
-                            .font(.system(size: 66))
-                            .foregroundColor(.accentBlue)
-                            .accessibilityHidden(true)
-                        Text(subtitle)
-                            .foregroundColor(.accentBlue)
-                            .font(.body)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding()
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-            }
-            .frame(height: 240)
-
-            Spacer(minLength: 0)
-        }
-        .padding(.top, 24)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
-
-// MARK: - Page 3: How It Works (fully scales)
-private struct HowItWorksPage: View {
-    let title: String
-    @Binding var selectedStep: Int
-    let steps: [(Int, String, String)]
-
-    @Environment(\.dynamicTypeSize) private var dts
-
-    private var scale: CGFloat {
-        switch dts {
-        case .xLarge:          return 1.20
-        case .xxLarge:         return 1.35
-        case .xxxLarge:        return 1.55
-        case .accessibility1:  return 1.75
-        case .accessibility2:  return 1.95
-        case .accessibility3:  return 2.15
-        case .accessibility4:  return 2.35
-        case .accessibility5:  return 2.55
-        default:               return 1.00
-        }
-    }
-    private var isHuge: Bool { dts >= .accessibility2 }
-
-    var body: some View {
-        VStack(spacing: 22) {
-            Text(title)
-                .font(.title3.weight(.semibold))
-                .foregroundColor(.primary)
-                .accessibilityAddTraits(.isHeader)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Group {
-                if isHuge {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 64 * scale), spacing: 12)], spacing: 12) {
-                        stepButtons
-                    }
-                    .padding(.horizontal)
-                } else {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) { stepButtons }
-                            .padding(.horizontal)
-                    }
-                }
-            }
-
-            if let s = steps.first(where: { $0.0 == selectedStep }) {
-                VStack(spacing: 14) {
-                    Text(s.1)
-                        .font(.body)
-                        .multilineTextAlignment(.center)
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal)
-                        .lineSpacing(4)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    GeometryReader { proxy in
-                        let maxW = min(proxy.size.width - 32, 520)
-                        let h = (maxW * 0.75) * min(scale, 1.8)
-
-                        Image(s.2)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: maxW, height: h)
-                            .clipShape(RoundedRectangle(cornerRadius: 14 * scale))
-                            .shadow(color: .black.opacity(0.08), radius: 10, y: 6)
-                            .accessibilityLabel("Illustration for step \(selectedStep)")
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                    }
-                    .frame(height: 220 * scale)
-                    .padding(.horizontal)
-                    .transition(.opacity.combined(with: .scale))
-                }
-            }
-
-            Spacer(minLength: 0)
-        }
-        .padding(.top, 24)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    @ViewBuilder
-    private var stepButtons: some View {
-        ForEach(steps, id: \.0) { (index, _, _) in
-            let diameter = 44 * scale
-            Button {
-                Haptics.light()
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                    selectedStep = index
-                }
-            } label: {
-                Text("\(index)")
-                    .font(isHuge ? .title.weight(.bold) : .title3.weight(.bold))
-                    .minimumScaleFactor(0.85)
-                    .frame(width: diameter, height: diameter)
-                    .background(
-                        selectedStep == index
-                        ? AnyShapeStyle(Color.primaryBlue)          // ← solid blue (no gradient)
-                        : AnyShapeStyle(Color.gray.opacity(0.15))
-                    )
-                    .foregroundColor(selectedStep == index ? .white : .primary)
-                    .clipShape(Circle())
-                    .shadow(color: selectedStep == index ? Color.primaryBlue.opacity(0.25) : .clear,
-                            radius: 8, y: 4)
-                    .contentShape(Circle())
-                    .accessibilityLabel("Step \(index)")
-            }
-            .buttonStyle(ScaleButtonStyle())
-        }
-    }
-}
-
-// MARK: - Page 4: FAQ (refined)
-private struct FAQPage: View {
-    let title: String
-    let faqList: [(question: String, answer: String)]
-    @Binding var expandedQuestion: String?
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-
-                HStack(spacing: 8) {
-                    Image(systemName: "questionmark.circle.fill")
-                        .foregroundColor(.accentBlue)
-                        .imageScale(.large)
-                        .accessibilityHidden(true)
-                    Text(title)
-                        .font(.title2.weight(.semibold))
-                        .foregroundColor(.primary)
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
-
-                VStack(spacing: 12) {
-                    ForEach(faqList, id: \.question) { faq in
-                        FAQRow(
-                            faq: faq,
-                            isExpanded: expandedQuestion == faq.question,
-                            onToggle: {
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    expandedQuestion = (expandedQuestion == faq.question) ? nil : faq.question
-                                }
-                                Haptics.light()
-                            }
-                        )
-                    }
-                }
-                .padding(.horizontal, 20)
-
-                Spacer(minLength: 0)
-            }
-            .padding(.bottom, 24)
-        }
-    }
-}
-
-private struct FAQRow: View {
-    let faq: (question: String, answer: String)
-    let isExpanded: Bool
-    let onToggle: () -> Void
-
-    @ScaledMetric(relativeTo: .title3) private var pad: CGFloat = 14
-    @ScaledMetric(relativeTo: .title3) private var radius: CGFloat = 12
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(faq.question)
-                    .font(.body.weight(.semibold))
-                    .foregroundColor(.primary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Spacer(minLength: 10)
-
-                Image(systemName: "chevron.right")
-                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                    .animation(.easeInOut(duration: 0.2), value: isExpanded)
-                    .foregroundColor(.secondary)
-                    .imageScale(.medium)
-            }
-            .contentShape(Rectangle())
-            .onTapGesture { onToggle() }
-
-            if isExpanded {
-                Text(faq.answer)
-                    .font(.callout)
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .transition(.opacity.combined(with: .move(edge: .top))) // fixed (no parentheses)
-            }
-        }
-        .padding(pad)
-        .background(Color(.secondarySystemBackground))
-        .overlay(
-            RoundedRectangle(cornerRadius: radius)
-                .stroke(Color.accentBlue.opacity(0.15), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: radius))
-        .shadow(color: .black.opacity(0.04), radius: 6, y: 3)
-    }
-}
-
-// MARK: - Page 5: Get Started (Login / Register)
+// MARK: - Get Started (Auth chooser) with localized Back/Späť
 private struct GetStartedPage: View {
     let title: String
     let subtitle: String
     let loginTitle: String
     let registerTitle: String
     @Binding var isUserLoggedIn: Bool
+
+    @Environment(\.dismiss) private var dismiss
 
     @ScaledMetric(relativeTo: .title3) private var buttonVPad: CGFloat = 16
     @ScaledMetric(relativeTo: .title3) private var corner: CGFloat = 12
@@ -664,17 +345,15 @@ private struct GetStartedPage: View {
                 .font(.largeTitle.bold())
                 .foregroundColor(.primary)
                 .accessibilityAddTraits(.isHeader)
-                .fixedSize(horizontal: false, vertical: true)
 
             Text(subtitle)
                 .font(.title3)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
-                .fixedSize(horizontal: false, vertical: true)
 
             VStack(spacing: 16) {
-                // Solid blue (no gradient) — primary action
+                // Primary: Login
                 NavigationLink(destination: LoginView(isUserLoggedIn: $isUserLoggedIn)) {
                     Text(loginTitle)
                         .font(.title3.weight(.semibold))
@@ -683,19 +362,18 @@ private struct GetStartedPage: View {
                         .foregroundColor(.white)
                         .background(
                             RoundedRectangle(cornerRadius: corner, style: .continuous)
-                                .fill(Color.primaryBlue)                                   // ← solid blue
+                                .fill(Color.primaryBlue)
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: corner, style: .continuous)
-                                .stroke(Color.white.opacity(0.08), lineWidth: 1)            // subtle highlight
+                                .stroke(Color.white.opacity(0.08), lineWidth: 1)
                         )
                         .shadow(color: Color.primaryBlue.opacity(0.18), radius: 10, y: 6)
                         .accessibilityHint("Opens login screen")
-                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .buttonStyle(ScaleButtonStyle())
 
-                // Secondary action (outlined)
+                // Secondary: Register
                 NavigationLink(destination: RegisterView(isUserLoggedIn: $isUserLoggedIn)) {
                     Text(registerTitle)
                         .font(.title3.weight(.semibold))
@@ -710,7 +388,6 @@ private struct GetStartedPage: View {
                         .clipShape(RoundedRectangle(cornerRadius: corner, style: .continuous))
                         .shadow(color: Color.accentBlue.opacity(0.12), radius: 8, y: 4)
                         .accessibilityHint("Opens registration screen")
-                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .buttonStyle(ScaleButtonStyle())
             }
@@ -720,8 +397,23 @@ private struct GetStartedPage: View {
         }
         .padding(.top, 28)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // ← localized custom back button
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button {
+                    dismiss()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                        Text(LocalizedStrings.t("Back", "Späť"))
+                    }
+                }
+            }
+        }
     }
 }
+
 // MARK: - Shared styles/utilities
 
 // iOS 17+/16 compatibility for onChange
@@ -745,29 +437,29 @@ struct ScaleButtonStyle: ButtonStyle {
     }
 }
 
-// NEW: narrower rectangle CTA used ONLY for the "Začnime" button on the greeting page
-struct WPRectCTAStyle: ButtonStyle {
-    var width: CGFloat = 220   // adjust to make narrower/wider
-    var corner: CGFloat = 14
+// Solid blue narrow rectangle button used on the greeting page
+private struct WPRectPrimaryStyle: ButtonStyle {
+    @ScaledMetric private var height: CGFloat = 52
+    @ScaledMetric private var corner: CGFloat = 14
+    var width: CGFloat = 260
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.title3.weight(.semibold))
-            .lineLimit(1)
-            .minimumScaleFactor(0.9)
+            .font(.body.weight(.semibold))
             .foregroundColor(.white)
-            .padding(.vertical, 12)
-            .frame(width: width) // fixed narrow width
+            .frame(width: width, height: height)
             .background(
-                LinearGradient(colors: [Color.primaryBlue, Color.accentBlue],
-                               startPoint: .topLeading, endPoint: .bottomTrailing)
+                RoundedRectangle(cornerRadius: corner, style: .continuous)
+                    .fill(Color.primaryBlue)
             )
-            .clipShape(RoundedRectangle(cornerRadius: corner))
-            .shadow(color: Color.primaryBlue.opacity(0.20), radius: 8, y: 4)
-            // center without stretching the background
-            .frame(maxWidth: .infinity)
-            .opacity(configuration.isPressed ? 0.9 : 1.0)
-            .scaleEffect(configuration.isPressed ? 0.99 : 1.0)
-            .animation(.spring(response: 0.25, dampingFraction: 0.8), value: configuration.isPressed)
+            .overlay(
+                RoundedRectangle(cornerRadius: corner, style: .continuous)
+                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+            )
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .shadow(color: Color.primaryBlue.opacity(configuration.isPressed ? 0.10 : 0.18),
+                    radius: 10, y: 6)
+            .animation(.spring(response: 0.25, dampingFraction: 0.85), value: configuration.isPressed)
     }
 }
 

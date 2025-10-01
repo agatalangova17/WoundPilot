@@ -1,13 +1,12 @@
 import Foundation
 
 struct LocalizedStrings {
-    // Access current language from your manager
     private static var lang: Language { LocalizationManager.shared.currentLanguage }
     static func t(_ en: String, _ sk: String) -> String {
         lang == .sk ? sk : en
     }
 
-    // MARK: - Common
+    // MARK: - Common strings
     static var ok: String { t("OK", "OK") }
     static var cancel: String { t("Cancel", "Zrušiť") }
     static var save: String { t("Save", "Uložiť") }
@@ -22,77 +21,27 @@ struct LocalizedStrings {
     static var welcomeTitle: String { t("Choose your language", "Vyberte si jazyk") }
     static var appTitle: String { "WoundPilot" }
     static var appSubtitle: String {
-        t("AI-powered wound analysis in your pocket",
-          "Analýza rán s podporou AI vo vašom mobile")
+        t("Your smart wound care assistant",
+          "Tvoj asistent ošetrovania rán")
     }
     static var assistantIntroLine: String {
-        t("I’m your clinical assistant.",
+        t("I am your clinical assistant.",
           "Som váš klinický asistent.")
     }
     static var assistantTypingText: String {
-        t("I’ll help with wound measurement, documentation, and healing trends.",
+        t("I will help you with wound measurement, documentation, and healing trends.",
           "Pomôžem s meraním rán, dokumentáciou a sledovaním hojenia.")
     }
-    static var introVideoTitle: String { t("Intro video", "Úvodné video") }
-    static var introVideoSubtitle: String { t("Tap to play the quick overview", "Ťuknite pre rýchly prehľad") }
-    static var howItWorksTitle: String { t("How It Works", "Ako to funguje") }
-    static var faqTitle: String { t("FAQ", "Časté otázky") }
-    static var getStartedTitle: String { t("Let's Get Started", "Začnime") }
+    
+    static var getStartedTitle: String { t("Proceed", "Začnime") }
     static var getStartedSubtitle: String {
         t("Log in or create your account to begin",
           "Prihláste sa alebo si vytvorte účet")
     }
-    static var loginButton: String { t("Log In", "Prihlásiť sa") }
-    static var registerButton: String { t("Register", "Registrovať") }
-    static var alreadyUsing: String {
-        t("Already using WoundPilot?", "Už používate WoundPilot?")
-    }
+    static var loginButton: String { t("Log In", "Prihlás sa") }
+    static var registerButton: String { t("Register", "Zaregistruj sa") }
+    
 
-    // Steps 1..7 (used in Welcome)
-    static func stepDescription(_ i: Int) -> String {
-        switch lang {
-        case .en:
-            switch i {
-            case 1: return "Securely log in or register your account"
-            case 2: return "Access the dashboard and begin a new wound assessment"
-            case 3: return "Capture a clear wound photo using your camera"
-            case 4: return "Mark the wound location on the body diagram"
-            case 5: return "Automatically analyze wound size and dimensions"
-            case 6: return "Answer key clinical questions about the wound"
-            case 7: return "Receive AI-powered insights and healing guidance"
-            default: return ""
-            }
-        case .sk:
-            switch i {
-            case 1: return "Bezpečne sa prihláste alebo si vytvorte účet"
-            case 2: return "Prejdite na panel a začnite nové hodnotenie rany"
-            case 3: return "Zachyťte ostrú fotografiu rany pomocou kamery"
-            case 4: return "Označte polohu rany na schéme tela"
-            case 5: return "Automaticky analyzujte veľkosť a rozmery rany"
-            case 6: return "Zodpovedajte kľúčové klinické otázky o rane"
-            case 7: return "Získajte odporúčania a prehľad s podporou AI"
-            default: return ""
-            }
-        }
-    }
-
-    // FAQ shown on Welcome
-    static var faqList: [(question: String, answer: String)] {
-        switch lang {
-        case .en:
-            return [
-                ("Is my data secure?", "Yes. Data is encrypted and stored securely."),
-                ("Can I use WoundPilot offline?", "Some features work offline; AI and sync need internet."),
-                ("Is WoundPilot free?", "Core features are free. Advanced tools may require a subscription.")
-            ]
-        case .sk:
-            return [
-                ("Sú moje údaje v bezpečí?", "Áno. Údaje sú šifrované a bezpečne uložené."),
-                ("Môžem používať WoundPilot offline?", "Niektoré funkcie fungujú offline; AI a synchronizácia vyžadujú internet."),
-                ("Je WoundPilot zadarmo?", "Základné funkcie sú zdarma. Pokročilé nástroje môžu vyžadovať predplatné.")
-            ]
-        }
-    }
 
     // MARK: - Auth
     static var email: String { t("Email", "Email") }
