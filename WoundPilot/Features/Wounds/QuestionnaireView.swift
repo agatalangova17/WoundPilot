@@ -200,7 +200,7 @@ struct QuestionnaireView: View {
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $showNextView) {
-            AIAnalysisView(woundGroupId: woundGroupId, patientId: patientId)
+            ReportView(woundGroupId: woundGroupId, patientId: patientId)
         }
     }
 

@@ -164,7 +164,7 @@ struct RulesEngine {
 // MARK: - Analysis View (polished UI + pretty PDF with photo)
 // =====================================================
 
-struct AIAnalysisView: View {
+struct ReportView: View {
     @ObservedObject var langManager = LocalizationManager.shared
 
     let woundGroupId: String
