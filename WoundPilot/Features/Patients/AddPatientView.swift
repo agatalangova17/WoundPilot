@@ -25,6 +25,9 @@ struct AddPatientView: View {
     @State private var errorMessage: String?
     @State private var successMessage: String?
 
+    // NEW: navigate by providing a full Patient to the destination
+    @State private var routePatient: Patient?
+
     var body: some View {
         NavigationStack {
             Form {
@@ -71,23 +74,24 @@ struct AddPatientView: View {
                     }
 
                     if let message = errorMessage {
-                        Text(message)
-                            .foregroundColor(.red)
+                        Text(message).foregroundColor(.red)
                     }
-
                     if let message = successMessage {
-                        Text(message)
-                            .foregroundColor(.green)
+                        Text(message).foregroundColor(.green)
                     }
                 }
             }
-            .environment(\.locale, Locale(identifier: langManager.currentLanguage.rawValue)) // date picker & formats
+            .environment(\.locale, Locale(identifier: langManager.currentLanguage.rawValue))
             .navigationTitle(LocalizedStrings.addPatient)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(LocalizedStrings.cancel) { dismiss() }
                 }
+            }
+            // 👉 When routePatient is set, push the detail screen
+            .navigationDestination(item: $routePatient) { patient in
+                PatientDetailView(patient: patient)
             }
         }
     }
@@ -120,7 +124,7 @@ struct AddPatientView: View {
             "dateOfBirth": Timestamp(date: dateOfBirth),
             "ownerId": userId,
             "createdAt": Timestamp(date: Date()),
-            "sex": sexCode, // store stable code, not localized label
+            "sex": sexCode,                           // stable code
             "isDiabetic": isDiabetic,
             "isSmoker": isSmoker,
             "hasPAD": hasPAD,
@@ -137,13 +141,34 @@ struct AddPatientView: View {
             isSaving = false
             if let error = error {
                 errorMessage = LocalizedStrings.failedToSave(error.localizedDescription)
-            } else {
-                successMessage = LocalizedStrings.patientSavedSuccessfully
-                resetForm()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                    dismiss()
-                }
+                return
             }
+
+            // Success – build a Patient and route
+            successMessage = LocalizedStrings.patientSavedSuccessfully
+            let newId = patientRef.documentID
+
+            let newPatient = Patient(
+                id: newId,
+                name: name.trimmingCharacters(in: .whitespaces),
+                dateOfBirth: dateOfBirth,
+                sex: sexCode,                                // String?
+                isDiabetic: isDiabetic,                      // Bool?
+                isSmoker: isSmoker,                          // Bool?
+                hasPAD: hasPAD,                              // Bool?
+                hasMobilityIssues: hasMobilityIssues,        // Bool?
+                hasBloodPressureIssues: hasBloodPressureIssues, // Bool?
+                weight: Double(weight),                      // Double?
+                allergies: allergies.trimmingCharacters(in: .whitespaces),
+                bloodPressure: nil,                          // you don't collect a string here
+                diabetesType: isDiabetic ? "unspecified" : "none"
+            )
+
+            // Push detail view (don’t dismiss)
+            routePatient = newPatient
+
+            // Optional: clear the form so coming back is clean
+            resetForm()
         }
     }
 
