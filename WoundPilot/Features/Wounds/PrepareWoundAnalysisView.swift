@@ -5,51 +5,45 @@ struct PrepareWoundAnalysisView: View {
     let patient: Patient?
 
     @ObservedObject var langManager = LocalizationManager.shared
-    @State private var proceedToLocation = false
+    @Environment(\.dismiss) private var dismiss   // so the button can close the sheet/stack
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .center, spacing: 28) {
+        // No NavigationStack needed anymore
+        ScrollView {
+            VStack(alignment: .center, spacing: 28) {
 
-                    // MARK: - Avatar + Title + Steps
-                    VStack(spacing: 16) {
-                        Image(systemName: "stethoscope.circle.fill")
-                            .resizable()
-                            .frame(width: 60, height: 60)
-                            .foregroundColor(.accentBlue)
-                            .padding(.top, 8)
+                // MARK: - Avatar + Title + Steps
+                VStack(spacing: 16) {
+                    Image(systemName: "stethoscope.circle.fill")
+                        .resizable()
+                        .frame(width: 60, height: 60)
+                        .foregroundColor(.accentBlue)
+                        .padding(.top, 8)
 
-                        Text(LocalizedStrings.prepare3StepsTitle)
-                            .font(.title2.bold())
-                            .multilineTextAlignment(.center)
+                    Text(LocalizedStrings.prepare3StepsTitle)
+                        .font(.title2.bold())
+                        .multilineTextAlignment(.center)
 
-                        stepList
-                    }
-
-                    // MARK: - Continue Button
-                    Button {
-                        proceedToLocation = true
-                    } label: {
-                        Text(LocalizedStrings.continueButton)
-                            .bold()
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.accentBlue)
-                            .foregroundColor(.white)
-                            .cornerRadius(12)
-                    }
+                    stepList
                 }
-                .padding()
+
+                // MARK: - Done / Close (no navigation)
+                Button {
+                    // For now just close; change later when you re-wire the flow
+                    dismiss()
+                } label: {
+                    Text(LocalizedStrings.continueButton) // or "Done"
+                        .bold()
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.accentBlue)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                }
             }
+            .padding()
             .navigationTitle(LocalizedStrings.getStartedNavTitle)
             .navigationBarTitleDisplayMode(.inline)
-            .navigationDestination(isPresented: $proceedToLocation) {
-                WoundLocationPickerViewWrapper(
-                    image: image,
-                    patient: patient
-                )
-            }
         }
     }
 

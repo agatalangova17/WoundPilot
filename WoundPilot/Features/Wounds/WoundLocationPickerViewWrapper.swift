@@ -1,15 +1,14 @@
 import SwiftUI
 
-struct WoundLocationPickerViewWrapper: View {
-    let image: UIImage
-    let patient: Patient?
+struct BodyLocalizationView: View {
+    let patient: Patient?            // nil in Quick Scan, non-nil in patient flow
+    let woundGroupId: String?        // nil in Quick Scan
+    let woundGroupName: String?      // optional label
 
     @ObservedObject var langManager = LocalizationManager.shared
 
     @State private var selectedRegion: String?
-    @State private var showNextScreen = false
-    @State private var selectedGroupId: String?
-    @State private var selectedGroupName: String?
+    @State private var goNext = false
 
     var body: some View {
         VStack {
@@ -17,68 +16,29 @@ struct WoundLocationPickerViewWrapper: View {
                 selectedRegion: $selectedRegion,
                 onConfirm: { region in
                     selectedRegion = region
-
-                    if patient != nil {
-                        // show group picker if patient exists
-                        showNextScreen = true
-                    } else {
-                        // skip group picker if fast flow
-                        selectedGroupId = "fast-capture"
-                        selectedGroupName = LocalizedStrings.fastCaptureName
-                        showNextScreen = true
-                    }
+                    goNext = true
                 }
             )
 
             if selectedRegion != nil {
-                Button {
-                    if patient != nil {
-                        showNextScreen = true
-                    } else {
-                        selectedGroupId = "fast-capture"
-                        selectedGroupName = LocalizedStrings.fastCaptureName
-                        showNextScreen = true
-                    }
-                } label: {
-                    Text(LocalizedStrings.confirm)
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(
-                            LinearGradient(
-                                colors: [Color.accentBlue, Color.primaryBlue],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .cornerRadius(16)
-                        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                Button(LocalizedStrings.confirm) {
+                    goNext = true
                 }
+                .buttonStyle(.borderedProminent)
                 .padding(.horizontal)
-                .padding(.top, 6)
             }
         }
         .environment(\.locale, Locale(identifier: langManager.currentLanguage.rawValue))
-        .navigationDestination(isPresented: $showNextScreen) {
-            if let region = selectedRegion {
-                if let patient = patient, selectedGroupId == nil {
-                    WoundGroupPickerView(patient: patient) { groupId, groupName in
-                        self.selectedGroupId = groupId
-                        self.selectedGroupName = groupName
-                        self.showNextScreen = true
-                    }
-                } else if let groupId = selectedGroupId,
-                          let groupName = selectedGroupName {
-                    PreparingAnalysisView(
-                        image: image,
-                        location: region,
-                        patient: patient,
-                        woundGroupId: groupId,
-                        woundGroupName: groupName
-                    )
-                }
-            }
+        .navigationTitle(LocalizedStrings.selectWoundLocationTitle)
+        .navigationBarTitleDisplayMode(.inline)
+
+        // ➜ move to image source / measurement
+        .navigationDestination(isPresented: $goNext) {
+            WoundImageSourceView(
+                selectedPatient: patient,
+                preselectedWoundGroupId: woundGroupId,
+                preselectedLocation: selectedRegion
+            )
         }
     }
 }

@@ -39,8 +39,13 @@ struct PatientDetailView: View {
                 )
                 .cardStyle(bg: cardBG, stroke: stroke)
 
+               
                 // Primary action (uniform width, same radius)
-                NavigationLink(destination: WoundImageSourceView(selectedPatient: patient)) {
+                NavigationLink(destination: WoundGroupPickerView(patient: patient) { groupId, groupName in
+                    // when a group is chosen, you can push next view
+                    // For now just debug print — later wire to WoundImageSourceView or location picker
+                    print("Selected group: \(groupId) - \(groupName)")
+                }) {
                     Text(LocalizedStrings.newWoundEntry)
                         .font(.headline)
                         .frame(maxWidth: .infinity)

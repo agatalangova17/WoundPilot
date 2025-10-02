@@ -1,7 +1,18 @@
 import SwiftUI
 
+
 struct WoundImageSourceView: View {
     let selectedPatient: Patient?
+    let preselectedWoundGroupId: String?    // default lets you call it without passing
+    let preselectedLocation: String?
+
+    init(selectedPatient: Patient?,
+         preselectedWoundGroupId: String? = nil,
+         preselectedLocation: String? = nil) {
+        self.selectedPatient = selectedPatient
+        self.preselectedWoundGroupId = preselectedWoundGroupId
+        self.preselectedLocation = preselectedLocation
+    }
 
     @ObservedObject var langManager = LocalizationManager.shared
 
@@ -12,6 +23,7 @@ struct WoundImageSourceView: View {
     @State private var showConfirmationView = false
     @State private var navigateToPrepare = false
     @State private var nextStepTriggered = false
+    
 
     var body: some View {
         NavigationStack {

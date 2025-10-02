@@ -456,20 +456,19 @@ private struct HomeScaleButtonStyle: ButtonStyle {
     }
 }
 
-// MARK: - Wrapper so Quick Scan can be dismissed any time
 private struct QuickScanFlowSheet: View {
     @Environment(\.dismiss) private var dismiss
-
     var body: some View {
         NavigationStack {
-            WoundImageSourceView(selectedPatient: nil)
-                .navigationBarTitleDisplayMode(.inline)
+            BodyLocalizationView(patient: nil, woundGroupId: nil, woundGroupName: nil)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button(LocalizedStrings.t("Close", "Zavrieť")) { dismiss() }
                     }
                 }
         }
-        .interactiveDismissDisabled(false)
     }
 }
+
+
+
