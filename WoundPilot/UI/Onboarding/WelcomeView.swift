@@ -56,8 +56,8 @@ struct WelcomeView: View {
             // Push the Login/Register chooser
             .navigationDestination(isPresented: $showAuthChooser) {
                 GetStartedPage(
-                    title: LocalizedStrings.getStartedTitle,
-                    subtitle: LocalizedStrings.getStartedSubtitle,
+                    title: LocalizedStrings.authChooserTitle,
+                    subtitle: LocalizedStrings.authChooserSubtitle,
                     loginTitle: LocalizedStrings.loginButton,
                     registerTitle: LocalizedStrings.registerButton,
                     isUserLoggedIn: $isUserLoggedIn
@@ -281,8 +281,9 @@ private struct AssistantGreetingPage: View {
                 }
                 .padding(.horizontal)
 
+               
                 // Single primary CTA
-                Button(LocalizedStrings.getStartedTitle) {
+                Button(LocalizedStrings.continueCTA) {
                     onContinue()
                 }
                 .buttonStyle(WPRectPrimaryStyle())
@@ -373,20 +374,24 @@ private struct GetStartedPage: View {
                 }
                 .buttonStyle(ScaleButtonStyle())
 
-                // Secondary: Register
+                
+                // Secondary: Register (tonal fill)
                 NavigationLink(destination: RegisterView(isUserLoggedIn: $isUserLoggedIn)) {
                     Text(registerTitle)
                         .font(.title3.weight(.semibold))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, buttonVPad)
                         .foregroundColor(.accentBlue)
-                        .background(.ultraThinMaterial)
+                        .background(
+                            RoundedRectangle(cornerRadius: corner, style: .continuous)
+                                .fill(Color.accentBlue.opacity(0.12))   // ← soft aqua fill
+                        )
                         .overlay(
                             RoundedRectangle(cornerRadius: corner, style: .continuous)
-                                .stroke(Color.accentBlue.opacity(0.25), lineWidth: 1)
+                                .stroke(Color.accentBlue.opacity(0.45), lineWidth: 1) // ← clearer border
                         )
                         .clipShape(RoundedRectangle(cornerRadius: corner, style: .continuous))
-                        .shadow(color: Color.accentBlue.opacity(0.12), radius: 8, y: 4)
+                        .shadow(color: Color.accentBlue.opacity(0.10), radius: 6, y: 3)
                         .accessibilityHint("Opens registration screen")
                 }
                 .buttonStyle(ScaleButtonStyle())

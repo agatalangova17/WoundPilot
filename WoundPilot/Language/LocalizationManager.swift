@@ -1,6 +1,6 @@
 import SwiftUI   // gives ObservableObject / @Published
 
-enum Language: String { case en, sk }   // keep if you don't already have this
+enum Language: String { case en, sk }   
 
 final class LocalizationManager: ObservableObject {
     static let shared = LocalizationManager()

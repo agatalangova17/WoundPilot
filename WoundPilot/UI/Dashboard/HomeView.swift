@@ -12,37 +12,18 @@ struct HomeView: View {
     @State private var showPatientList = false
     @State private var showProfile = false
     @State private var showClinicalTips = false
-    @State private var showSharedCases = false   // NEW
+    @State private var showSharedCases = false
+
+    // Quick Scan (SwiftUI modal)
+    @State private var showQuickScanModal = false
 
     // Sharing / reviews
     @State private var pendingReviewCount: Int = 0
 
-    // Tip section
-    @State private var showTip = false
-
     // Recent patients
     @State private var recentPatients: [RecentPatient] = []
 
-    // MARK: - Daily Clinical Tips (localized)
-    var clinicalTips: [String] {
-        [
-            LocalizedStrings.dailyTipMoisture,
-            LocalizedStrings.dailyTipEdges,
-            LocalizedStrings.dailyTipTIME,
-            LocalizedStrings.dailyTipGranulation,
-            LocalizedStrings.dailyTipInfection,
-            LocalizedStrings.dailyTipMeasure,
-            LocalizedStrings.dailyTipEpithelial,
-            LocalizedStrings.dailyTipDebridement,
-            LocalizedStrings.dailyTipExudate
-        ]
-    }
-    var todaysTip: String {
-        let day = Calendar.current.ordinality(of: .day, in: .year, for: Date()) ?? 0
-        return clinicalTips[day % clinicalTips.count]
-    }
-
-    // Stable 2×2 grid
+    // Layout
     private let columns: [GridItem] = [
         GridItem(.flexible(), spacing: 18),
         GridItem(.flexible(), spacing: 18)
@@ -61,12 +42,11 @@ struct HomeView: View {
                 VStack(spacing: 16) {
 
                     // MARK: Header
-                    HStack(alignment: .center) {
+                    HStack {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(formattedDate())
                                 .font(.footnote)
                                 .foregroundColor(.secondary)
-
                             Text(LocalizedStrings.dashboard)
                                 .font(.title.weight(.bold))
                         }
@@ -92,7 +72,6 @@ struct HomeView: View {
                             }
                         }
                         .buttonStyle(HomeScaleButtonStyle())
-                        .accessibilityLabel(LocalizedStrings.profile)
                     }
                     .padding(.horizontal)
                     .padding(.top, 6)
@@ -127,42 +106,12 @@ struct HomeView: View {
                         .padding(.bottom, 6)
                     }
 
-                    // ===== ORDER =====
+                    // ===== CONTENT =====
 
-                    // 1) TIP OF THE DAY (compact)
-                    VStack(spacing: 6) {
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.22)) { showTip.toggle() }
-                            lightHaptic()
-                        } label: {
-                            TipDisclosureRowContent(
-                                title: LocalizedStrings.tipOfTheDay,
-                                isExpanded: showTip,
-                                tint: WPAccentBlue
-                            )
-                        }
-                        .buttonStyle(HomeScaleButtonStyle())
-                        .padding(.horizontal)
-
-                        if showTip {
-                            Button {
-                                lightHaptic()
-                                showClinicalTips = true
-                            } label: {
-                                TipContentCard(tip: todaysTip, cardCorner: cardCorner)
-                            }
-                            .buttonStyle(HomeScaleButtonStyle())
-                            .padding(.horizontal)
-                            .transition(.opacity.combined(with: .move(edge: .top)))
-                        }
-                    }
-                    .padding(.top, 2)
-                    .padding(.bottom, 10)
-
-                    // 2) HERO: QUICK SCAN (full-width card)
+                    // 1) HERO: QUICK SCAN
                     Button {
                         lightHaptic()
-                        showQuickScan()
+                        showQuickScanModal = true
                     } label: {
                         ActionCard(
                             title: LocalizedStrings.quickScanTitle,
@@ -176,8 +125,9 @@ struct HomeView: View {
                     }
                     .buttonStyle(HomeScaleButtonStyle())
                     .padding(.horizontal)
+                    .padding(.top, 6)
 
-                    // 3) RECENT PATIENTS ROW (optional)
+                    // 2) RECENT PATIENTS
                     if !recentPatients.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 12) {
@@ -199,9 +149,8 @@ struct HomeView: View {
                         .padding(.top, 2)
                     }
 
-                    // 4) ACTIONS GRID
-                    LazyVGrid(columns: columns, spacing: 18) {
-
+                    // 3) GRID
+                    LazyVGrid(columns: columns, spacing: 20) {
                         Button {
                             lightHaptic()
                             showAddPatient = true
@@ -234,13 +183,12 @@ struct HomeView: View {
                         }
                         .buttonStyle(HomeScaleButtonStyle())
 
-                        // NEW: SHARED CASES
                         Button {
                             lightHaptic()
                             showSharedCases = true
                         } label: {
                             ActionCard(
-                                title: "Zdieľané prípady", // use your LocalizedStrings key later if you have one
+                                title: "Zdieľanie", // TODO: localize key
                                 subtitle: nil,
                                 systemImage: "person.2.circle.fill",
                                 gradient: [Color.cyan.opacity(0.16), Color.teal.opacity(0.10)],
@@ -257,6 +205,14 @@ struct HomeView: View {
                                         .padding(.vertical, 2)
                                         .background(Capsule().fill(Color.orange))
                                         .offset(x: -10, y: 10)
+                                }
+                            }
+                            .overlay(alignment: .topLeading) {
+                                if pendingReviewCount > 0 {
+                                    Circle()
+                                        .fill(Color.red)
+                                        .frame(width: 8, height: 8)
+                                        .offset(x: 14, y: 14)
                                 }
                             }
                         }
@@ -287,27 +243,20 @@ struct HomeView: View {
             .navigationDestination(isPresented: $showPatientList) { PatientListView() }
             .navigationDestination(isPresented: $showProfile) { ProfileView(isUserLoggedIn: $isUserLoggedIn) }
             .navigationDestination(isPresented: $showClinicalTips) { ClinicalTipsView() }
-            .navigationDestination(isPresented: $showSharedCases) { SharingView() } // NEW
+            .navigationDestination(isPresented: $showSharedCases) { SharingView() }
             .onAppear {
-                if !UserDefaults.standard.bool(forKey: "sawTip") {
-                    showTip = true
-                    UserDefaults.standard.set(true, forKey: "sawTip")
-                }
                 loadPendingReviews()
                 loadRecentPatients()
             }
         }
-    }
-
-    // MARK: - Actions / Data
-    func showQuickScan() {
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let window = windowScene.windows.first {
-            let root = UIHostingController(rootView: WoundImageSourceView(selectedPatient: nil))
-            window.rootViewController?.present(root, animated: true)
+        // Quick Scan presenter (full-screen with Close)
+        .fullScreenCover(isPresented: $showQuickScanModal) {
+            QuickScanFlowSheet()
         }
+        .safeAreaInset(edge: .bottom) { Color.clear.frame(height: 8) }
     }
 
+    // MARK: - Data
     func loadPendingReviews() {
         guard let userEmail = Auth.auth().currentUser?.email else { return }
         Firestore.firestore()
@@ -315,7 +264,9 @@ struct HomeView: View {
             .whereField("recipientEmail", isEqualTo: userEmail)
             .whereField("status", isEqualTo: "new")
             .getDocuments { snapshot, _ in
-                pendingReviewCount = snapshot?.documents.count ?? 0
+                DispatchQueue.main.async {
+                    pendingReviewCount = snapshot?.documents.count ?? 0
+                }
             }
     }
 
@@ -328,16 +279,16 @@ struct HomeView: View {
         base.order(by: "updatedAt", descending: true).limit(to: limit).getDocuments { snap, err in
             if let err = err {
                 base.order(by: "createdAt", descending: true).limit(to: limit).getDocuments { snap2, _ in
-                    self.recentPatients = self.mapPatients(snap2)
+                    DispatchQueue.main.async { self.recentPatients = self.mapPatients(snap2) }
                 }
                 print("loadRecentPatients updatedAt error: \(err.localizedDescription)")
                 return
             }
             if let snap = snap, !snap.isEmpty {
-                self.recentPatients = self.mapPatients(snap)
+                DispatchQueue.main.async { self.recentPatients = self.mapPatients(snap) }
             } else {
                 base.order(by: "createdAt", descending: true).limit(to: limit).getDocuments { snap2, _ in
-                    self.recentPatients = self.mapPatients(snap2)
+                    DispatchQueue.main.async { self.recentPatients = self.mapPatients(snap2) }
                 }
             }
         }
@@ -347,10 +298,10 @@ struct HomeView: View {
         guard let docs = snapshot?.documents else { return [] }
         return docs.compactMap { doc in
             let data = doc.data()
-            let name = (data["fullName"] as? String) ??
-                       (data["name"] as? String) ??
-                       (data["displayName"] as? String) ??
-                       "—"
+            let name = (data["fullName"] as? String)
+                ?? (data["name"] as? String)
+                ?? (data["displayName"] as? String)
+                ?? "—"
             let updatedTs = (data["updatedAt"] as? Timestamp) ?? (data["lastUpdated"] as? Timestamp)
             let createdTs = (data["createdAt"] as? Timestamp)
             let date = updatedTs?.dateValue() ?? createdTs?.dateValue()
@@ -372,12 +323,10 @@ struct HomeView: View {
         return r.localizedString(for: date, relativeTo: Date())
     }
 
-    func lightHaptic() {
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-    }
+    func lightHaptic() { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
 }
 
-// MARK: - Lightweight model for the row
+// MARK: - Lightweight model
 struct RecentPatient: Identifiable {
     let id: String
     let name: String
@@ -388,64 +337,6 @@ struct RecentPatient: Identifiable {
 // MARK: - Components
 //
 
-private struct TipDisclosureRowContent: View {
-    let title: String
-    let isExpanded: Bool
-    let tint: Color
-
-    @ScaledMetric(relativeTo: .title3) private var height: CGFloat = 40
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "lightbulb.fill")
-                .symbolRenderingMode(.hierarchical)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(tint)
-            Text(title)
-                .font(.title3.weight(.semibold))
-                .foregroundColor(.primary)
-            Spacer()
-            Image(systemName: "chevron.right")
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.secondary)
-                .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                .animation(.easeInOut(duration: 0.2), value: isExpanded)
-        }
-        .frame(height: height)
-        .padding(.horizontal, 2)
-        .contentShape(Rectangle())
-    }
-}
-
-private struct TipContentCard: View {
-    let tip: String
-    var cardCorner: CGFloat
-
-    @ScaledMetric(relativeTo: .title3) private var vpad: CGFloat = 10
-
-    var body: some View {
-        let shape = RoundedRectangle(cornerRadius: cardCorner, style: .continuous)
-
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "lightbulb")
-                .symbolRenderingMode(.hierarchical)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(.secondary)
-            Text(tip)
-                .font(.callout)
-                .foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
-        }
-        .padding(.vertical, vpad)
-        .padding(.horizontal, 16)
-        .background(shape.fill(Color(.secondarySystemBackground)))
-        .overlay(shape.stroke(Color.black.opacity(0.06), lineWidth: 0.5))
-        .shadow(color: .black.opacity(0.03), radius: 6, y: 3)
-        .contentShape(shape)
-    }
-}
-
 private struct ActionCard: View {
     let title: String
     let subtitle: String?
@@ -455,6 +346,15 @@ private struct ActionCard: View {
     var height: CGFloat = 140
     var corner: CGFloat = 22
 
+    // Typography / spacing
+    var titleFont: Font = .headline.weight(.semibold) 
+    var contentInset: CGFloat = 16
+
+    // Outline
+    var showOutline: Bool = true
+    var outlineOpacity: Double = 0.35
+    var outlineWidth: CGFloat = 0.5
+
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: corner, style: .continuous)
 
@@ -463,11 +363,17 @@ private struct ActionCard: View {
                 .fill(LinearGradient(colors: gradient,
                                      startPoint: .topLeading,
                                      endPoint: .bottomTrailing))
-                .overlay(shape.stroke(Color.black.opacity(0.04), lineWidth: 0.5))
+                .overlay {
+                    if showOutline {
+                        shape.strokeBorder(
+                            Color(UIColor.separator).opacity(outlineOpacity),
+                            lineWidth: outlineWidth
+                        )
+                    }
+                }
                 .shadow(color: .black.opacity(0.05), radius: 8, y: 4)
 
             VStack(alignment: .leading, spacing: 10) {
-                // Top row
                 HStack {
                     ZStack {
                         RoundedRectangle(cornerRadius: 12)
@@ -484,14 +390,13 @@ private struct ActionCard: View {
                         .foregroundStyle(.secondary)
                 }
 
-                Spacer(minLength: 8)
+                Spacer(minLength: 6)
 
-                // Text content
                 Text(title)
-                    .font(.headline)
+                    .font(titleFont)
                     .foregroundColor(.primary)
                     .lineLimit(2)
-                    .minimumScaleFactor(0.9)
+                    
 
                 if let subtitle, !subtitle.isEmpty {
                     Text(subtitle)
@@ -502,14 +407,13 @@ private struct ActionCard: View {
 
                 Spacer(minLength: 4)
             }
-            .padding(16)
+            .padding(contentInset)
         }
         .frame(height: height)
         .contentShape(shape)
     }
 }
 
-// Recent Patient chip/card
 private struct RecentPatientCard: View {
     let name: String
     let subtitle: String
@@ -539,10 +443,6 @@ private struct RecentPatientCard: View {
     }
 }
 
-//
-// MARK: - Helpers
-//
-
 private struct HomeScaleButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -556,8 +456,20 @@ private struct HomeScaleButtonStyle: ButtonStyle {
     }
 }
 
-extension Color {
-    func darken(by amount: CGFloat) -> Color {
-        Color(UIColor(self).withAlphaComponent(1 - min(max(amount, 0), 1)))
+// MARK: - Wrapper so Quick Scan can be dismissed any time
+private struct QuickScanFlowSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            WoundImageSourceView(selectedPatient: nil)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(LocalizedStrings.t("Close", "Zavrieť")) { dismiss() }
+                    }
+                }
+        }
+        .interactiveDismissDisabled(false)
     }
 }

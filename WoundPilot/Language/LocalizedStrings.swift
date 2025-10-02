@@ -175,7 +175,7 @@ struct LocalizedStrings {
     static var quickScanTitle: String { t("Quick Wound Scan", "Rýchly sken rany") }
     static var quickScanSubtitle: String { t("Start fast analysis", "Spustiť rýchlu analýzu") }
     static var createProfile: String { t("Create profile", "Vytvoriť profil") }
-    static var viewPatients: String { t("View Patients", "Zobraziť pacientov") }
+    static var viewPatients: String { t("Patients", "Pacienti") }
     static var browseHistories: String { t("Browse histories", "Prehliadať záznamy") }
     static var evidenceBasedAdvice: String { t("Evidence-based advice", "Odporúčania založené na dôkazoch") }
 
@@ -252,7 +252,7 @@ struct LocalizedStrings {
     
     // MARK: - Sharing (screen header + cards)
     static var caseSharingHeaderTitle: String {
-        t("Case Sharing", "Zdieľanie prípadov")
+        t("Sharing", "Zdieľanie")
     }
     static var caseSharingHeaderSubtitle: String {
         t("Easily share patient cases and wound data with colleagues for a second opinion or remote collaboration.",
@@ -273,8 +273,6 @@ struct LocalizedStrings {
         t("Check referrals from colleagues", "Skontrolujte odporúčania od kolegov")
     }
     
-    // MARK: - Tip of the Day
-    static var tipOfTheDay: String { t("Tip of the Day", "Tip dňa") }
     
     // MARK: - Privacy Policy
     static var privacyPolicyNavTitle: String {
@@ -751,6 +749,10 @@ struct LocalizedStrings {
         }
     }
     
+    
+    static var continueCTA: String { t("Continue", "Pokračovať") }
+    static var authChooserTitle: String { t("Your account", "Váš účet") }
+    static var authChooserSubtitle: String { t("Sign in to continue, or create a new account.", "Prihláste sa alebo si vytvorte nový účet.") }
     // MARK: - Image Confirmation
     static var confirmWoundPhotoTitle: String {
         t("Confirm Wound Photo", "Potvrďte fotografiu rany")
