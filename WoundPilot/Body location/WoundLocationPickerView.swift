@@ -58,6 +58,8 @@ struct WoundLocationPickerView: View {
                                     regionButton("left_shin",                0.32,  0.73,  in: ig.size)
                                     regionButton("front_right_toes",         0.255, 0.82,  in: ig.size)
                                     regionButton("front_left_toes",          0.32,  0.82,  in: ig.size)
+                                    regionButton("front_right_hand",         0.13,  0.53, in: ig.size)
+                                    regionButton("front_left_hand",          0.45,  0.53, in: ig.size)
 
                                     // ---- BACK ----
                                     regionButton("back_head",                0.715, 0.22,  in: ig.size)

@@ -5,7 +5,7 @@ struct SingleWoundDetailView: View {
     let wound: Wound
 
     @ObservedObject var langManager = LocalizationManager.shared
-    @State private var navigateToSizeAnalysis = false
+    @State private var navigateToQuestionnaire = false
 
     // AR sheet + results
     @State private var showAR = false
@@ -29,8 +29,12 @@ struct SingleWoundDetailView: View {
         .environment(\.locale, Locale(identifier: langManager.currentLanguage.rawValue))
         .navigationTitle(LocalizedStrings.woundEntryTitle)
         .navigationBarTitleDisplayMode(.inline)
-        .navigationDestination(isPresented: $navigateToSizeAnalysis) {
-            SizeAnalysisView(wound: wound)
+        .navigationDestination(isPresented: $navigateToQuestionnaire) {
+            // Navigate to questionnaire for TIME assessment
+            QuestionnaireView(
+                woundGroupId: wound.woundGroupId,
+                patientId: wound.patientId
+            )
         }
         .sheet(isPresented: $showAR) {
             WoundMeasurementView(onComplete: handleMeasurementResult)
@@ -45,7 +49,6 @@ struct SingleWoundDetailView: View {
     // MARK: - Measurement Handler
     
     private func handleMeasurementResult(_ result: WoundMeasurementResult) {
-        // New structure already in cm
         let lengthCm = Double(result.lengthCm)
         let widthCm = Double(result.widthCm)
         
@@ -157,7 +160,7 @@ struct SingleWoundDetailView: View {
 
     private var measureARButton: some View {
         Button(action: handleARButtonTap) {
-            Label("Measure (AR)", systemImage: "ruler")
+            Label("Remeasure", systemImage: "ruler")
                 .bold()
                 .frame(maxWidth: .infinity)
                 .padding()
@@ -178,13 +181,13 @@ struct SingleWoundDetailView: View {
 
     private var analyzeButton: some View {
         Button {
-            navigateToSizeAnalysis = true
+            navigateToQuestionnaire = true
         } label: {
             Text(LocalizedStrings.analyzeWound)
                 .bold()
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(Color.accentBlue)
+                .background(Color.green)
                 .foregroundColor(.white)
                 .cornerRadius(10)
         }
