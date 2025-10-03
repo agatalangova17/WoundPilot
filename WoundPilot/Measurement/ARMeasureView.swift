@@ -81,17 +81,7 @@ struct ARMeasureView: View {
     
     private var topBar: some View {
         HStack(spacing: 12) {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.headline)
-                    .foregroundColor(.primary)
-                    .frame(width: 36, height: 36)
-                    .background(Color.secondary.opacity(0.2), in: Circle())
-            }
-            
-            Spacer()
+            // Removed close button - user can use system back button
             
             // Tracking quality
             HStack(spacing: 6) {
@@ -107,6 +97,8 @@ struct ARMeasureView: View {
                 (trackingIsGood ? Color.green : Color.orange).opacity(0.15),
                 in: Capsule()
             )
+            
+            Spacer()
             
             // Distance feedback
             if !distanceLabel.isEmpty {

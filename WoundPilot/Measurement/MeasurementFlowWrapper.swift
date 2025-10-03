@@ -1,4 +1,3 @@
-// Add this new file: MeasurementFlowWrapper.swift
 import SwiftUI
 import FirebaseFirestore
 import FirebaseStorage
@@ -10,6 +9,8 @@ struct MeasurementFlowWrapper: View {
     
     @State private var goToQuestionnaire = false
     @State private var isSaving = false
+    @State private var savedWoundId: String?
+    @State private var measurementResult: WoundMeasurementResult?
     
     var body: some View {
         ZStack {
@@ -31,18 +32,26 @@ struct MeasurementFlowWrapper: View {
         }
         .navigationDestination(isPresented: $goToQuestionnaire) {
             QuestionnaireView(
-                woundGroupId: woundGroupId ?? "",
-                patientId: patient?.id ?? ""
+                woundGroupId: savedWoundId ?? "quick_scan_\(UUID().uuidString)",
+                patientId: patient?.id ?? "anonymous",
+                isQuickScan: patient == nil,
+                measurementResult: measurementResult
             )
         }
     }
     
     private func saveAndProceed(_ result: WoundMeasurementResult) {
-        guard let patient = patient else { return }
-        isSaving = true
+        measurementResult = result
         
-        uploadImage(result.capturedImage) { imageURL in
-            createWound(result: result, imageURL: imageURL, patientId: patient.id)
+        // If we have a patient, save to Firebase
+        if let patient = patient {
+            isSaving = true
+            uploadImage(result.capturedImage) { imageURL in
+                createWound(result: result, imageURL: imageURL, patientId: patient.id)
+            }
+        } else {
+            // Quick scan - skip Firebase, go directly to questionnaire
+            goToQuestionnaire = true
         }
     }
     
@@ -85,6 +94,7 @@ struct MeasurementFlowWrapper: View {
             DispatchQueue.main.async {
                 isSaving = false
                 if error == nil {
+                    savedWoundId = woundGroupId
                     goToQuestionnaire = true
                 }
             }

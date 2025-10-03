@@ -15,7 +15,7 @@ struct Wound: Identifiable {
 }
 
 struct WoundListView: View {
-    let patient: Patient?  // optional
+    let patient: Patient?  // the patient should be optional because of the two flows I am adding do not change it
 
     @ObservedObject var langManager = LocalizationManager.shared
     @State private var wounds: [Wound] = []

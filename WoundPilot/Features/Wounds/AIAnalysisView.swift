@@ -169,11 +169,13 @@ struct ReportView: View {
 
     let woundGroupId: String
     let patientId: String
-    let heroImage: UIImage?   // Optional wound photo to embed in PDF
-
+    let heroImage: UIImage?
+    var isQuickScan: Bool = false
+    var quickScanPayload: QuestionnairePayload? = nil
+    
     @State private var loading = true
     @State private var report: AIReport?
-    @State private var payload: QuestionnairePayload?  // for “Clinical Details” table in PDF
+    @State private var payload: QuestionnairePayload?
     @State private var errorMessage: String?
     @State private var animate = false
 
@@ -181,10 +183,16 @@ struct ReportView: View {
     @State private var shareItems: [Any] = []
     @State private var showShare = false
 
-    init(woundGroupId: String, patientId: String, heroImage: UIImage? = nil) {
+    init(woundGroupId: String,
+         patientId: String,
+         heroImage: UIImage? = nil,
+         isQuickScan: Bool = false,
+         quickScanPayload: QuestionnairePayload? = nil) {
         self.woundGroupId = woundGroupId
         self.patientId = patientId
         self.heroImage = heroImage
+        self.isQuickScan = isQuickScan
+        self.quickScanPayload = quickScanPayload
     }
 
     var body: some View {
@@ -202,6 +210,20 @@ struct ReportView: View {
             } else if let report {
                 ScrollView {
                     VStack(spacing: 16) {
+
+                        // Quick scan banner
+                        if isQuickScan {
+                            HStack(spacing: 12) {
+                                Image(systemName: "bolt.fill")
+                                    .foregroundColor(.blue)
+                                Text("Quick Scan - Not saved to patient records")
+                                    .font(.subheadline.weight(.medium))
+                                Spacer()
+                            }
+                            .padding()
+                            .background(Color.blue.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
+                            .padding(.horizontal)
+                        }
 
                         // Banners
                         ForEach(report.banners, id: \.self) { text in
@@ -249,7 +271,7 @@ struct ReportView: View {
                             shareTitle: LocalizedStrings.shareAction,
                             downloadTitle: LocalizedStrings.downloadAction,
                             onShare:   { exportPDF() },
-                            onDownload:{ exportPDF() } // user chooses “Save to Files”
+                            onDownload:{ exportPDF() }
                         )
                         .padding(.horizontal)
                         .padding(.bottom, 24)
@@ -277,11 +299,20 @@ struct ReportView: View {
         .onAppear { loadReport() }
     }
 
-    // Firestore -> Report
+    // Firestore -> Report or Quick Scan in-memory
     private func loadReport() {
         loading = true
         errorMessage = nil
 
+        // Quick scan mode - use in-memory data
+        if isQuickScan, let payload = quickScanPayload {
+            self.payload = payload
+            self.report = RulesEngine.analyze(payload)
+            self.loading = false
+            return
+        }
+
+        // Patient mode - fetch from Firestore
         Firestore.firestore()
             .collection("woundGroups")
             .document(woundGroupId)
@@ -337,7 +368,7 @@ struct ReportView: View {
         return 0.35
     }
 
-    // Icon mapping for recommendation cards — safe SFSymbols only
+    // Icon mapping for recommendation cards
     private func iconForRecommendation(_ text: String) -> String {
         let t = text.lowercased()
 
@@ -387,13 +418,11 @@ private enum PDFComposer {
                      woundGroupId: String,
                      heroImage: UIImage?) throws -> Data {
 
-        // Date string
         let df = DateFormatter()
         df.dateStyle = .medium
         df.timeStyle = .short
         let dateStr = df.string(from: Date())
 
-        // Optional Base64 photo
         let imageHTML: String = {
             guard let ui = heroImage, let data = ui.jpegData(compressionQuality: 0.85) else { return "" }
             let b64 = data.base64EncodedString()
@@ -405,12 +434,10 @@ private enum PDFComposer {
             """
         }()
 
-        // Urgent banners
         let bannerHTML = report.banners.map { b in
             "<div class='banner danger'>\(escape(b))</div>"
         }.joined()
 
-        // Chips in header
         let chipsHTML = """
         <div class="chips">
             <div class="chip"><span>\(escape(LocalizedStrings.woundTypeField))</span>\(escape(report.woundType))</div>
@@ -419,12 +446,10 @@ private enum PDFComposer {
         </div>
         """
 
-        // Recommendations
         let recsHTML = report.recommendations.enumerated().map { (i, r) in
             "<li><span class='num'>\(i+1)</span><div>\(escape(r))</div></li>"
         }.joined()
 
-        // Etiology card
         let etiologyHTML = """
         <div class="card">
             <div class="card-title">\(escape(LocalizedStrings.etiologyField))</div>
@@ -432,10 +457,8 @@ private enum PDFComposer {
         </div>
         """
 
-        // Clinical details table (from the questionnaire)
         let detailsHTML: String = {
             guard let q = payload else { return "" }
-            // simple label/value pairs; all localized labels come from your strings
             func yesNo(_ b: Bool) -> String { b ? LocalizedStrings.optYes : LocalizedStrings.optNo }
             func join(_ s: Set<String>) -> String { s.isEmpty ? "—" : s.joined(separator: ", ") }
 
@@ -465,7 +488,6 @@ private enum PDFComposer {
             """
         }()
 
-        // HTML document
         let html = """
         <html>
         <head>
@@ -543,7 +565,6 @@ private enum PDFComposer {
         </html>
         """
 
-        // Render HTML to A4 PDF with footer (page numbers)
         let formatter = UIMarkupTextPrintFormatter(markupText: html)
         let renderer = PDFPrintPageRendererWithFooter()
         renderer.addPrintFormatter(formatter, startingAtPageAt: 0)
@@ -558,8 +579,6 @@ private enum PDFComposer {
         UIGraphicsEndPDFContext()
         return data as Data
     }
-
-    // MARK: helpers used inside composer
 
     private static func escape(_ s: String) -> String {
         var out = s
@@ -613,22 +632,13 @@ private enum PDFComposer {
     }
 }
 
-
-// A4 renderer with ~1 cm margins and a centered page footer
 private final class PDFPrintPageRendererWithFooter: UIPrintPageRenderer {
-
     override init() {
         super.init()
-
-        // A4 at 72 dpi: 595.2 x 841.8
         let a4 = CGRect(x: 0, y: 0, width: 595.2, height: 841.8)
-        let margin: CGFloat = 28 // ~1 cm
-
-        // Configure printable area
+        let margin: CGFloat = 28
         setValue(a4, forKey: "paperRect")
         setValue(a4.insetBy(dx: margin, dy: margin), forKey: "printableRect")
-
-        // Just set the UIKit property — do NOT override it.
         self.headerHeight = 0
         self.footerHeight = 24
     }
@@ -639,7 +649,6 @@ private final class PDFPrintPageRendererWithFooter: UIPrintPageRenderer {
             .font: UIFont.systemFont(ofSize: 9, weight: .semibold),
             .foregroundColor: UIColor.secondaryLabel
         ]
-
         let size = (pageText as NSString).size(withAttributes: attrs)
         let x = footerRect.midX - size.width / 2
         let y = footerRect.minY + (footerRect.height - size.height) / 2
@@ -749,7 +758,7 @@ private struct HeroHeader: View {
 }
 
 private struct ProgressRing: View {
-    let progress: Double // 0...1
+    let progress: Double
     let label: String
 
     var body: some View {
@@ -883,7 +892,6 @@ private struct ActionBar: View {
     }
 }
 
-// iOS share sheet
 private struct ActivityView: UIViewControllerRepresentable {
     let items: [Any]
     func makeUIViewController(context: Context) -> UIActivityViewController {

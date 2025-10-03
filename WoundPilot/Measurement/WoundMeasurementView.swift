@@ -9,7 +9,6 @@ struct WoundMeasurementView: View {
     
     @State private var hasLiDAR = ARWorldTrackingConfiguration.supportsFrameSemantics(.sceneDepth)
     @State private var showManualEntry = false
-    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         Group {
@@ -17,7 +16,7 @@ struct WoundMeasurementView: View {
                 ARMeasureView(
                     onComplete: { result in
                         onComplete?(result)
-                        dismiss()
+                        // REMOVED: dismiss() - let parent handle navigation
                     },
                     onSwitchToManual: {
                         showManualEntry = true
@@ -26,7 +25,7 @@ struct WoundMeasurementView: View {
             } else {
                 ManualMeasurementView(onComplete: { result in
                     onComplete?(result)
-                    dismiss()
+                    // REMOVED: dismiss() - let parent handle navigation
                 })
             }
         }

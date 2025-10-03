@@ -7,7 +7,8 @@ import FirebaseFirestore
 struct QuestionnaireView: View {
     let woundGroupId: String
     let patientId: String
-
+    var isQuickScan: Bool = false  // NEW
+    var measurementResult: WoundMeasurementResult? = nil
     @ObservedObject var langManager = LocalizationManager.shared
 
     // Streamlined steps
@@ -105,7 +106,37 @@ struct QuestionnaireView: View {
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $showNextView) {
-            ReportView(woundGroupId: woundGroupId, patientId: patientId)
+            if isQuickScan {
+                // Quick scan - pass in-memory payload
+                let payload = QuestionnairePayload(
+                    etiology: etiology,
+                    duration: duration,
+                    tissue: tissue,
+                    exposedBone: exposedBone,
+                    infection: infection,
+                    probeToBone: probeToBone,
+                    moisture: moisture,
+                    edge: edge,
+                    abi: abi,
+                    pulses: pulses,
+                    comorbidities: comorbidities,
+                    redFlags: redFlags
+                )
+                
+                ReportView(
+                    woundGroupId: woundGroupId,
+                    patientId: patientId,
+                    heroImage: measurementResult?.capturedImage,
+                    isQuickScan: true,
+                    quickScanPayload: payload
+                )
+            } else {
+                // Patient flow - fetch from Firestore
+                ReportView(
+                    woundGroupId: woundGroupId,
+                    patientId: patientId
+                )
+            }
         }
         .onAppear(perform: loadDraft)
         .onChange(of: etiology) { autoSave() }
@@ -638,6 +669,16 @@ struct QuestionnaireView: View {
     private func save() {
         isSaving = true
 
+        if isQuickScan {
+            // Quick scan - just navigate to report without saving
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                isSaving = false
+                showNextView = true
+            }
+            return
+        }
+
+        // Regular patient flow - save to Firebase
         let db = Firestore.firestore()
         let ref = db.collection("woundGroups").document(woundGroupId)
 
@@ -667,7 +708,7 @@ struct QuestionnaireView: View {
             DispatchQueue.main.async {
                 isSaving = false
                 if error == nil {
-                    clearDraft() // Clear saved draft
+                    clearDraft()
                     showNextView = true
                 }
             }
