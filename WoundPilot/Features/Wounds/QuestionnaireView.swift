@@ -961,7 +961,11 @@ private struct ToggleRow: View {
         Toggle(isOn: $isOn) {
             Text(title).font(.subheadline)
         }
-        .onChange(of: isOn) { _ in Haptics.light() }
+        .onChange(of: isOn) { oldValue, newValue in
+            if newValue {
+                Haptics.light()
+            }
+         }
     }
 }
 
