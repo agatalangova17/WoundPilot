@@ -1,6 +1,5 @@
 import SwiftUI
 import FirebaseFirestore
-import FirebaseStorage
 
 struct BodyLocalizationView: View {
     let patient: Patient?
@@ -43,9 +42,11 @@ struct BodyLocalizationView: View {
             confirmButton
         }
         .navigationDestination(isPresented: $goToMeasurement) {
-            WoundMeasurementView { result in
-                handleMeasurementComplete(result)
-            }
+            MeasurementFlowWrapper(
+                patient: patient,
+                woundGroupId: woundGroupId,
+                locationString: composedLocationString()
+            )
         }
         .sheet(isPresented: $showFootDetailSheet) {
             FootDetailSheet(selection: $footDetail, onDone: { showFootDetailSheet = false })
@@ -174,7 +175,7 @@ struct BodyLocalizationView: View {
         footDetail = nil
         handDetail = nil
         
-        // Extract side from region code (no picker needed)
+        // Extract side from region code
         selectedSide = extractSide(from: region)
         
         if regionNeedsSubsite(region) {
@@ -221,71 +222,6 @@ struct BodyLocalizationView: View {
             }
     }
     
-    private func handleMeasurementComplete(_ result: WoundMeasurementResult) {
-        guard let patient = patient else { return }
-        
-        // Upload image to Firebase Storage
-        uploadImageIfPresent(result.capturedImage) { imageURL in
-            self.createWoundRecord(
-                result: result,
-                imageURL: imageURL,
-                patientId: patient.id
-            )
-        }
-    }
-    
-    private func uploadImageIfPresent(_ image: UIImage?, completion: @escaping (String?) -> Void) {
-        guard let image = image else {
-            completion(nil)
-            return
-        }
-        
-        guard let imageData = image.jpegData(compressionQuality: 0.7) else {
-            completion(nil)
-            return
-        }
-        
-        let filename = UUID().uuidString + ".jpg"
-        let storageRef = Storage.storage().reference()
-            .child("wounds")
-            .child(filename)
-        
-        storageRef.putData(imageData, metadata: nil) { metadata, error in
-            guard error == nil else {
-                print("Upload failed: \(error!)")
-                completion(nil)
-                return
-            }
-            
-            storageRef.downloadURL { url, error in
-                completion(url?.absoluteString)
-            }
-        }
-    }
-    
-    private func createWoundRecord(result: WoundMeasurementResult, imageURL: String?, patientId: String) {
-        let woundData: [String: Any] = [
-            "patientId": patientId,
-            "woundGroupId": woundGroupId ?? "",
-            "location": composedLocationString() ?? "",
-            "imageURL": imageURL ?? "",
-            "lengthCm": result.lengthCm,
-            "widthCm": result.widthCm,
-            "areaCm2": result.areaCm2 ?? 0,
-            "measurementMethod": result.method.rawValue,
-            "timestamp": FieldValue.serverTimestamp()
-        ]
-        
-        Firestore.firestore().collection("wounds").addDocument(data: woundData) { error in
-            if let error = error {
-                print("Error creating wound: \(error)")
-            } else {
-                print("Wound saved successfully!")
-                // TODO: Navigate to questionnaire or dismiss
-            }
-        }
-    }
-    
     private func composedLocationString() -> String? {
         guard let region = selectedRegion else { return nil }
         var chunks = [region]
@@ -311,7 +247,6 @@ struct BodyLocalizationView: View {
     }
     
     private func regionNeedsSubsite(_ code: String) -> Bool {
-        // Skip subsites for abdomen/chest (they use quadrants already)
         if code.hasPrefix("abdomen_") || code.contains("chest") { return false }
         
         return isFootRegion(code) || isHandRegion(code) || isArmRegion(code) ||

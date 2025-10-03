@@ -468,4 +468,3 @@ private struct WPRectPrimaryStyle: ButtonStyle {
     }
 }
 
-enum Haptics { static func light() { UIImpactFeedbackGenerator(style: .light).impactOccurred() } }
