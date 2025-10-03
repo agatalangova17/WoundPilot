@@ -2,32 +2,26 @@ import SwiftUI
 import FirebaseStorage
 import FirebaseFirestore
 import UIKit
-import ARKit   // for AR availability check
+import ARKit
 
 struct SizeAnalysisView: View {
     let wound: Wound
     @ObservedObject var langManager = LocalizationManager.shared
 
-    // Defaults (until AR/manual provided)
     private let defaultWidth: Double  = 3.5
     private let defaultHeight: Double = 4.0
 
-    // AR state
     @State private var showAR = false
     @State private var showARUnsupported = false
-    @State private var arWidthCm: Double?    // short axis
-    @State private var arHeightCm: Double?   // long axis
+    @State private var arWidthCm: Double?
+    @State private var arHeightCm: Double?
     @State private var arAreaCm2: Double?
 
-    // Manual entry
     @State private var manualEntry = false
     @State private var manualWidth = ""
     @State private var manualHeight = ""
 
-    // Navigation
     @State private var navigateToQuestionnaire = false
-
-    // MARK: - Body
 
     var body: some View {
         ScrollView {
@@ -54,43 +48,59 @@ struct SizeAnalysisView: View {
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .sheet(isPresented: $showAR) {
-            ARMeasureView { res in
-                // Map: Height = Length (long axis), Width = Width (short axis)
-                let lengthCm = Double(res.lengthM * 100)
-                let widthCm  = Double((res.widthAvgM ?? res.width1M ?? 0) * 100)
-                let areaCm2  = Double((res.areaEllM2 ?? res.areaRectM2 ?? 0) * 10_000)
-
-                // Fill UI
-                self.arHeightCm = lengthCm
-                self.arWidthCm  = widthCm
-                self.arAreaCm2  = areaCm2
-
-                // Persist to history (and mirror latest on parent wound)
-                WoundService.shared.addMeasurement(
-                    woundId: wound.id,
-                    lengthCm: lengthCm,
-                    widthCm: widthCm,
-                    areaCm2: areaCm2,
-                    width1Cm: Double((res.width1M ?? 0) * 100),
-                    width2Cm: Double((res.width2M ?? 0) * 100)
-                ) { result in
-                    if case let .failure(error) = result {
-                        print("Failed to add measurement: \(error)")
-                    }
-                }
-
-                // If manual on, prefill text fields with AR values
-                if manualEntry {
-                    self.manualWidth  = formatNumber(widthCm)
-                    self.manualHeight = formatNumber(lengthCm)
-                }
-            }
+            WoundMeasurementView(onComplete: handleMeasurementResult)
         }
         .alert("AR not available", isPresented: $showARUnsupported) {
             Button("OK", role: .cancel) {}
         } message: {
             Text("Live AR measurement needs a real device that supports ARKit.")
         }
+    }
+    
+    // MARK: - Measurement Handler - SIMPLIFIED
+    
+    private func handleMeasurementResult(_ result: WoundMeasurementResult) {
+        let lengthCm = Double(result.lengthCm)
+        let widthCm = Double(result.widthCm)
+        
+        // Break down the complex expression
+        let calculatedArea = lengthCm * widthCm * 0.785
+        let areaCm2: Double
+        if let resultArea = result.areaCm2 {
+            areaCm2 = Double(resultArea)
+        } else {
+            areaCm2 = calculatedArea
+        }
+
+        self.arHeightCm = lengthCm
+        self.arWidthCm = widthCm
+        self.arAreaCm2 = areaCm2
+
+        saveMeasurement(lengthCm: lengthCm, widthCm: widthCm, areaCm2: areaCm2)
+
+        if manualEntry {
+            updateManualFields(widthCm: widthCm, lengthCm: lengthCm)
+        }
+    }
+    
+    private func saveMeasurement(lengthCm: Double, widthCm: Double, areaCm2: Double) {
+        WoundService.shared.addMeasurement(
+            woundId: wound.id,
+            lengthCm: lengthCm,
+            widthCm: widthCm,
+            areaCm2: areaCm2,
+            width1Cm: widthCm,
+            width2Cm: widthCm
+        ) { result in
+            if case let .failure(error) = result {
+                print("Failed to add measurement: \(error)")
+            }
+        }
+    }
+    
+    private func updateManualFields(widthCm: Double, lengthCm: Double) {
+        self.manualWidth = formatNumber(widthCm)
+        self.manualHeight = formatNumber(lengthCm)
     }
 
     // MARK: - Sections
@@ -119,17 +129,7 @@ struct SizeAnalysisView: View {
     }
 
     private var arMeasureButton: some View {
-        Button {
-            #if targetEnvironment(simulator)
-            showARUnsupported = true
-            #else
-            if ARWorldTrackingConfiguration.isSupported {
-                showAR = true
-            } else {
-                showARUnsupported = true
-            }
-            #endif
-        } label: {
+        Button(action: handleARButtonTap) {
             Label("Measure with AR (live)", systemImage: "ruler")
                 .font(.headline)
                 .frame(maxWidth: .infinity)
@@ -140,40 +140,74 @@ struct SizeAnalysisView: View {
         }
         .padding(.horizontal)
     }
+    
+    private func handleARButtonTap() {
+        #if targetEnvironment(simulator)
+        showARUnsupported = true
+        #else
+        if ARWorldTrackingConfiguration.isSupported {
+            showAR = true
+        } else {
+            showARUnsupported = true
+        }
+        #endif
+    }
 
     private var currentSizeSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(LocalizedStrings.estimatedWoundSize)
                 .font(.headline)
 
-            HStack(spacing: 20) {
-                measurementCard(
-                    title: LocalizedStrings.widthLabel,
-                    value: displayWidth,
-                    unit: LocalizedStrings.cmUnit,
-                    icon: "arrow.left.and.right"
-                )
-                measurementCard(
-                    title: LocalizedStrings.heightLabel,
-                    value: displayHeight,
-                    unit: LocalizedStrings.cmUnit,
-                    icon: "arrow.up.and.down"
-                )
-            }
-
-            if let area = displayAreaCm2 {
-                Text("Area: \(formatNumber(area)) \(LocalizedStrings.cm2Unit)")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-
-            if arWidthCm == nil && arHeightCm == nil && !manualEntry {
-                Text("Tip: For best accuracy, use the AR button above on a real device.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
+            measurementCards
+            areaDisplay
+            tipText
         }
         .padding(.horizontal)
+    }
+    
+    private var measurementCards: some View {
+        HStack(spacing: 20) {
+            widthCard
+            heightCard
+        }
+    }
+    
+    private var widthCard: some View {
+        measurementCard(
+            title: LocalizedStrings.widthLabel,
+            value: displayWidth,
+            unit: LocalizedStrings.cmUnit,
+            icon: "arrow.left.and.right"
+        )
+    }
+    
+    private var heightCard: some View {
+        measurementCard(
+            title: LocalizedStrings.heightLabel,
+            value: displayHeight,
+            unit: LocalizedStrings.cmUnit,
+            icon: "arrow.up.and.down"
+        )
+    }
+    
+    @ViewBuilder
+    private var areaDisplay: some View {
+        if let area = displayAreaCm2 {
+            let areaText = "Area: \(formatNumber(area)) \(LocalizedStrings.cm2Unit)"
+            Text(areaText)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    @ViewBuilder
+    private var tipText: some View {
+        let shouldShowTip = arWidthCm == nil && arHeightCm == nil && !manualEntry
+        if shouldShowTip {
+            Text("Tip: For best accuracy, use the AR button above on a real device.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
     }
 
     private var manualToggleSection: some View {
@@ -189,26 +223,31 @@ struct SizeAnalysisView: View {
     @ViewBuilder private var manualInputsSection: some View {
         if manualEntry {
             VStack(spacing: 16) {
-                TextField(LocalizedStrings.enterWidthCm, text: $manualWidth)
-                    .keyboardType(.decimalPad)
-                    .padding()
-                    .background(Color(.secondarySystemBackground))
-                    .cornerRadius(10)
-
-                TextField(LocalizedStrings.enterHeightCm, text: $manualHeight)
-                    .keyboardType(.decimalPad)
-                    .padding()
-                    .background(Color(.secondarySystemBackground))
-                    .cornerRadius(10)
+                widthTextField
+                heightTextField
             }
             .padding(.horizontal)
         }
     }
+    
+    private var widthTextField: some View {
+        TextField(LocalizedStrings.enterWidthCm, text: $manualWidth)
+            .keyboardType(.decimalPad)
+            .padding()
+            .background(Color(.secondarySystemBackground))
+            .cornerRadius(10)
+    }
+    
+    private var heightTextField: some View {
+        TextField(LocalizedStrings.enterHeightCm, text: $manualHeight)
+            .keyboardType(.decimalPad)
+            .padding()
+            .background(Color(.secondarySystemBackground))
+            .cornerRadius(10)
+    }
 
     private var continueButton: some View {
-        Button {
-            navigateToQuestionnaire = true
-        } label: {
+        Button(action: { navigateToQuestionnaire = true }) {
             Text(LocalizedStrings.continueButton)
                 .font(.headline)
                 .frame(maxWidth: .infinity)
@@ -219,8 +258,6 @@ struct SizeAnalysisView: View {
         }
         .padding(.horizontal)
     }
-
-    // MARK: - Cards & Helpers
 
     private var placeholderCard: some View {
         ZStack {
@@ -237,7 +274,8 @@ struct SizeAnalysisView: View {
                 .font(.title2)
                 .foregroundColor(.accentColor)
 
-            Text("\(formatNumber(value)) \(unit)")
+            let valueText = "\(formatNumber(value)) \(unit)"
+            Text(valueText)
                 .font(.title3.bold())
 
             Text(title)
@@ -252,21 +290,36 @@ struct SizeAnalysisView: View {
     }
 
     private var displayWidth: Double {
-        if manualEntry, let w = parseNumber(manualWidth) { return w }
-        if let w = arWidthCm { return w }
+        if manualEntry {
+            if let w = parseNumber(manualWidth) {
+                return w
+            }
+        }
+        if let w = arWidthCm {
+            return w
+        }
         return defaultWidth
     }
 
     private var displayHeight: Double {
-        if manualEntry, let h = parseNumber(manualHeight) { return h }
-        if let h = arHeightCm { return h }
+        if manualEntry {
+            if let h = parseNumber(manualHeight) {
+                return h
+            }
+        }
+        if let h = arHeightCm {
+            return h
+        }
         return defaultHeight
     }
 
     private var displayAreaCm2: Double? {
-        if let a = arAreaCm2 { return a }
-        // If no AR area, estimate as rectangle from display values
-        return displayWidth * displayHeight
+        if let a = arAreaCm2 {
+            return a
+        }
+        let width = displayWidth
+        let height = displayHeight
+        return width * height
     }
 
     private func formatNumber(_ value: Double) -> String {
@@ -275,7 +328,11 @@ struct SizeAnalysisView: View {
         nf.minimumFractionDigits = 1
         nf.maximumFractionDigits = 1
         nf.locale = Locale(identifier: langManager.currentLanguage.rawValue)
-        return nf.string(from: NSNumber(value: value)) ?? String(format: "%.1f", value)
+        
+        if let formatted = nf.string(from: NSNumber(value: value)) {
+            return formatted
+        }
+        return String(format: "%.1f", value)
     }
 
     private func parseNumber(_ s: String) -> Double? {

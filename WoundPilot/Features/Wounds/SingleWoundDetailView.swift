@@ -1,5 +1,5 @@
 import SwiftUI
-import ARKit   // for AR availability check
+import ARKit
 
 struct SingleWoundDetailView: View {
     let wound: Wound
@@ -13,8 +13,6 @@ struct SingleWoundDetailView: View {
     @State private var lastLengthCm: Double?
     @State private var lastWidthCm: Double?
     @State private var lastAreaCm2: Double?
-
-    // MARK: - Body
 
     var body: some View {
         ScrollView {
@@ -35,31 +33,7 @@ struct SingleWoundDetailView: View {
             SizeAnalysisView(wound: wound)
         }
         .sheet(isPresented: $showAR) {
-            ARMeasureView { res in
-                // Convert to display-friendly units
-                let lengthCm = Double(res.lengthM * 100)
-                let widthCm  = Double((res.widthAvgM ?? res.width1M ?? 0) * 100)
-                let areaCm2  = Double((res.areaEllM2 ?? res.areaRectM2 ?? 0) * 10_000)
-
-                // Show locally
-                self.lastLengthCm = lengthCm
-                self.lastWidthCm  = widthCm
-                self.lastAreaCm2  = areaCm2
-
-                // Persist to history (and mirror latest on parent wound)
-                WoundService.shared.addMeasurement(
-                    woundId: wound.id,
-                    lengthCm: lengthCm,
-                    widthCm: widthCm,
-                    areaCm2: areaCm2,
-                    width1Cm: Double((res.width1M ?? 0) * 100),
-                    width2Cm: Double((res.width2M ?? 0) * 100)
-                ) { result in
-                    if case let .failure(error) = result {
-                        print("Failed to add measurement: \(error)")
-                    }
-                }
-            }
+            WoundMeasurementView(onComplete: handleMeasurementResult)
         }
         .alert("AR not supported on this device", isPresented: $showARUnsupportedAlert) {
             Button("OK", role: .cancel) { }
@@ -67,8 +41,43 @@ struct SingleWoundDetailView: View {
             Text("This iPhone/iPad does not support AR world tracking.")
         }
     }
+    
+    // MARK: - Measurement Handler
+    
+    private func handleMeasurementResult(_ result: WoundMeasurementResult) {
+        // New structure already in cm
+        let lengthCm = Double(result.lengthCm)
+        let widthCm = Double(result.widthCm)
+        
+        let calculatedArea = lengthCm * widthCm * 0.785
+        let areaCm2: Double
+        if let resultArea = result.areaCm2 {
+            areaCm2 = Double(resultArea)
+        } else {
+            areaCm2 = calculatedArea
+        }
 
-    // MARK: - Sections (split to help the compiler)
+        // Show locally
+        self.lastLengthCm = lengthCm
+        self.lastWidthCm = widthCm
+        self.lastAreaCm2 = areaCm2
+
+        // Persist to history
+        WoundService.shared.addMeasurement(
+            woundId: wound.id,
+            lengthCm: lengthCm,
+            widthCm: widthCm,
+            areaCm2: areaCm2,
+            width1Cm: widthCm,
+            width2Cm: widthCm
+        ) { result in
+            if case let .failure(error) = result {
+                print("Failed to add measurement: \(error)")
+            }
+        }
+    }
+
+    // MARK: - Sections
 
     @ViewBuilder private var woundImageSection: some View {
         if let imageURL = URL(string: wound.imageURL) {
@@ -120,10 +129,10 @@ struct SingleWoundDetailView: View {
     @ViewBuilder private var measurementChipsSection: some View {
         if let L = lastLengthCm, let W = lastWidthCm {
             HStack(spacing: 12) {
-                Text(String(format: "L: %.1f cm", L))
-                Text(String(format: "W: %.1f cm", W))
+                lengthChip(L)
+                widthChip(W)
                 if let A = lastAreaCm2 {
-                    Text(String(format: "A: %.1f cm²", A))
+                    areaChip(A)
                 }
             }
             .font(.callout.weight(.semibold))
@@ -133,24 +142,38 @@ struct SingleWoundDetailView: View {
             .padding(.horizontal)
         }
     }
+    
+    private func lengthChip(_ value: Double) -> some View {
+        Text(String(format: "L: %.1f cm", value))
+    }
+    
+    private func widthChip(_ value: Double) -> some View {
+        Text(String(format: "W: %.1f cm", value))
+    }
+    
+    private func areaChip(_ value: Double) -> some View {
+        Text(String(format: "A: %.1f cm²", value))
+    }
 
     private var measureARButton: some View {
-        Button {
-            if ARWorldTrackingConfiguration.isSupported {
-                showAR = true
-            } else {
-                showARUnsupportedAlert = true
-            }
-        } label: {
+        Button(action: handleARButtonTap) {
             Label("Measure (AR)", systemImage: "ruler")
                 .bold()
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(Color.accentBlue)   // keep your custom color
+                .background(Color.accentBlue)
                 .foregroundColor(.white)
                 .cornerRadius(10)
         }
         .padding(.horizontal)
+    }
+    
+    private func handleARButtonTap() {
+        if ARWorldTrackingConfiguration.isSupported {
+            showAR = true
+        } else {
+            showARUnsupportedAlert = true
+        }
     }
 
     private var analyzeButton: some View {
@@ -174,7 +197,7 @@ struct SingleWoundDetailView: View {
         let df = DateFormatter()
         df.dateStyle = .long
         df.timeStyle = .short
-        df.locale = Locale(identifier: langManager.currentLanguage.rawValue) // "en" / "sk"
+        df.locale = Locale(identifier: langManager.currentLanguage.rawValue)
         return df.string(from: wound.timestamp)
     }
 
