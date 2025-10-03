@@ -128,13 +128,15 @@ struct QuestionnaireView: View {
                     patientId: patientId,
                     heroImage: measurementResult?.capturedImage,
                     isQuickScan: true,
-                    quickScanPayload: payload
+                    quickScanPayload: payload,
+                    measurementResult: measurementResult
                 )
             } else {
                 // Patient flow - fetch from Firestore
                 ReportView(
                     woundGroupId: woundGroupId,
-                    patientId: patientId
+                    patientId: patientId,
+                    measurementResult: measurementResult
                 )
             }
         }

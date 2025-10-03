@@ -172,12 +172,14 @@ struct ReportView: View {
     let heroImage: UIImage?
     var isQuickScan: Bool = false
     var quickScanPayload: QuestionnairePayload? = nil
+    var measurementResult: WoundMeasurementResult? = nil
     
     @State private var loading = true
     @State private var report: AIReport?
     @State private var payload: QuestionnairePayload?
     @State private var errorMessage: String?
     @State private var animate = false
+    @State private var goToDressing = false
 
     // Sharing
     @State private var shareItems: [Any] = []
@@ -187,12 +189,14 @@ struct ReportView: View {
          patientId: String,
          heroImage: UIImage? = nil,
          isQuickScan: Bool = false,
-         quickScanPayload: QuestionnairePayload? = nil) {
+         quickScanPayload: QuestionnairePayload? = nil,
+         measurementResult: WoundMeasurementResult? = nil) {
         self.woundGroupId = woundGroupId
         self.patientId = patientId
         self.heroImage = heroImage
         self.isQuickScan = isQuickScan
         self.quickScanPayload = quickScanPayload
+        self.measurementResult = measurementResult
     }
 
     var body: some View {
@@ -266,6 +270,22 @@ struct ReportView: View {
                         )
                         .padding(.horizontal)
 
+                        // Dressing recommendation button
+                        Button {
+                            goToDressing = true
+                        } label: {
+                            Label("Select Dressings", systemImage: "bandage.fill")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .fill(Color.green)
+                                )
+                                .foregroundColor(.white)
+                        }
+                        .padding(.horizontal)
+
                         // Actions
                         ActionBar(
                             shareTitle: LocalizedStrings.shareAction,
@@ -281,6 +301,14 @@ struct ReportView: View {
                 .onAppear { animate = true }
                 .background(Color(.systemGroupedBackground).ignoresSafeArea())
                 .sheet(isPresented: $showShare) { ActivityView(items: shareItems) }
+                .navigationDestination(isPresented: $goToDressing) {
+                    if let payload = payload, let measurements = measurementResult {
+                        DressingRecommendationView(
+                            measurements: measurements,
+                            assessment: payload
+                        )
+                    }
+                }
 
             } else {
                 VStack(spacing: 10) {
