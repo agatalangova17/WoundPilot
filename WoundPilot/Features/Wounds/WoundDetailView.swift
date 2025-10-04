@@ -11,6 +11,7 @@ struct WoundDetailView: View {
     @ObservedObject var langManager = LocalizationManager.shared
 
     @State private var wounds: [Wound] = []
+    @State private var measurements: [WoundMeasurement] = []
     @State private var isLoading = true
     @State private var showDeleteConfirmation = false
     @State private var woundToDelete: Wound?
@@ -23,32 +24,68 @@ struct WoundDetailView: View {
                     .font(.title2)
                     .fontWeight(.bold)
 
-                Text(LocalizedStrings.healingProgress)
-                    .font(.headline)
-
+                // Healing progress chart
                 if isLoading {
                     ProgressView()
-                        .padding(.bottom, 8)
-                }
-
-                if wounds.count >= 2 {
-                    Chart {
-                        ForEach(wounds.indices, id: \.self) { index in
+                        .padding()
+                } else if measurements.count >= 2 {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(LocalizedStrings.healingProgress)
+                            .font(.headline)
+                        
+                        Chart(measurements) { measurement in
                             LineMark(
-                                x: .value("Time", wounds[index].timestamp),
-                                y: .value("Progress", index + 1) // Placeholder score
+                                x: .value("Date", measurement.measured_at),
+                                y: .value("Area (cm²)", measurement.area_cm2)
+                            )
+                            .foregroundStyle(.blue)
+                            .symbol(Circle())
+                        }
+                        .frame(height: 200)
+                        .chartYAxis {
+                            AxisMarks(position: .leading)
+                        }
+                        .chartXAxis {
+                            AxisMarks(values: .automatic(desiredCount: 4)) { value in
+                                if let date = value.as(Date.self) {
+                                    AxisValueLabel {
+                                        Text(date, format: .dateTime.month().day())
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Healing indicator
+                        if let first = measurements.first, let last = measurements.last {
+                            let change = last.area_cm2 - first.area_cm2
+                            let percent = (change / first.area_cm2) * 100
+                            
+                            HStack(spacing: 6) {
+                                Image(systemName: change < 0 ? "arrow.down.circle.fill" : "arrow.up.circle")
+                                    .foregroundColor(change < 0 ? .green : .orange)
+                                Text(String(format: "%.1f%% %@", abs(percent), change < 0 ? "smaller" : "larger"))
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundColor(change < 0 ? .green : .orange)
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(
+                                Capsule().fill((change < 0 ? Color.green : Color.orange).opacity(0.15))
                             )
                         }
                     }
-                    .frame(height: 200)
                 } else {
                     Text(LocalizedStrings.notEnoughDataForGraph)
                         .foregroundColor(.gray)
+                        .padding()
                 }
 
+                Divider()
+
+                // Wound list
                 ForEach(wounds) { wound in
                     NavigationLink(destination: SingleWoundDetailView(wound: wound)) {
-                        HStack {
+                        HStack(alignment: .top, spacing: 12) {
                             AsyncImage(url: URL(string: wound.imageURL)) { image in
                                 image.resizable()
                                     .aspectRatio(contentMode: .fill)
@@ -63,29 +100,31 @@ struct WoundDetailView: View {
                                 .frame(width: 70, height: 70)
                             }
 
-                            VStack(alignment: .leading, spacing: 4) {
+                            VStack(alignment: .leading, spacing: 6) {
                                 if let location = wound.location {
                                     Text(location.replacingOccurrences(of: "_", with: " ").capitalized)
-                                        .foregroundColor(.blue)
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundColor(.primary)
                                 }
 
                                 Text(formatTimestamp(wound.timestamp))
                                     .font(.caption)
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(.secondary)
 
                                 Button(role: .destructive) {
                                     woundToDelete = wound
                                     showDeleteConfirmation = true
                                 } label: {
                                     Label(LocalizedStrings.deleteAction, systemImage: "trash")
+                                        .font(.caption)
                                 }
-                                .font(.caption)
                             }
 
                             Spacer()
                             Image(systemName: "chevron.right")
                                 .foregroundColor(.gray)
                         }
+                        .padding(.vertical, 8)
                     }
                 }
             }
@@ -103,7 +142,7 @@ struct WoundDetailView: View {
                 }
             }
         }
-        .onAppear(perform: loadWoundGroup)
+        .onAppear(perform: loadData)
         .alert(LocalizedStrings.deleteWoundPhotoAlertTitle, isPresented: $showDeleteConfirmation, presenting: woundToDelete) { wound in
             Button(LocalizedStrings.deleteAction, role: .destructive) {
                 deleteWound(wound)
@@ -122,23 +161,28 @@ struct WoundDetailView: View {
         }
     }
 
-    // MARK: - Helpers
-    private func formatTimestamp(_ date: Date) -> String {
-        let df = DateFormatter()
-        df.dateStyle = .medium
-        df.timeStyle = .short
-        df.locale = Locale(identifier: langManager.currentLanguage.rawValue)
-        return df.string(from: date)
+    // MARK: - Data Loading
+    
+    private func loadData() {
+        loadWoundGroup()
+        loadMeasurements()
+    }
+    
+    private func loadMeasurements() {
+        WoundService.shared.fetchMeasurementHistory(woundGroupId: woundGroupId) { result in
+            isLoading = false
+            if case .success(let data) = result {
+                measurements = data
+            }
+        }
     }
 
-    // MARK: - Data
-    func loadWoundGroup() {
+    private func loadWoundGroup() {
         let db = Firestore.firestore()
         db.collection("wounds")
             .whereField("woundGroupId", isEqualTo: woundGroupId)
-            .order(by: "timestamp")
+            .order(by: "timestamp", descending: true)
             .getDocuments { snapshot, error in
-                isLoading = false
                 if let error = error {
                     print("Error loading group: \(error)")
                     return
@@ -171,7 +215,17 @@ struct WoundDetailView: View {
             }
     }
 
-    func deleteWound(_ wound: Wound) {
+    // MARK: - Helpers
+
+    private func formatTimestamp(_ date: Date) -> String {
+        let df = DateFormatter()
+        df.dateStyle = .medium
+        df.timeStyle = .short
+        df.locale = Locale(identifier: langManager.currentLanguage.rawValue)
+        return df.string(from: date)
+    }
+
+    private func deleteWound(_ wound: Wound) {
         let db = Firestore.firestore()
         let storage = Storage.storage()
 
@@ -185,16 +239,15 @@ struct WoundDetailView: View {
             storageRef.delete { error in
                 if let error = error {
                     print("Error deleting image from storage: \(error)")
-                } else {
-                    print("Image deleted from storage.")
                 }
             }
 
             wounds.removeAll { $0.id == wound.id }
+            loadMeasurements() // Refresh chart
         }
     }
 
-    func deleteEntireWoundGroup() {
+    private func deleteEntireWoundGroup() {
         let db = Firestore.firestore()
         let storage = Storage.storage()
 
@@ -214,5 +267,6 @@ struct WoundDetailView: View {
         }
 
         wounds.removeAll()
+        measurements.removeAll()
     }
 }

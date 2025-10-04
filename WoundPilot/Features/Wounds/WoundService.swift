@@ -4,8 +4,7 @@ import FirebaseStorage
 import FirebaseAuth
 import UIKit
 
-// Optional: a lightweight model for subcollection items
-public struct WoundMeasurement: Identifiable {
+public struct WoundMeasurement: Identifiable, Codable {
     public let id: String
     public let length_cm: Double
     public let width_cm: Double
@@ -14,6 +13,7 @@ public struct WoundMeasurement: Identifiable {
     public let width1_cm: Double?
     public let width2_cm: Double?
     public let userId: String?
+    public let woundId: String?
 
     init?(doc: DocumentSnapshot) {
         let data = doc.data() ?? [:]
@@ -30,9 +30,10 @@ public struct WoundMeasurement: Identifiable {
         self.width1_cm = data["width1_cm"] as? Double
         self.width2_cm = data["width2_cm"] as? Double
         self.userId    = data["userId"] as? String
+        self.woundId   = data["woundId"] as? String
     }
 
-    init(id: String, length_cm: Double, width_cm: Double, area_cm2: Double, measured_at: Date, width1_cm: Double?, width2_cm: Double?, userId: String?) {
+    init(id: String, length_cm: Double, width_cm: Double, area_cm2: Double, measured_at: Date, width1_cm: Double?, width2_cm: Double?, userId: String?, woundId: String? = nil) {
         self.id = id
         self.length_cm = length_cm
         self.width_cm = width_cm
@@ -41,6 +42,7 @@ public struct WoundMeasurement: Identifiable {
         self.width1_cm = width1_cm
         self.width2_cm = width2_cm
         self.userId = userId
+        self.woundId = woundId
     }
 }
 
@@ -51,7 +53,7 @@ class WoundService {
     private let db = Firestore.firestore()
     private let storage = Storage.storage()
 
-    // MARK: - Create Wound (your original, kept intact)
+    // MARK: - Create Wound
 
     func saveWound(
         image: UIImage,
@@ -70,7 +72,6 @@ class WoundService {
         let path = "wounds/\(user.uid)/\(UUID().uuidString).jpg"
         let imageRef = storage.reference().child(path)
 
-        // (Optional) set content type metadata
         let metadata = StorageMetadata()
         metadata.contentType = "image/jpeg"
 
@@ -108,7 +109,6 @@ class WoundService {
                         return
                     }
 
-                    // NOTE: Your Wound model is assumed to exist elsewhere in your project.
                     let wound = Wound(
                         id: woundId,
                         imageURL: downloadURL.absoluteString,
@@ -126,16 +126,8 @@ class WoundService {
         }
     }
 
-    // MARK: - Measurements (Option B: history subcollection + mirror latest on parent)
+    // MARK: - Measurements
 
-    /// Adds a new measurement under `wounds/{woundId}/measurements/{autoId}`
-    /// and mirrors the latest values onto the parent `wounds/{woundId}` for quick access.
-    ///
-    /// - Parameters (all in CENTIMETERS / CM²):
-    ///   - lengthCm: L in cm
-    ///   - widthCm: W (avg or chosen) in cm
-    ///   - areaCm2: area (ellipse or rect) in cm²
-    ///   - width1Cm/width2Cm: optional transparency fields
     func addMeasurement(
         woundId: String,
         lengthCm: Double,
@@ -157,7 +149,8 @@ class WoundService {
             "width_cm":  widthCm,
             "area_cm2":  areaCm2,
             "measured_at": FieldValue.serverTimestamp(),
-            "userId": user.uid
+            "userId": user.uid,
+            "woundId": woundId
         ]
         if let w1 = width1Cm { data["width1_cm"] = w1 }
         if let w2 = width2Cm { data["width2_cm"] = w2 }
@@ -169,7 +162,7 @@ class WoundService {
                 return
             }
 
-            // Mirror "latest" fields on parent wound for fast list/detail reads
+            // Mirror latest on parent
             var latest: [String: Any] = [
                 "length_cm": lengthCm,
                 "width_cm":  widthCm,
@@ -182,11 +175,9 @@ class WoundService {
 
             self.db.collection("wounds").document(woundId).updateData(latest) { updateErr in
                 if let updateErr = updateErr {
-                    // We still succeed overall, since the history entry is written.
                     print("Warning: parent wound mirror update failed: \(updateErr)")
                 }
 
-                // Return a minimal model (server timestamp will be accurate on next read)
                 let m = WoundMeasurement(
                     id: doc.documentID,
                     length_cm: lengthCm,
@@ -195,14 +186,14 @@ class WoundService {
                     measured_at: Date(),
                     width1_cm: width1Cm,
                     width2_cm: width2Cm,
-                    userId: user.uid
+                    userId: user.uid,
+                    woundId: woundId
                 )
                 completion(.success(m))
             }
         }
     }
 
-    /// Fetch recent measurements for a wound (newest first).
     func fetchMeasurements(
         woundId: String,
         limit: Int = 50,
@@ -222,7 +213,6 @@ class WoundService {
             }
     }
 
-    /// Fetch only the latest measurement (if any).
     func fetchLatestMeasurement(
         woundId: String,
         completion: @escaping (Result<WoundMeasurement?, Error>) -> Void
@@ -241,6 +231,54 @@ class WoundService {
                     return
                 }
                 completion(.success(m))
+            }
+    }
+    
+    // MARK: - Fetch all measurements for a wound group (for healing chart)
+    
+    func fetchMeasurementHistory(
+        woundGroupId: String,
+        completion: @escaping (Result<[WoundMeasurement], Error>) -> Void
+    ) {
+        // First, get all wounds in this group
+        db.collection("wounds")
+            .whereField("woundGroupId", isEqualTo: woundGroupId)
+            .getDocuments { snapshot, error in
+                if let error = error {
+                    completion(.failure(error))
+                    return
+                }
+                
+                guard let docs = snapshot?.documents, !docs.isEmpty else {
+                    completion(.success([]))
+                    return
+                }
+                
+                var allMeasurements: [WoundMeasurement] = []
+                let group = DispatchGroup()
+                
+                // For each wound, fetch its measurements
+                for doc in docs {
+                    let woundId = doc.documentID
+                    group.enter()
+                    
+                    self.db.collection("wounds").document(woundId)
+                        .collection("measurements")
+                        .order(by: "measured_at", descending: false)
+                        .getDocuments { measureSnap, measureErr in
+                            defer { group.leave() }
+                            
+                            if let measurements = measureSnap?.documents.compactMap({ WoundMeasurement(doc: $0) }) {
+                                allMeasurements.append(contentsOf: measurements)
+                            }
+                        }
+                }
+                
+                group.notify(queue: .main) {
+                    // Sort all measurements by date
+                    let sorted = allMeasurements.sorted { $0.measured_at < $1.measured_at }
+                    completion(.success(sorted))
+                }
             }
     }
 }

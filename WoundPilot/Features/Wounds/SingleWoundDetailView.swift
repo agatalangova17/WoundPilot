@@ -6,20 +6,22 @@ struct SingleWoundDetailView: View {
 
     @ObservedObject var langManager = LocalizationManager.shared
     @State private var navigateToQuestionnaire = false
+    @State private var measurementResult: WoundMeasurementResult?
 
-    // AR sheet + results
+    // AR sheet
     @State private var showAR = false
     @State private var showARUnsupportedAlert = false
-    @State private var lastLengthCm: Double?
-    @State private var lastWidthCm: Double?
-    @State private var lastAreaCm2: Double?
+    
+    // Latest measurement display
+    @State private var latestMeasurement: WoundMeasurement?
+    @State private var isLoadingMeasurement = true
 
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
                 woundImageSection
                 metadataSection
-                measurementChipsSection
+                measurementSection
                 measureARButton
                 analyzeButton
                 Spacer(minLength: 0)
@@ -30,10 +32,10 @@ struct SingleWoundDetailView: View {
         .navigationTitle(LocalizedStrings.woundEntryTitle)
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $navigateToQuestionnaire) {
-            // Navigate to questionnaire for TIME assessment
             QuestionnaireView(
                 woundGroupId: wound.woundGroupId,
-                patientId: wound.patientId
+                patientId: wound.patientId,
+                measurementResult: measurementResult
             )
         }
         .sheet(isPresented: $showAR) {
@@ -43,6 +45,19 @@ struct SingleWoundDetailView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text("This iPhone/iPad does not support AR world tracking.")
+        }
+        .onAppear(perform: loadLatestMeasurement)
+    }
+    
+    // MARK: - Data Loading
+    
+    private func loadLatestMeasurement() {
+        isLoadingMeasurement = true
+        WoundService.shared.fetchLatestMeasurement(woundId: wound.id) { result in
+            isLoadingMeasurement = false
+            if case .success(let measurement) = result {
+                latestMeasurement = measurement
+            }
         }
     }
     
@@ -60,12 +75,10 @@ struct SingleWoundDetailView: View {
             areaCm2 = calculatedArea
         }
 
-        // Show locally
-        self.lastLengthCm = lengthCm
-        self.lastWidthCm = widthCm
-        self.lastAreaCm2 = areaCm2
+        // Store for questionnaire navigation
+        measurementResult = result
 
-        // Persist to history
+        // Persist to Firestore
         WoundService.shared.addMeasurement(
             woundId: wound.id,
             lengthCm: lengthCm,
@@ -73,8 +86,10 @@ struct SingleWoundDetailView: View {
             areaCm2: areaCm2,
             width1Cm: widthCm,
             width2Cm: widthCm
-        ) { result in
-            if case let .failure(error) = result {
+        ) { firestoreResult in
+            if case .success(let measurement) = firestoreResult {
+                latestMeasurement = measurement
+            } else if case .failure(let error) = firestoreResult {
                 print("Failed to add measurement: \(error)")
             }
         }
@@ -129,38 +144,62 @@ struct SingleWoundDetailView: View {
         .padding(.horizontal)
     }
 
-    @ViewBuilder private var measurementChipsSection: some View {
-        if let L = lastLengthCm, let W = lastWidthCm {
-            HStack(spacing: 12) {
-                lengthChip(L)
-                widthChip(W)
-                if let A = lastAreaCm2 {
-                    areaChip(A)
+    @ViewBuilder private var measurementSection: some View {
+        if isLoadingMeasurement {
+            ProgressView()
+                .padding()
+        } else if let m = latestMeasurement {
+            VStack(spacing: 8) {
+                Text("Latest Measurement")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                HStack(spacing: 12) {
+                    measurementChip(
+                        icon: "ruler",
+                        label: "L",
+                        value: String(format: "%.1f cm", m.length_cm)
+                    )
+                    measurementChip(
+                        icon: "ruler",
+                        label: "W",
+                        value: String(format: "%.1f cm", m.width_cm)
+                    )
+                    measurementChip(
+                        icon: "square.dashed",
+                        label: "A",
+                        value: String(format: "%.1f cm²", m.area_cm2)
+                    )
                 }
             }
-            .font(.callout.weight(.semibold))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(.ultraThinMaterial, in: Capsule())
             .padding(.horizontal)
+        } else {
+            Text("No measurements yet - tap Measure to start")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .padding()
         }
     }
     
-    private func lengthChip(_ value: Double) -> some View {
-        Text(String(format: "L: %.1f cm", value))
-    }
-    
-    private func widthChip(_ value: Double) -> some View {
-        Text(String(format: "W: %.1f cm", value))
-    }
-    
-    private func areaChip(_ value: Double) -> some View {
-        Text(String(format: "A: %.1f cm²", value))
+    private func measurementChip(icon: String, label: String, value: String) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.caption)
+            Text(label)
+                .font(.caption2.weight(.semibold))
+            Text(value)
+                .font(.caption.weight(.bold))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 8)
+        .background(Color.accentBlue.opacity(0.1))
+        .cornerRadius(10)
     }
 
     private var measureARButton: some View {
         Button(action: handleARButtonTap) {
-            Label("Remeasure", systemImage: "ruler")
+            Label(latestMeasurement == nil ? "Measure" : "Remeasure", systemImage: "ruler")
                 .bold()
                 .frame(maxWidth: .infinity)
                 .padding()

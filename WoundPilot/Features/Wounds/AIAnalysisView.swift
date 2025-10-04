@@ -285,22 +285,15 @@ struct ReportView: View {
                                 .foregroundColor(.white)
                         }
                         .padding(.horizontal)
-
-                        // Actions
-                        ActionBar(
-                            shareTitle: LocalizedStrings.shareAction,
-                            downloadTitle: LocalizedStrings.downloadAction,
-                            onShare:   { exportPDF() },
-                            onDownload:{ exportPDF() }
-                        )
-                        .padding(.horizontal)
                         .padding(.bottom, 24)
                     }
                     .padding(.top, 8)
                 }
                 .onAppear { animate = true }
                 .background(Color(.systemGroupedBackground).ignoresSafeArea())
-                .sheet(isPresented: $showShare) { ActivityView(items: shareItems) }
+                .sheet(isPresented: $showShare) {
+                    ActivityView(items: shareItems)
+                }
                 .navigationDestination(isPresented: $goToDressing) {
                     if let payload = payload, let measurements = measurementResult {
                         DressingRecommendationView(
@@ -368,6 +361,7 @@ struct ReportView: View {
 
     private func exportPDF() {
         guard let report else { return }
+        
         do {
             let pdfData = try PDFComposer.make(
                 report: report,
@@ -376,14 +370,24 @@ struct ReportView: View {
                 woundGroupId: woundGroupId,
                 heroImage: heroImage
             )
-            let url = FileManager.default.temporaryDirectory
-                .appendingPathComponent("WoundReport_\(UUID().uuidString.prefix(8)).pdf")
-            try pdfData.write(to: url, options: .atomic)
-
-            shareItems = [url]
+            
+            // Save to Documents directory
+            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let fileName = "WoundReport_\(Date().timeIntervalSince1970).pdf"
+            let pdfURL = documentsPath.appendingPathComponent(fileName)
+            
+            try pdfData.write(to: pdfURL, options: .atomic)
+            
+            print("PDF saved to: \(pdfURL.path)")
+            print("File exists: \(FileManager.default.fileExists(atPath: pdfURL.path))")
+            
+            // Share the URL
+            shareItems = [pdfURL]
             showShare = true
+            
         } catch {
-            errorMessage = error.localizedDescription
+            print("PDF generation error: \(error)")
+            errorMessage = "Failed to create PDF: \(error.localizedDescription)"
         }
     }
 
@@ -892,38 +896,12 @@ private struct RecommendationCard: View {
     }
 }
 
-private struct ActionBar: View {
-    let shareTitle: String
-    let downloadTitle: String
-    let onShare: () -> Void
-    let onDownload: () -> Void
-
-    var body: some View {
-        HStack(spacing: 14) {
-            Button(action: onShare) {
-                Label(shareTitle, systemImage: "square.and.arrow.up")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.accentColor.opacity(0.12)))
-                    .foregroundColor(.accentColor)
-            }
-            Button(action: onDownload) {
-                Label(downloadTitle, systemImage: "arrow.down.circle.fill")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.accentColor))
-                    .foregroundColor(.white)
-            }
-        }
-    }
-}
-
 private struct ActivityView: UIViewControllerRepresentable {
     let items: [Any]
+    
     func makeUIViewController(context: Context) -> UIActivityViewController {
         UIActivityViewController(activityItems: items, applicationActivities: nil)
     }
+    
     func updateUIViewController(_ vc: UIActivityViewController, context: Context) {}
 }
