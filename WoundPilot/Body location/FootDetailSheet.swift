@@ -4,62 +4,38 @@ struct FootDetailSheet: View {
     @Binding var selection: String?
     var onDone: () -> Void
 
-    private let toeOptions = [
-        ("toe_1", "Hallux"),
-        ("toe_2", "2nd toe"),
-        ("toe_3", "3rd toe"),
-        ("toe_4", "4th toe"),
-        ("toe_5", "5th toe")
-    ]
-    
-    private let heelOptions = [
-        ("heel_central", "Heel (central)"),
-        ("heel_medial", "Heel (medial)"),
-        ("heel_lateral", "Heel (lateral)")
-    ]
-    
-    private let zoneOptions = [
-        ("forefoot", "Forefoot"),
-        ("midfoot", "Midfoot"),
-        ("hindfoot", "Hindfoot"),
-        ("plantar_arch", "Plantar arch")
-    ]
+    // Stable codes; text comes from LocalizedStrings
+    private let toeOptions  = ["toe_1", "toe_2", "toe_3", "toe_4", "toe_5"]
+    private let heelOptions = ["heel_central", "heel_medial", "heel_lateral"]
+    private let zoneOptions = ["forefoot", "midfoot", "hindfoot", "plantar_arch"]
 
     var body: some View {
         NavigationStack {
             List {
-                Section("Toes") {
-                    chipRow(toeOptions)
-                }
-                
-                Section("Heel") {
-                    chipRow(heelOptions)
-                }
-                
-                Section("Zones") {
-                    chipRow(zoneOptions)
-                }
+                Section(LocalizedStrings.footSectionToes)  { chipRow(toeOptions)  }
+                Section(LocalizedStrings.footSectionHeel)  { chipRow(heelOptions) }
+                Section(LocalizedStrings.footSectionZones) { chipRow(zoneOptions) }
             }
-            .navigationTitle("Foot detail")
+            .navigationTitle(LocalizedStrings.footDetailTitle)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { onDone() }
+                    Button(LocalizedStrings.actionDone) { onDone() }
                 }
             }
         }
     }
-    
-    private func chipRow(_ options: [(String, String)]) -> some View {
+
+    private func chipRow(_ codes: [String]) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
-                ForEach(options, id: \.0) { code, label in
-                    chipButton(code: code, label: label)
+                ForEach(codes, id: \.self) { code in
+                    chipButton(code: code, label: LocalizedStrings.footLabel(code))
                 }
             }
             .padding(.vertical, 8)
         }
     }
-    
+
     private func chipButton(code: String, label: String) -> some View {
         Button {
             selection = code

@@ -41,10 +41,10 @@ struct SingleWoundDetailView: View {
         .sheet(isPresented: $showAR) {
             WoundMeasurementView(onComplete: handleMeasurementResult)
         }
-        .alert("AR not supported on this device", isPresented: $showARUnsupportedAlert) {
-            Button("OK", role: .cancel) { }
+        .alert(LocalizedStrings.arNotSupportedTitle, isPresented: $showARUnsupportedAlert) {
+            Button(LocalizedStrings.ok, role: .cancel) { }
         } message: {
-            Text("This iPhone/iPad does not support AR world tracking.")
+            Text(LocalizedStrings.arNotSupportedMessage)
         }
         .onAppear(perform: loadLatestMeasurement)
     }
@@ -150,31 +150,31 @@ struct SingleWoundDetailView: View {
                 .padding()
         } else if let m = latestMeasurement {
             VStack(spacing: 8) {
-                Text("Latest Measurement")
+                Text(LocalizedStrings.latestMeasurementTitle)
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
                 HStack(spacing: 12) {
                     measurementChip(
                         icon: "ruler",
-                        label: "L",
+                        label: LocalizedStrings.lengthShort,
                         value: String(format: "%.1f cm", m.length_cm)
                     )
                     measurementChip(
                         icon: "ruler",
-                        label: "W",
+                        label: LocalizedStrings.widthShort,
                         value: String(format: "%.1f cm", m.width_cm)
                     )
                     measurementChip(
                         icon: "square.dashed",
-                        label: "A",
+                        label: LocalizedStrings.areaShort,
                         value: String(format: "%.1f cm²", m.area_cm2)
                     )
                 }
             }
             .padding(.horizontal)
         } else {
-            Text("No measurements yet - tap Measure to start")
+            Text(LocalizedStrings.noMeasurementsYetHint)
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .padding()
@@ -199,7 +199,7 @@ struct SingleWoundDetailView: View {
 
     private var measureARButton: some View {
         Button(action: handleARButtonTap) {
-            Label(latestMeasurement == nil ? "Measure" : "Remeasure", systemImage: "ruler")
+            Label(latestMeasurement == nil ? LocalizedStrings.measureButton : LocalizedStrings.remeasureButton, systemImage: "ruler")
                 .bold()
                 .frame(maxWidth: .infinity)
                 .padding()

@@ -71,7 +71,7 @@ struct BodyLocalizationView: View {
             let options = subsites(for: region)
             if !options.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(LocalizedStrings.t("Sub-site", "Podlokalita"))
+                    Text(LocalizedStrings.subsiteLabel)
                         .font(.subheadline.weight(.semibold))
 
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -92,7 +92,7 @@ struct BodyLocalizationView: View {
         Button {
             selectedSubsite = opt
         } label: {
-            Text(localizeSubsite(opt))
+            Text(LocalizedStrings.subsiteName(opt))
                 .font(.footnote.weight(.semibold))
                 .lineLimit(1)
                 .padding(.horizontal, 12)
@@ -113,8 +113,8 @@ struct BodyLocalizationView: View {
     private var footDetailSection: some View {
         if let region = selectedRegion, isFootRegion(region), let detail = footDetail {
             detailChipRow(
-                title: LocalizedStrings.t("Foot detail", "Detail chodidla"),
-                value: localizeFootDetail(detail),
+                title: LocalizedStrings.footDetailTitle,
+                value: LocalizedStrings.footDetailLabel(detail),
                 action: { showFootDetailSheet = true }
             )
         }
@@ -124,8 +124,8 @@ struct BodyLocalizationView: View {
     private var handDetailSection: some View {
         if let region = selectedRegion, isHandRegion(region), let detail = handDetail {
             detailChipRow(
-                title: LocalizedStrings.t("Hand detail", "Detail ruky"),
-                value: localizeHandDetail(detail),
+                title: LocalizedStrings.handDetailTitle,
+                value: LocalizedStrings.handDetailLabel(detail),
                 action: { showHandDetailSheet = true }
             )
         }
@@ -248,7 +248,6 @@ struct BodyLocalizationView: View {
     
     private func regionNeedsSubsite(_ code: String) -> Bool {
         if code.hasPrefix("abdomen_") || code.contains("chest") { return false }
-        
         return isFootRegion(code) || isHandRegion(code) || isArmRegion(code) ||
                code.contains("thigh") || code.contains("shin") || code.contains("calf") || code.contains("knee")
     }
@@ -272,62 +271,5 @@ struct BodyLocalizationView: View {
         if code.contains("calf") { return ["posterior","lateral","medial"] }
         if code.contains("thigh") { return ["anterior","posterior","lateral","medial"] }
         return []
-    }
-    
-    // MARK: - Localization
-    
-    private func localizeSubsite(_ code: String) -> String {
-        switch code {
-        case "plantar": return LocalizedStrings.t("Plantar", "Plantárna")
-        case "dorsal": return LocalizedStrings.t("Dorsal", "Dorzálna")
-        case "anterior": return LocalizedStrings.t("Anterior", "Predná")
-        case "posterior": return LocalizedStrings.t("Posterior", "Zadná")
-        case "lateral": return LocalizedStrings.t("Lateral", "Laterálna")
-        case "medial": return LocalizedStrings.t("Medial", "Mediálna")
-        case "palmar": return LocalizedStrings.t("Palmar", "Palmárna")
-        case "thenar": return "Thenar"
-        case "hypothenar": return "Hypothenar"
-        case "olecranon": return "Olecranon"
-        case "acromial": return "Acromial"
-        case "deltoid": return "Deltoid"
-        case "scapular": return "Scapular"
-        case "superior": return LocalizedStrings.t("Superior", "Horná")
-        case "inferior": return LocalizedStrings.t("Inferior", "Dolná")
-        default: return code.capitalized
-        }
-    }
-    
-    private func localizeFootDetail(_ code: String) -> String {
-        switch code {
-        case "toe_1": return LocalizedStrings.t("Hallux", "Palec")
-        case "toe_2": return LocalizedStrings.t("2nd toe", "2. prst")
-        case "toe_3": return LocalizedStrings.t("3rd toe", "3. prst")
-        case "toe_4": return LocalizedStrings.t("4th toe", "4. prst")
-        case "toe_5": return LocalizedStrings.t("5th toe", "5. prst")
-        case "heel_central": return LocalizedStrings.t("Heel (central)", "Päta (stred)")
-        case "heel_medial": return LocalizedStrings.t("Heel (medial)", "Päta (mediálna)")
-        case "heel_lateral": return LocalizedStrings.t("Heel (lateral)", "Päta (laterálna)")
-        case "forefoot": return LocalizedStrings.t("Forefoot", "Predonožie")
-        case "midfoot": return LocalizedStrings.t("Midfoot", "Strednožie")
-        case "hindfoot": return LocalizedStrings.t("Hindfoot", "Zadnožie")
-        case "plantar_arch": return LocalizedStrings.t("Plantar arch", "Plantárna klenba")
-        default: return code.replacingOccurrences(of: "_", with: " ").capitalized
-        }
-    }
-    
-    private func localizeHandDetail(_ code: String) -> String {
-        switch code {
-        case "palm": return LocalizedStrings.t("Palm", "Dlań")
-        case "thumb": return LocalizedStrings.t("Thumb", "Palec")
-        case "index": return LocalizedStrings.t("Index finger", "Ukazovák")
-        case "middle": return LocalizedStrings.t("Middle finger", "Prostredník")
-        case "ring": return LocalizedStrings.t("Ring finger", "Prstenník")
-        case "pinky": return LocalizedStrings.t("Pinky", "Malíček")
-        case "wrist": return LocalizedStrings.t("Wrist", "Zápästie")
-        case "thenar": return "Thenar"
-        case "hypothenar": return "Hypothenar"
-        case "dorsum": return LocalizedStrings.t("Back of hand", "Chrbát ruky")
-        default: return code.replacingOccurrences(of: "_", with: " ").capitalized
-        }
     }
 }

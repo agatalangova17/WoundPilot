@@ -31,7 +31,7 @@ struct QuestionnaireView: View {
             case .moisture: return LocalizedStrings.secMoisture
             case .edge: return LocalizedStrings.secEdge
             case .perfusion: return LocalizedStrings.secPerfusion
-            case .boneInvolvement: return "Bone & Depth"
+            case .boneInvolvement:return LocalizedStrings.secBoneDepth
             case .comorbidities: return LocalizedStrings.secComorbidities
             case .redFlags: return LocalizedStrings.secRedFlags
             }
@@ -182,7 +182,7 @@ struct QuestionnaireView: View {
     private var durationStep: some View {
         questionCard(title: LocalizedStrings.secDuration) {
             VStack(alignment: .leading, spacing: 12) {
-                Text("How long has this wound been present?")
+                Text(LocalizedStrings.qDurationPrompt)
                     .font(.subheadline.weight(.semibold))
                 
                 SegmentedChips(selection: $duration, options: durationOptions) {
@@ -196,7 +196,7 @@ struct QuestionnaireView: View {
     private var tissueStep: some View {
         questionCard(title: LocalizedStrings.secTissue) {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Predominant tissue type in wound bed")
+                Text(LocalizedStrings.qTissuePrompt)
                     .font(.subheadline.weight(.semibold))
                 
                 SegmentedChips(selection: $tissue, options: tissueOptions) {
@@ -220,17 +220,17 @@ struct QuestionnaireView: View {
 
                 if showInfectionDetail {
                     VStack(spacing: 10) {
-                        Text("Clinical signs present:")
+                        Text(LocalizedStrings.infectionSignsHeader)
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         
-                        ToggleRow(title: "Purulent discharge", isOn: $hasPurulence)
-                        ToggleRow(title: "Erythema >2cm", isOn: $hasErythema)
-                        ToggleRow(title: "Fever/systemic illness", isOn: $hasSystemicSigns)
+                        ToggleRow(title: LocalizedStrings.infectionSignPurulence, isOn: $hasPurulence)
+                        ToggleRow(title: LocalizedStrings.infectionSignErythema2cm, isOn: $hasErythema)
+                        ToggleRow(title: LocalizedStrings.infectionSignSystemicFever, isOn: $hasSystemicSigns)
                         
                         if !hasAnyInfectionSign {
-                            Text("Please select at least one clinical sign or change to 'None'")
+                            Text(LocalizedStrings.infectionSelectAtLeastOne)
                                 .font(.caption)
                                 .foregroundColor(.orange)
                                 .padding(.top, 4)
@@ -244,7 +244,7 @@ struct QuestionnaireView: View {
                 }
 
                 if infection == "systemic" {
-                    GuardrailBadge(text: "⚠️ Urgent: Consider systemic antibiotics & specialist referral")
+                    GuardrailBadge(text: LocalizedStrings.infectionSystemicUrgentAdvice)
                 }
             }
         }
@@ -253,7 +253,7 @@ struct QuestionnaireView: View {
     private var moistureStep: some View {
         questionCard(title: LocalizedStrings.secMoisture) {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Exudate level")
+                Text(LocalizedStrings.exudateLevelLabel)
                     .font(.subheadline.weight(.semibold))
                 
                 SegmentedChips(selection: $moisture, options: moistureOptions) {
@@ -265,7 +265,7 @@ struct QuestionnaireView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "info.circle")
                             .foregroundColor(.blue)
-                        Text("High exudate → superabsorbent dressing recommended")
+                        Text(LocalizedStrings.highExudateHint)
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -279,7 +279,7 @@ struct QuestionnaireView: View {
     private var edgeStep: some View {
         questionCard(title: LocalizedStrings.secEdge) {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Wound edge appearance")
+                Text(LocalizedStrings.woundEdgeAppearanceLabel)
                     .font(.subheadline.weight(.semibold))
                 
                 TagChips(selection: $edge, options: edgeOptions) {
@@ -291,15 +291,15 @@ struct QuestionnaireView: View {
     }
 
     private var perfusionStep: some View {
-        questionCard(title: "Perfusion Assessment") {
+        questionCard(title: LocalizedStrings.secPerfusion) {
             VStack(alignment: .leading, spacing: 16) {
-                Text("Ankle-Brachial Index (ABI)")
+                Text(LocalizedStrings.perfusionABIHeading)
                     .font(.subheadline.weight(.semibold))
                 SegmentedChips(selection: $abi, options: abiOptions)
 
                 Divider().padding(.vertical, 4)
 
-                Text("Palpable pedal pulses")
+                Text(LocalizedStrings.perfusionPulsesLabel)
                     .font(.subheadline.weight(.semibold))
                 SegmentedChips(selection: $pulses, options: pulsesOptions) {
                     markComplete(.perfusion)
@@ -307,23 +307,24 @@ struct QuestionnaireView: View {
                 }
 
                 if abi == "lt0_5" {
-                    GuardrailBadge(text: "⚠️ Severe ischemia - compression contraindicated, urgent vascular referral")
+                    GuardrailBadge(text: "⚠️ " + LocalizedStrings.perfusionSevereIschemiaGuardrail)
                 }
             }
         }
     }
-
+    
+    
     private var boneInvolvementStep: some View {
-        questionCard(title: "Bone & Deep Structures") {
+        questionCard(title: LocalizedStrings.secBoneDepth) {
             VStack(alignment: .leading, spacing: 16) {
-                ToggleRow(title: "Bone visible in wound bed", isOn: $exposedBone)
+                ToggleRow(title: LocalizedStrings.boneVisibleToggle, isOn: $exposedBone)
                 
                 Divider().padding(.vertical, 4)
                 
-                ToggleRow(title: "Probe to bone positive", isOn: $probeToBone)
+                ToggleRow(title: LocalizedStrings.probeToBoneToggle, isOn: $probeToBone)
 
                 if exposedBone || probeToBone {
-                    GuardrailBadge(text: "⚠️ Possible osteomyelitis - consider X-ray, MRI, or bone biopsy")
+                    GuardrailBadge(text: "⚠️ " + LocalizedStrings.boneOsteoGuardrail)
                 }
             }
         }
@@ -332,7 +333,7 @@ struct QuestionnaireView: View {
     private var comorbiditiesStep: some View {
         questionCard(title: LocalizedStrings.secComorbidities) {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Select all that apply (optional)")
+                Text(LocalizedStrings.selectAllThatApplyOptional)
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
@@ -344,14 +345,14 @@ struct QuestionnaireView: View {
     private var redFlagsStep: some View {
         questionCard(title: LocalizedStrings.secRedFlags) {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Any concerning signs? (optional)")
+                Text(LocalizedStrings.anyConcerningSignsOptional)
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
                 MultiTagChips(selection: $redFlags, options: redFlagOptions)
 
                 if showsRedFlagsWarning {
-                    GuardrailBadge(text: "⚠️ Red flags present - escalate to specialist immediately")
+                    GuardrailBadge(text: "⚠️ " + LocalizedStrings.redFlagsEscalateGuardrail)
                 }
             }
         }
@@ -387,10 +388,8 @@ struct QuestionnaireView: View {
             }
 
             HStack(spacing: 10) {
-                Button {
-                    goBack()
-                } label: {
-                    Label("Back", systemImage: "chevron.left")
+                Button { goBack() } label: {
+                    Label(LocalizedStrings.backAction, systemImage: "chevron.left")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
@@ -408,7 +407,7 @@ struct QuestionnaireView: View {
                         ProgressView()
                             .frame(maxWidth: .infinity)
                     } else {
-                        Text(isLastStep ? "Save & Analyze" : "Next")
+                        Text(isLastStep ? LocalizedStrings.saveAndAnalyze : LocalizedStrings.nextAction)
                             .bold()
                             .frame(maxWidth: .infinity)
                     }
@@ -561,10 +560,10 @@ struct QuestionnaireView: View {
 
     private var urgentBannerText: String? {
         if infection == "systemic" || showsRedFlagsWarning {
-            return "⚠️ URGENT: Systemic signs - immediate medical attention required"
+            return LocalizedStrings.urgentBannerSystemic
         }
         if abi == "lt0_5" {
-            return "⚠️ Severe ischemia detected - urgent vascular surgery referral"
+            return LocalizedStrings.urgentBannerSevereIschemia
         }
         return nil
     }
@@ -704,7 +703,7 @@ private struct StepIndicator: View {
                         .frame(width: 8, height: 8)
                 }
             }
-            Text("Step \(currentIndex) of \(total)  •  \(title)")
+            Text(LocalizedStrings.stepProgress(current: currentIndex, total: total, title: title))
                 .font(.caption)
                 .foregroundColor(.secondary)
         }

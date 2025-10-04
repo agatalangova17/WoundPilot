@@ -12,13 +12,16 @@ import UIKit
 import ARKit
 import RealityKit
 
+import SwiftUI
+import ARKit
+
 struct ARMeasureView: View {
     var onComplete: ((WoundMeasurementResult) -> Void)?
     var onSwitchToManual: (() -> Void)?
     
     // State managed by coordinator
     @State private var measurementState = ARMeasurementState()
-    @State private var trackingLabel = "AR: Initializing..."
+    @State private var trackingLabel = LocalizedStrings.arInitializing
     @State private var trackingIsGood = false
     @State private var distanceLabel = ""
     @State private var confidenceScore: WoundMeasurementResult.MeasurementConfidence?
@@ -114,12 +117,12 @@ struct ARMeasureView: View {
     private func measurementsDisplay(length: Float) -> some View {
         VStack(spacing: 8) {
             HStack(spacing: 16) {
-                measurementChip(label: "L", value: length, unit: "cm")
+                measurementChip(label: LocalizedStrings.measureAbbrL, value: length, unit: LocalizedStrings.cmUnit)
                 if let width = widthCm {
-                    measurementChip(label: "W", value: width, unit: "cm")
+                    measurementChip(label: LocalizedStrings.measureAbbrW, value: width, unit: LocalizedStrings.cmUnit)
                 }
                 if let area = areaCm2 {
-                    measurementChip(label: "Area", value: area, unit: "cm²")
+                    measurementChip(label: LocalizedStrings.measureLabelArea, value: area, unit: LocalizedStrings.cm2Unit)
                 }
             }
             
@@ -128,7 +131,7 @@ struct ARMeasureView: View {
                 HStack(spacing: 6) {
                     Image(systemName: confidenceIcon(conf.score))
                         .foregroundColor(confidenceColor(conf.score))
-                    Text("Quality: \(conf.label)")
+                    Text("\(LocalizedStrings.qualityLabel) \(conf.label)")
                         .font(.caption.weight(.medium))
                 }
                 .padding(.horizontal, 12)
@@ -167,7 +170,7 @@ struct ARMeasureView: View {
             Button {
                 onSwitchToManual?()
             } label: {
-                Label("Manual", systemImage: "pencil")
+                Label(LocalizedStrings.manualActionTitle, systemImage: "pencil")
                     .font(.footnote.weight(.semibold))
                     .frame(maxWidth: .infinity)
             }
@@ -202,7 +205,7 @@ struct ARMeasureView: View {
             Button {
                 saveAndComplete()
             } label: {
-                Label("Save", systemImage: "checkmark")
+                Label(LocalizedStrings.saveAction, systemImage: "checkmark")
                     .font(.footnote.weight(.semibold))
                     .frame(maxWidth: .infinity)
             }
@@ -500,163 +503,164 @@ private struct ARViewContainer: UIViewRepresentable {
                 ? simd_normalize(simd_cross(from, SIMD3<Float>(1, 0, 0)))
                 : simd_normalize(simd_cross(from, SIMD3<Float>(0, 1, 0)))
                 return simd_quatf(angle: .pi, axis: axis)
-                            }
-                            
-                            let s = sqrt((1 + dot) * 2)
-                            return simd_normalize(simd_quatf(
-                                ix: cross.x / s,
-                                iy: cross.y / s,
-                                iz: cross.z / s,
-                                r: s / 2
-                            ))
-                        }
-                        
-                        // MARK: - Confidence calculation
-                        
-                        private func updateConfidence() {
-                            let state = measurementState.wrappedValue
-                            guard state.points.count >= 2,
-                                  let cameraPos = currentCameraPosition else {
-                                confidenceScore.wrappedValue = nil
-                                return
-                            }
-                            
-                            let avgDistance = state.averageDistanceFromCamera(cameraPos)
-                            let planarity = state.surfacePlanarity
-                            
-                            let confidence = WoundMeasurementResult.MeasurementConfidence.calculate(
-                                trackingState: trackingLabel.wrappedValue,
-                                trackingIsGood: trackingIsGood.wrappedValue,
-                                distance: avgDistance,
-                                planarity: planarity
-                            )
-                            
-                            DispatchQueue.main.async {
-                                self.confidenceScore.wrappedValue = confidence
-                                
-                                // Update distance label
-                                if let dist = avgDistance {
-                                    let cm = Int(dist * 100)
-                                    if dist < 0.15 {
-                                        self.distanceLabel.wrappedValue = "📏 \(cm)cm (move back)"
-                                    } else if dist > 0.35 {
-                                        self.distanceLabel.wrappedValue = "📏 \(cm)cm (move closer)"
-                                    } else {
-                                        self.distanceLabel.wrappedValue = "📏 \(cm)cm ✓"
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // MARK: - Actions
-                        
-                        @objc func handleUndo() {
-                            guard let arView = arView else { return }
-                            
-                            measurementState.wrappedValue.removeLastPoint()
-                            
-                            // Remove last visual anchor (dot or line)
-                            if let last = visualAnchors.popLast() {
-                                arView.scene.removeAnchor(last)
-                            }
-                            
-                            updateVisuals()
-                            updateConfidence()
-                        }
-                        
-                        @objc func handleReset() {
-                            guard let arView = arView else { return }
-                            
-                            measurementState.wrappedValue.reset()
-                            
-                            visualAnchors.forEach { arView.scene.removeAnchor($0) }
-                            visualAnchors.removeAll()
-                            
-                            DispatchQueue.main.async {
-                                self.confidenceScore.wrappedValue = nil
-                                self.distanceLabel.wrappedValue = ""
-                            }
-                        }
-                        
-                        @objc func capturePhoto() {
-                            guard let arView = arView,
-                                  let frame = arView.session.currentFrame else { return }
-                            
-                            // Convert ARFrame's captured image to UIImage
-                            let pixelBuffer = frame.capturedImage
-                            let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
-                            
-                            let context = CIContext()
-                            guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else { return }
-                            
-                            let image = UIImage(cgImage: cgImage, scale: 1.0, orientation: .right)
-                            
-                            DispatchQueue.main.async {
-                                self.capturedPhoto.wrappedValue = image
-                            }
-                        }
-                        
-                        // MARK: - ARSessionDelegate
-                        
-                        func session(_ session: ARSession, didUpdate frame: ARFrame) {
-                            // Track camera position for distance calculation
-                            let transform = frame.camera.transform
-                            currentCameraPosition = SIMD3<Float>(
-                                transform.columns.3.x,
-                                transform.columns.3.y,
-                                transform.columns.3.z
-                            )
-                            
-                            // Update confidence in real-time if we have points
-                            if measurementState.wrappedValue.points.count >= 2 {
-                                updateConfidence()
-                            }
-                        }
-                        
-                        func session(_ session: ARSession, cameraDidChangeTrackingState camera: ARCamera) {
-                            let (label, isGood) = describeTrackingState(camera.trackingState)
-                            DispatchQueue.main.async {
-                                self.trackingLabel.wrappedValue = label
-                                self.trackingIsGood.wrappedValue = isGood
-                            }
-                        }
-                        
-                        private func describeTrackingState(_ state: ARCamera.TrackingState) -> (String, Bool) {
-                            switch state {
-                            case .normal:
-                                return ("AR: Good", true)
-                            case .notAvailable:
-                                return ("AR: Not Available", false)
-                            case .limited(let reason):
-                                switch reason {
-                                case .initializing:
-                                    return ("AR: Initializing...", false)
-                                case .excessiveMotion:
-                                    return ("AR: Slow Down", false)
-                                case .insufficientFeatures:
-                                    return ("AR: Low Features", false)
-                                case .relocalizing:
-                                    return ("AR: Relocalizing", false)
-                                @unknown default:
-                                    return ("AR: Limited", false)
-                                }
-                            }
-                        }
-                        
-                        // MARK: - Cleanup
-                        
-                        func cleanup() {
-                            guard let arView = arView else { return }
-                            visualAnchors.forEach { arView.scene.removeAnchor($0) }
-                            visualAnchors.removeAll()
-                        }
+            }
+            
+            let s = sqrt((1 + dot) * 2)
+            return simd_normalize(simd_quatf(
+                ix: cross.x / s,
+                iy: cross.y / s,
+                iz: cross.z / s,
+                r: s / 2
+            ))
+        }
+        
+        // MARK: - Confidence calculation
+        
+        private func updateConfidence() {
+            let state = measurementState.wrappedValue
+            guard state.points.count >= 2,
+                  let cameraPos = currentCameraPosition else {
+                confidenceScore.wrappedValue = nil
+                return
+            }
+            
+            let avgDistance = state.averageDistanceFromCamera(cameraPos)
+            let planarity = state.surfacePlanarity
+            
+            let confidence = WoundMeasurementResult.MeasurementConfidence.calculate(
+                trackingState: trackingLabel.wrappedValue,
+                trackingIsGood: trackingIsGood.wrappedValue,
+                distance: avgDistance,
+                planarity: planarity
+            )
+            
+            DispatchQueue.main.async {
+                self.confidenceScore.wrappedValue = confidence
+                
+                // Update distance label
+                if let dist = avgDistance {
+                    let cm = Int(dist * 100)
+                    let prefix = "📏 \(cm)\(LocalizedStrings.cmUnit)"
+                    if dist < 0.15 {
+                        self.distanceLabel.wrappedValue = "\(prefix) \(LocalizedStrings.distanceSuffixMoveBack)"
+                    } else if dist > 0.35 {
+                        self.distanceLabel.wrappedValue = "\(prefix) \(LocalizedStrings.distanceSuffixMoveCloser)"
+                    } else {
+                        self.distanceLabel.wrappedValue = "\(prefix) \(LocalizedStrings.distanceSuffixOK)"
                     }
                 }
-
-                // MARK: - Notifications
-
-                extension Notification.Name {
-                    static let arMeasureUndo = Notification.Name("ARMeasureUndo")
-                    static let arMeasureReset = Notification.Name("ARMeasureReset")
-                    static let arCapturePhoto = Notification.Name("ARCapturePhoto")
+            }
+        }
+        
+        // MARK: - Actions
+        
+        @objc func handleUndo() {
+            guard let arView = arView else { return }
+            
+            measurementState.wrappedValue.removeLastPoint()
+            
+            // Remove last visual anchor (dot or line)
+            if let last = visualAnchors.popLast() {
+                arView.scene.removeAnchor(last)
+            }
+            
+            updateVisuals()
+            updateConfidence()
+        }
+        
+        @objc func handleReset() {
+            guard let arView = arView else { return }
+            
+            measurementState.wrappedValue.reset()
+            
+            visualAnchors.forEach { arView.scene.removeAnchor($0) }
+            visualAnchors.removeAll()
+            
+            DispatchQueue.main.async {
+                self.confidenceScore.wrappedValue = nil
+                self.distanceLabel.wrappedValue = ""
+            }
+        }
+        
+        @objc func capturePhoto() {
+            guard let arView = arView,
+                  let frame = arView.session.currentFrame else { return }
+            
+            // Convert ARFrame's captured image to UIImage
+            let pixelBuffer = frame.capturedImage
+            let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
+            
+            let context = CIContext()
+            guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else { return }
+            
+            let image = UIImage(cgImage: cgImage, scale: 1.0, orientation: .right)
+            
+            DispatchQueue.main.async {
+                self.capturedPhoto.wrappedValue = image
+            }
+        }
+        
+        // MARK: - ARSessionDelegate
+        
+        func session(_ session: ARSession, didUpdate frame: ARFrame) {
+            // Track camera position for distance calculation
+            let transform = frame.camera.transform
+            currentCameraPosition = SIMD3<Float>(
+                transform.columns.3.x,
+                transform.columns.3.y,
+                transform.columns.3.z
+            )
+            
+            // Update confidence in real-time if we have points
+            if measurementState.wrappedValue.points.count >= 2 {
+                updateConfidence()
+            }
+        }
+        
+        func session(_ session: ARSession, cameraDidChangeTrackingState camera: ARCamera) {
+            let (label, isGood) = describeTrackingState(camera.trackingState)
+            DispatchQueue.main.async {
+                self.trackingLabel.wrappedValue = label
+                self.trackingIsGood.wrappedValue = isGood
+            }
+        }
+        
+        private func describeTrackingState(_ state: ARCamera.TrackingState) -> (String, Bool) {
+            switch state {
+            case .normal:
+                return (LocalizedStrings.arTrackingGood, true)
+            case .notAvailable:
+                return (LocalizedStrings.arTrackingNotAvailable, false)
+            case .limited(let reason):
+                switch reason {
+                case .initializing:
+                    return (LocalizedStrings.arInitializing, false)
+                case .excessiveMotion:
+                    return (LocalizedStrings.arTrackingSlowDown, false)
+                case .insufficientFeatures:
+                    return (LocalizedStrings.arTrackingLowFeatures, false)
+                case .relocalizing:
+                    return (LocalizedStrings.arTrackingRelocalizing, false)
+                @unknown default:
+                    return (LocalizedStrings.arTrackingLimited, false)
                 }
+            }
+        }
+        
+        // MARK: - Cleanup
+        
+        func cleanup() {
+            guard let arView = arView else { return }
+            visualAnchors.forEach { arView.scene.removeAnchor($0) }
+            visualAnchors.removeAll()
+        }
+    }
+}
+
+// MARK: - Notifications
+
+extension Notification.Name {
+    static let arMeasureUndo = Notification.Name("ARMeasureUndo")
+    static let arMeasureReset = Notification.Name("ARMeasureReset")
+    static let arCapturePhoto = Notification.Name("ARCapturePhoto")
+}

@@ -52,7 +52,9 @@ struct EditPatientView: View {
 
                 Picker(LocalizedStrings.sexLabel, selection: $sexCode) {
                     ForEach(sexCodes, id: \.self) { code in
-                        Text(localizedSexTitle(code)).tag(code)
+                        Text(localizedSexTitle(code))
+                            .tag(code)
+                            .accessibilityLabel(Text(localizedSexTitle(code)))
                     }
                 }
             }
@@ -84,12 +86,11 @@ struct EditPatientView: View {
                 }
 
                 if let errorMessage = errorMessage {
-                    Text(errorMessage)
-                        .foregroundColor(.red)
+                    Text(errorMessage).foregroundColor(.red)
                 }
             }
         }
-        .environment(\.locale, Locale(identifier: langManager.currentLanguage.rawValue)) // date/format localization
+        .environment(\.locale, Locale(identifier: langManager.currentLanguage.rawValue)) // dates, pickers, etc.
         .navigationTitle(LocalizedStrings.editPatientTitle)
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -109,6 +110,19 @@ struct EditPatientView: View {
         case "female": return LocalizedStrings.sexFemale
         default: return LocalizedStrings.sexUnspecified
         }
+    }
+
+    // Locale-aware decimal parsing (handles “72,5” and “72.5”)
+    private func parseLocalizedDouble(_ text: String) -> Double? {
+        let fmt = NumberFormatter()
+        fmt.locale = Locale(identifier: langManager.currentLanguage.rawValue)
+        fmt.numberStyle = .decimal
+        if let n = fmt.number(from: text.trimmingCharacters(in: .whitespaces)) {
+            return n.doubleValue
+        }
+        // Fallback: basic dot/comma swap
+        let swapped = text.replacingOccurrences(of: ",", with: ".")
+        return Double(swapped)
     }
 
     // MARK: - Save
@@ -136,14 +150,15 @@ struct EditPatientView: View {
             "ownerId": userId
         ]
 
-        if let weightValue = Double(weight.trimmingCharacters(in: .whitespaces)) {
+        if let weightValue = parseLocalizedDouble(weight) {
             data["weight"] = weightValue
         } else {
             data["weight"] = FieldValue.delete()
         }
 
-        if !allergies.trimmingCharacters(in: .whitespaces).isEmpty {
-            data["allergies"] = allergies.trimmingCharacters(in: .whitespaces)
+        let trimmedAllergies = allergies.trimmingCharacters(in: .whitespaces)
+        if !trimmedAllergies.isEmpty {
+            data["allergies"] = trimmedAllergies
         } else {
             data["allergies"] = FieldValue.delete()
         }

@@ -20,11 +20,6 @@ struct PatientListView: View {
     @State private var searchText = ""
     @State private var scope: SearchScope = .all
 
-    // Tiny inline translator (no new LocalizedStrings)
-    private func tr(_ en: String, _ sk: String) -> String {
-        LocalizationManager.shared.currentLanguage == .sk ? sk : en
-    }
-
     // MARK: - Filtered + searched list
     private var results: [Patient] {
         var list = patients
@@ -67,7 +62,7 @@ struct PatientListView: View {
                 if isLoading {
                     VStack(spacing: 16) {
                         ProgressView(LocalizedStrings.loadingPatients)
-                        Text(tr("Fetching your patients…", "Načítavam zoznam pacientov…"))
+                        Text(LocalizedStrings.loadingPatientsSubtitle)
                             .font(.footnote)
                             .foregroundColor(.secondary)
                     }
@@ -77,7 +72,7 @@ struct PatientListView: View {
                         title: LocalizedStrings.noPatientsFound,
                         subtitle: searchText.isEmpty
                             ? LocalizedStrings.startByAddingPatient
-                            : tr("No results match your search.", "Žiadne výsledky nezodpovedajú vyhľadávaniu.")
+                            : LocalizedStrings.noSearchResults
                     )
                     .padding(.horizontal)
                 } else {
@@ -121,19 +116,19 @@ struct PatientListView: View {
                 prompt: LocalizedStrings.searchPatientsPrompt
             )
             .searchSuggestions {
-                // quick tag suggestions
-                Text("DM").searchCompletion("DM")
-                Text(tr("Smoker", "Fajčiar")).searchCompletion(tr("Smoker", "Fajčiar"))
-                Text("PAD").searchCompletion("PAD")
+                // quick tag suggestions (localized)
+                Text(LocalizedStrings.tagDM).searchCompletion(LocalizedStrings.tagDM)
+                Text(LocalizedStrings.tagSmoker).searchCompletion(LocalizedStrings.tagSmoker)
+                Text(LocalizedStrings.tagPAD).searchCompletion(LocalizedStrings.tagPAD)
                 Divider()
                 // top patient names
                 ForEach(nameSuggestions, id: \.self) { s in Text(s).searchCompletion(s) }
             }
             .searchScopes($scope) {
-                Text(tr("All", "Všetko")).tag(SearchScope.all)
-                Text("DM").tag(SearchScope.diabetic)
-                Text(tr("Smoker", "Fajčiar")).tag(SearchScope.smoker)
-                Text("PAD").tag(SearchScope.pad)
+                Text(LocalizedStrings.scopeAll).tag(SearchScope.all)
+                Text(LocalizedStrings.scopeDM).tag(SearchScope.diabetic)
+                Text(LocalizedStrings.scopeSmoker).tag(SearchScope.smoker)
+                Text(LocalizedStrings.scopePAD).tag(SearchScope.pad)
             }
             .navigationTitle(LocalizedStrings.yourPatientsTitle)
             .onAppear(perform: loadPatients)
@@ -176,10 +171,19 @@ struct PatientListView: View {
         var items: [Badge] = []
         // age
         items.append(Badge(icon: "calendar", text: String(age(from: p.dateOfBirth))))
-        if p.isDiabetic == true { items.append(Badge(icon: "drop.fill", text: "DM", accessibilityLabel: tr("Diabetes", "Cukrovka"))) }
-        if p.isSmoker == true   { items.append(Badge(icon: "lungs.fill", text: tr("Smoker", "Fajčiar"))) }
-        if p.hasPAD == true     { items.append(Badge(icon: "figure.walk.motion", text: "PAD",
-                                                     accessibilityLabel: tr("Peripheral artery disease", "Periférne artériové ochorenie"))) }
+        if p.isDiabetic == true {
+            items.append(Badge(icon: "drop.fill", text: LocalizedStrings.badgeDM))
+        }
+        if p.isSmoker == true {
+            items.append(Badge(icon: "lungs.fill", text: LocalizedStrings.badgeSmoker))
+        }
+        if p.hasPAD == true {
+            items.append(Badge(
+                icon: "figure.walk.motion",
+                text: LocalizedStrings.badgePAD,
+                accessibilityLabel: LocalizedStrings.peripheralArteryDisease
+            ))
+        }
         return items
     }
 
@@ -377,5 +381,3 @@ private struct EmptyStateView: View {
         .frame(maxWidth: .infinity, minHeight: 260, alignment: .center)
     }
 }
-
-

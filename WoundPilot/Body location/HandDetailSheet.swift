@@ -4,57 +4,38 @@ struct HandDetailSheet: View {
     @Binding var selection: String?
     var onDone: () -> Void
 
-    private let fingerOptions = [
-        ("thumb", "Thumb"),
-        ("index", "Index finger"),
-        ("middle", "Middle finger"),
-        ("ring", "Ring finger"),
-        ("pinky", "Pinky")
-    ]
-    
-    private let areaOptions = [
-        ("palm", "Palm"),
-        ("thenar", "Thenar"),
-        ("hypothenar", "Hypothenar"),
-        ("wrist", "Wrist"),
-        ("dorsum", "Back of hand")
-    ]
+    // Stable codes; UI text comes from LocalizedStrings
+    private let fingerCodes = ["thumb", "index", "middle", "ring", "pinky"]
+    private let areaCodes   = ["palm", "thenar", "hypothenar", "wrist", "dorsum"]
 
     var body: some View {
         NavigationStack {
             List {
-                Section("Fingers") {
-                    chipRow(fingerOptions)
-                }
-                
-                Section("Hand areas") {
-                    chipRow(areaOptions)
-                }
+                Section(LocalizedStrings.handSectionFingers) { chipRow(fingerCodes) }
+                Section(LocalizedStrings.handSectionAreas)   { chipRow(areaCodes) }
             }
-            .navigationTitle("Hand detail")
+            .navigationTitle(LocalizedStrings.handDetailTitle)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { onDone() }
+                    Button(LocalizedStrings.actionDone) { onDone() }
                 }
             }
         }
     }
-    
-    private func chipRow(_ options: [(String, String)]) -> some View {
+
+    private func chipRow(_ codes: [String]) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
-                ForEach(options, id: \.0) { code, label in
-                    chipButton(code: code, label: label)
+                ForEach(codes, id: \.self) { code in
+                    chipButton(code: code, label: LocalizedStrings.handLabel(code))
                 }
             }
             .padding(.vertical, 8)
         }
     }
-    
+
     private func chipButton(code: String, label: String) -> some View {
-        Button {
-            selection = code
-        } label: {
+        Button { selection = code } label: {
             Text(label)
                 .font(.footnote.weight(.semibold))
                 .padding(.horizontal, 12)

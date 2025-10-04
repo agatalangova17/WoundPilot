@@ -9,7 +9,7 @@ struct AddPatientView: View {
     @State private var name: String = ""
     @State private var dateOfBirth = Date()
 
-    // Store stable codes; UI shows localized titles
+    // Stable codes; UI shows localized labels
     @State private var sexCode = "unspecified"
     private let sexCodes = ["unspecified", "male", "female"]
 
@@ -24,14 +24,12 @@ struct AddPatientView: View {
     @State private var isSaving = false
     @State private var errorMessage: String?
     @State private var successMessage: String?
-
-    // NEW: navigate by providing a full Patient to the destination
     @State private var routePatient: Patient?
 
     var body: some View {
         NavigationStack {
             Form {
-                // MARK: - Patient Info
+                // MARK: Patient Info
                 Section(header: Text(LocalizedStrings.patientInformationSection)) {
                     TextField(LocalizedStrings.fullNameLabel, text: $name)
                         .textInputAutocapitalization(.words)
@@ -41,12 +39,14 @@ struct AddPatientView: View {
 
                     Picker(LocalizedStrings.sexLabel, selection: $sexCode) {
                         ForEach(sexCodes, id: \.self) { code in
-                            Text(localizedSexTitle(code)).tag(code)
+                            Text(localizedSexTitle(code))
+                                .tag(code)
+                                .accessibilityLabel(Text(localizedSexTitle(code))) // a11y uses localized text
                         }
                     }
                 }
 
-                // MARK: - Optional Clinical Info
+                // MARK: Optional Clinical Info
                 Section(header: Text(LocalizedStrings.optionalClinicalInfoSection)) {
                     Toggle(LocalizedStrings.diabetic, isOn: $isDiabetic)
                     Toggle(LocalizedStrings.smoker, isOn: $isSmoker)
@@ -62,15 +62,13 @@ struct AddPatientView: View {
                         .autocorrectionDisabled(true)
                 }
 
-                // MARK: - Actions & Messages
+                // MARK: Actions & Messages
                 Section {
                     if isSaving {
                         ProgressView(LocalizedStrings.saving)
                     } else {
-                        Button(LocalizedStrings.savePatient) {
-                            savePatient()
-                        }
-                        .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+                        Button(LocalizedStrings.savePatient) { savePatient() }
+                            .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
                     }
 
                     if let message = errorMessage {
@@ -89,7 +87,6 @@ struct AddPatientView: View {
                     Button(LocalizedStrings.cancel) { dismiss() }
                 }
             }
-            // 👉 When routePatient is set, push the detail screen
             .navigationDestination(item: $routePatient) { patient in
                 PatientDetailView(patient: patient)
             }
@@ -105,7 +102,20 @@ struct AddPatientView: View {
         }
     }
 
-    // MARK: - Save
+    // Parse decimal using current locale (handles “72,5” and “72.5”)
+    private func parseLocalizedDouble(_ text: String) -> Double? {
+        let fmt = NumberFormatter()
+        fmt.locale = Locale(identifier: langManager.currentLanguage.rawValue)
+        fmt.numberStyle = .decimal
+        if let n = fmt.number(from: text.trimmingCharacters(in: .whitespaces)) {
+            return n.doubleValue
+        }
+        // fallback: try dot/comma swap
+        let swapped = text.replacingOccurrences(of: ",", with: ".")
+        return Double(swapped)
+    }
+
+    // MARK: Save
     private func savePatient() {
         guard let userId = Auth.auth().currentUser?.uid else {
             errorMessage = LocalizedStrings.userNotLoggedIn
@@ -124,18 +134,22 @@ struct AddPatientView: View {
             "dateOfBirth": Timestamp(date: dateOfBirth),
             "ownerId": userId,
             "createdAt": Timestamp(date: Date()),
-            "sex": sexCode,                           // stable code
+            "sex": sexCode,
             "isDiabetic": isDiabetic,
             "isSmoker": isSmoker,
             "hasPAD": hasPAD,
             "hasMobilityIssues": hasMobilityIssues,
             "hasBloodPressureIssues": hasBloodPressureIssues,
-            "weight": Double(weight) ?? NSNull(),
             "allergies": allergies.trimmingCharacters(in: .whitespaces)
         ]
 
-        // Remove empty strings or null fields
-        data = data.filter { !("\($0.value)" == "" || $0.value is NSNull) }
+        if let w = parseLocalizedDouble(weight) { data["weight"] = w } // add only if valid
+
+        // Remove empty string fields
+        data = data.filter { key, value in
+            if let s = value as? String { return !s.isEmpty }
+            return true
+        }
 
         patientRef.setData(data) { error in
             isSaving = false
@@ -144,7 +158,6 @@ struct AddPatientView: View {
                 return
             }
 
-            // Success – build a Patient and route
             successMessage = LocalizedStrings.patientSavedSuccessfully
             let newId = patientRef.documentID
 
@@ -152,22 +165,19 @@ struct AddPatientView: View {
                 id: newId,
                 name: name.trimmingCharacters(in: .whitespaces),
                 dateOfBirth: dateOfBirth,
-                sex: sexCode,                                // String?
-                isDiabetic: isDiabetic,                      // Bool?
-                isSmoker: isSmoker,                          // Bool?
-                hasPAD: hasPAD,                              // Bool?
-                hasMobilityIssues: hasMobilityIssues,        // Bool?
-                hasBloodPressureIssues: hasBloodPressureIssues, // Bool?
-                weight: Double(weight),                      // Double?
+                sex: sexCode,
+                isDiabetic: isDiabetic,
+                isSmoker: isSmoker,
+                hasPAD: hasPAD,
+                hasMobilityIssues: hasMobilityIssues,
+                hasBloodPressureIssues: hasBloodPressureIssues,
+                weight: parseLocalizedDouble(weight),
                 allergies: allergies.trimmingCharacters(in: .whitespaces),
-                bloodPressure: nil,                          // you don't collect a string here
+                bloodPressure: nil,
                 diabetesType: isDiabetic ? "unspecified" : "none"
             )
 
-            // Push detail view (don’t dismiss)
             routePatient = newPatient
-
-            // Optional: clear the form so coming back is clean
             resetForm()
         }
     }

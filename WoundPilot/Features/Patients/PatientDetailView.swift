@@ -39,13 +39,13 @@ struct PatientDetailView: View {
                 )
                 .cardStyle(bg: cardBG, stroke: stroke)
 
-               
                 // Primary action (uniform width, same radius)
-                NavigationLink(destination: WoundGroupPickerView(patient: patient) { groupId, groupName in
-                    // when a group is chosen, you can push next view
-                    // For now just debug print — later wire to WoundImageSourceView or location picker
-                    print("Selected group: \(groupId) - \(groupName)")
-                }) {
+                NavigationLink(
+                    destination: WoundGroupPickerView(patient: patient) { groupId, groupName in
+                        // later: route to capture/location flow
+                        print("Selected group: \(groupId) - \(groupName)")
+                    }
+                ) {
                     Text(LocalizedStrings.newWoundEntry)
                         .font(.headline)
                         .frame(maxWidth: .infinity)
@@ -62,18 +62,22 @@ struct PatientDetailView: View {
                 // Info / History as matching cards
                 VStack(spacing: 12) {
                     NavigationLink(destination: PatientInfoView(patient: patient)) {
-                        RowCard(icon: "person.text.rectangle",
-                                iconTint: .blue,
-                                title: LocalizedStrings.viewPatientInfo)
-                            .cardStyle(bg: cardBG, stroke: stroke)
+                        RowCard(
+                            icon: "person.text.rectangle",
+                            iconTint: .blue,
+                            title: LocalizedStrings.viewPatientInfo
+                        )
+                        .cardStyle(bg: cardBG, stroke: stroke)
                     }
                     .buttonStyle(.plain)
 
                     NavigationLink(destination: WoundListView(patient: patient)) {
-                        RowCard(icon: "list.bullet.rectangle.portrait",
-                                iconTint: .gray,
-                                title: LocalizedStrings.viewWoundHistory)
-                            .cardStyle(bg: cardBG, stroke: stroke)
+                        RowCard(
+                            icon: "list.bullet.rectangle.portrait",
+                            iconTint: .gray,
+                            title: LocalizedStrings.viewWoundHistory
+                        )
+                        .cardStyle(bg: cardBG, stroke: stroke)
                     }
                     .buttonStyle(.plain)
                 }
@@ -85,6 +89,8 @@ struct PatientDetailView: View {
         .background(pageBG.ignoresSafeArea())
         .navigationTitle(LocalizedStrings.patientDetailsTitle)
         .navigationBarTitleDisplayMode(.inline)
+        // ensure system components (e.g., date, numbers) follow the active language
+        .environment(\.locale, Locale(identifier: langManager.currentLanguage.rawValue))
     }
 }
 
@@ -115,8 +121,13 @@ private struct HeaderCard: View {
             // Monogram avatar (subtle)
             ZStack {
                 Circle()
-                    .fill(LinearGradient(colors: [Color.cyan.opacity(0.22), Color.blue.opacity(0.12)],
-                                         startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.cyan.opacity(0.22), Color.blue.opacity(0.12)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                 Text(initials)
                     .font(.title3.weight(.semibold))
                     .foregroundColor(.blue)
@@ -136,10 +147,10 @@ private struct HeaderCard: View {
 
                 // Badges row – short, consistent “pills”
                 HStack(spacing: 6) {
-                    Tag(icon: "calendar", text: "\(age)")
-                    if isDiabetic { Tag(icon: "drop.fill", text: "DM") }
-                    if isSmoker   { Tag(icon: "lungs.fill", text: LocalizedStrings.smokerShort) } // you added this key
-                    if hasPAD     { Tag(icon: "figure.walk.motion", text: "PAD") }
+                    Tag(icon: "calendar", text: "\(age) \(LocalizedStrings.ageShort)")
+                    if isDiabetic { Tag(icon: "drop.fill", text: LocalizedStrings.abbrevDM) }
+                    if isSmoker   { Tag(icon: "lungs.fill", text: LocalizedStrings.smokerShort) }
+                    if hasPAD     { Tag(icon: "figure.walk.motion", text: LocalizedStrings.abbrevPAD) }
                 }
             }
 

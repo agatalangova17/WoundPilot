@@ -210,7 +210,8 @@ struct ReportView: View {
                             HStack(spacing: 12) {
                                 Image(systemName: "bolt.fill")
                                     .foregroundColor(.blue)
-                                Text("Quick Scan - Not saved to patient records")
+                                Text(LocalizedStrings.t("Quick Scan – Not saved to patient records",
+                                                        "Rýchly sken – neukladá sa do dokumentácie"))
                                     .font(.subheadline.weight(.medium))
                                 Spacer()
                             }
@@ -228,7 +229,7 @@ struct ReportView: View {
                                 .animation(.easeOut(duration: 0.35), value: animate)
                         }
 
-                        // Hero header (NO wound grading)
+                        // Hero header (no grading chip)
                         HeroHeader(
                             title: LocalizedStrings.analysisReportTitle,
                             diagnosisTitle: LocalizedStrings.diagnosisField,
@@ -261,7 +262,8 @@ struct ReportView: View {
                         Button {
                             goToDressing = true
                         } label: {
-                            Label("Select Dressings", systemImage: "bandage.fill")
+                            Label(LocalizedStrings.t("Select Dressings", "Vybrať krytie"),
+                                  systemImage: "bandage.fill")
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
@@ -371,7 +373,7 @@ struct ReportView: View {
 
         } catch {
             print("PDF generation error: \(error)")
-            errorMessage = "Failed to create PDF: \(error.localizedDescription)"
+            errorMessage = LocalizedStrings.t("Failed to create PDF:", "Nepodarilo sa vytvoriť PDF:") + " " + error.localizedDescription
         }
     }
 
@@ -435,7 +437,7 @@ private enum PDFComposer {
             let b64 = data.base64EncodedString()
             return """
             <div class="photo-card">
-                <div class="photo-meta">Wound Photo</div>
+                <div class="photo-meta">\(escape(LocalizedStrings.t("Wound Photo", "Fotografia rany")))</div>
                 <img class="photo" src="data:image/jpeg;base64,\(b64)" />
             </div>
             """
@@ -475,7 +477,7 @@ private enum PDFComposer {
                 (LocalizedStrings.secInfection, prettyInfection(q.infection)),
                 (LocalizedStrings.secMoisture, prettyMoisture(q.moisture)),
                 (LocalizedStrings.secEdge,     prettyEdge(q.edge)),
-                ("ABI",                         prettyABI(q.abi)),
+                (LocalizedStrings.t("ABI", "ABI"),  prettyABI(q.abi)),
                 (LocalizedStrings.rowPulses,    q.pulses.capitalized),
                 (LocalizedStrings.rowExposedBone, yesNo(q.exposedBone)),
                 (LocalizedStrings.rowProbeToBone, yesNo(q.probeToBone)),
@@ -486,7 +488,7 @@ private enum PDFComposer {
             let trs = rows.map { "<tr><th>\(escape($0.0))</th><td>\(escape($0.1))</td></tr>" }.joined()
             return """
             <div class="card">
-                <div class="card-title">Clinical Details</div>
+                <div class="card-title">\(escape(LocalizedStrings.t("Clinical Details", "Klinické údaje")))</div>
                 <table class="kv">
                     \(trs)
                 </table>
@@ -545,9 +547,9 @@ private enum PDFComposer {
                 <div class="diag">\(escape(report.diagnosis))</div>
                 \(chipsHTML)
                 <div class="meta">
-                    <div><strong>ID:</strong> \(escape(patientId))</div>
-                    <div><strong>WG:</strong> \(escape(woundGroupId))</div>
-                    <div><strong>Date:</strong> \(escape(dateStr))</div>
+                    <div><strong>\(escape(LocalizedStrings.t("ID", "ID"))):</strong> \(escape(patientId))</div>
+                    <div><strong>\(escape(LocalizedStrings.t("WG", "WG"))):</strong> \(escape(woundGroupId))</div>
+                    <div><strong>\(escape(LocalizedStrings.t("Date", "Dátum"))):</strong> \(escape(dateStr))</div>
                 </div>
             </div>
 
@@ -565,7 +567,10 @@ private enum PDFComposer {
             \(detailsHTML)
 
             <div class="footer">
-                This report supports— and does not replace — clinical judgment. Escalate according to red flags and local policy.
+                \(escape(LocalizedStrings.t(
+                    "This report supports— and does not replace — clinical judgment. Escalate according to red flags and local policy.",
+                    "Tento report podporuje — a nenahrádza — klinické rozhodovanie. Postupujte podľa varovných príznakov a lokálnych postupov."
+                )))
             </div>
         </body>
         </html>

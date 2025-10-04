@@ -39,7 +39,7 @@ struct ManualMeasurementView: View {
             Section {
                 infoBox
             } header: {
-                Text("Manual Measurement")
+                Text(LocalizedStrings.manualMeasurementHeaderTitle)
             }
             
             Section {
@@ -47,7 +47,7 @@ struct ManualMeasurementView: View {
                     HStack {
                         Image(systemName: "photo.on.rectangle.angled")
                             .foregroundColor(.blue)
-                        Text("Add Photo (Optional)")
+                        Text(LocalizedStrings.manualPhotoAddOptional)
                         Spacer()
                         if loadedImage != nil {
                             Image(systemName: "checkmark.circle.fill")
@@ -64,63 +64,63 @@ struct ManualMeasurementView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
             } header: {
-                Text("Photo")
+                Text(LocalizedStrings.manualPhotoSectionTitle)
             } footer: {
-                Text("For best results, include a ruler or coin in the photo for reference")
+                Text(LocalizedStrings.manualPhotoHint)
             }
             
             Section {
                 HStack {
-                    Text("Length")
+                    Text(LocalizedStrings.manualLengthLabel)
                         .frame(width: 80, alignment: .leading)
-                    TextField("0.0", text: $lengthText)
+                    TextField(LocalizedStrings.numericPlaceholderZero, text: $lengthText)
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
-                    Text("cm")
+                    Text(LocalizedStrings.cmUnit)
                         .foregroundColor(.secondary)
                 }
                 
                 HStack {
-                    Text("Width")
+                    Text(LocalizedStrings.manualWidthLabel)
                         .frame(width: 80, alignment: .leading)
-                    TextField("0.0", text: $widthText)
+                    TextField(LocalizedStrings.numericPlaceholderZero, text: $widthText)
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
-                    Text("cm")
+                    Text(LocalizedStrings.cmUnit)
                         .foregroundColor(.secondary)
                 }
                 
                 if let area = areaCm2 {
                     HStack {
-                        Text("Area")
+                        Text(LocalizedStrings.measureLabelArea)
                             .frame(width: 80, alignment: .leading)
                         Spacer()
-                        Text(String(format: "%.1f cm²", area))
+                        Text("\(String(format: "%.1f", area)) \(LocalizedStrings.cm2Unit)")
                             .foregroundColor(.secondary)
                     }
                 }
             } header: {
-                Text("Measurements")
+                Text(LocalizedStrings.manualMeasurementsSectionTitle)
             } footer: {
-                Text("Measure the longest axis for length and the widest perpendicular point for width")
+                Text(LocalizedStrings.manualMeasurementsHint)
             }
         }
-        .navigationTitle("Manual Entry")
+        .navigationTitle(LocalizedStrings.manualEntryTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             // REMOVED: Cancel button - user can use system back button
             
             ToolbarItem(placement: .confirmationAction) {
-                Button("Save") {
+                Button(LocalizedStrings.saveAction) {
                     saveAndComplete()
                 }
                 .disabled(!canSave)
             }
         }
-        .alert("Invalid Measurements", isPresented: $showValidationError) {
-            Button("OK") {}
+        .alert(LocalizedStrings.manualInvalidMeasurementsTitle, isPresented: $showValidationError) {
+            Button(LocalizedStrings.ok) {}
         } message: {
-            Text("Please enter valid measurements between 0.1 and 100 cm")
+            Text(LocalizedStrings.manualInvalidMeasurementsMessage)
         }
         .onChange(of: selectedPhoto) { _, newItem in
             Task {
@@ -134,11 +134,11 @@ struct ManualMeasurementView: View {
     
     private var infoBox: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("AR measurement unavailable", systemImage: "info.circle.fill")
+            Label(LocalizedStrings.manualArUnavailable, systemImage: "info.circle.fill")
                 .font(.subheadline.weight(.medium))
                 .foregroundColor(.blue)
             
-            Text("Use a ruler to measure the wound's length (longest dimension) and width (widest perpendicular point). Optionally add a photo with a reference object visible.")
+            Text(LocalizedStrings.manualInfoText)
                 .font(.caption)
                 .foregroundColor(.secondary)
         }

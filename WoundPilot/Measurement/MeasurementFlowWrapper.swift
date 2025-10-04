@@ -23,7 +23,7 @@ struct MeasurementFlowWrapper: View {
                     Color.black.opacity(0.3).ignoresSafeArea()
                     VStack(spacing: 16) {
                         ProgressView().scaleEffect(1.5).tint(.white)
-                        Text("Saving wound...").foregroundColor(.white)
+                        Text(LocalizedStrings.savingWoundSpinner).foregroundColor(.white)
                     }
                     .padding(24)
                     .background(RoundedRectangle(cornerRadius: 16).fill(Color(.systemBackground)))
