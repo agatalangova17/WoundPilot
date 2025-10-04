@@ -2,30 +2,32 @@ import SwiftUI
 import UIKit
 import FirebaseFirestore
 
-// MARK: - Optimized Questionnaire (8 steps with skip logic)
-
 struct QuestionnaireView: View {
     let woundGroupId: String
     let patientId: String
-    var isQuickScan: Bool = false  // NEW
+    var isQuickScan: Bool = false
     var measurementResult: WoundMeasurementResult? = nil
+
     @ObservedObject var langManager = LocalizationManager.shared
 
-    // Streamlined steps
     enum Step: Int, CaseIterable, Hashable {
         case etiology
-        case tissueInfection   // Combined
+        case duration
+        case tissue
+        case infection
         case moisture
         case edge
-        case perfusion         // Skipped for venous/pressure
-        case boneInvolvement   // Skipped if not relevant
+        case perfusion
+        case boneInvolvement
         case comorbidities
         case redFlags
 
         var title: String {
             switch self {
             case .etiology: return LocalizedStrings.secEtiology
-            case .tissueInfection: return "Tissue & Infection"
+            case .duration: return LocalizedStrings.secDuration
+            case .tissue: return LocalizedStrings.secTissue
+            case .infection: return LocalizedStrings.secInfection
             case .moisture: return LocalizedStrings.secMoisture
             case .edge: return LocalizedStrings.secEdge
             case .perfusion: return LocalizedStrings.secPerfusion
@@ -36,21 +38,21 @@ struct QuestionnaireView: View {
         }
     }
 
-    // Core answers
-    @State private var etiology: String = "unknown"
-    @State private var duration: String = "unknown"
-    @State private var tissue: String = "unknown"
-    @State private var infection: String = "none"
-    @State private var moisture: String = "unknown"
-    @State private var edge: String = "unknown"
-    @State private var abi: String = "unknown"
-    @State private var pulses: String = "unknown"
+    // Stored values
+    @State private var etiology: String = ""
+    @State private var duration: String = ""
+    @State private var tissue: String = ""
     @State private var exposedBone = false
+    @State private var infection: String = ""
     @State private var probeToBone = false
+    @State private var moisture: String = ""
+    @State private var edge: String = ""
+    @State private var abi: String = ""
+    @State private var pulses: String = ""
     @State private var comorbidities: Set<String> = []
     @State private var redFlags: Set<String> = []
 
-    // Infection detail (shown conditionally)
+    // Infection detail
     @State private var showInfectionDetail = false
     @State private var hasPurulence = false
     @State private var hasErythema = false
@@ -61,41 +63,63 @@ struct QuestionnaireView: View {
     @State private var showNextView = false
     @State private var step: Step = .etiology
     @State private var completedSteps: Set<Step> = []
-    @State private var showResumeBanner = false
-
-    // Navigation history for smart back button
     @State private var navigationHistory: [Step] = []
+
+    // Computed properties for conditional rendering
+    private var shouldShowPerfusion: Bool {
+        etiology == "arterial" || etiology == "diabeticFoot"
+    }
+
+    private var shouldShowBoneInvolvement: Bool {
+        etiology == "diabeticFoot" || tissue == "necrosis"
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
             VStack(spacing: 10) {
                 StepIndicator(
-                    currentIndex: currentIndex,
+                    currentIndex: navigationHistory.count + 1,
                     total: estimatedTotalSteps,
                     title: step.title
                 )
                 .padding(.top, 8)
+                
+                // Show wound size if available
+                if let measurements = measurementResult {
+                    HStack(spacing: 8) {
+                        Image(systemName: "ruler")
+                            .foregroundColor(.blue)
+                        Text("Wound: \(String(format: "%.1f", measurements.lengthCm)) × \(String(format: "%.1f", measurements.widthCm)) cm")
+                            .font(.caption.weight(.medium))
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.blue.opacity(0.1), in: Capsule())
+                }
 
                 if let urgent = urgentBannerText {
                     Banner(text: urgent, style: .danger)
                         .padding(.horizontal)
                 }
-
-                if showResumeBanner {
-                    resumeBanner
-                }
             }
             .padding(.bottom, 8)
 
-            // Steps
             TabView(selection: $step) {
                 etiologyStep.tag(Step.etiology)
-                tissueInfectionStep.tag(Step.tissueInfection)
+                durationStep.tag(Step.duration)
+                tissueStep.tag(Step.tissue)
+                infectionStep.tag(Step.infection)
                 moistureStep.tag(Step.moisture)
                 edgeStep.tag(Step.edge)
-                perfusionStep.tag(Step.perfusion)
-                boneInvolvementStep.tag(Step.boneInvolvement)
+                
+                if shouldShowPerfusion {
+                    perfusionStep.tag(Step.perfusion)
+                }
+                
+                if shouldShowBoneInvolvement {
+                    boneInvolvementStep.tag(Step.boneInvolvement)
+                }
+                
                 comorbiditiesStep.tag(Step.comorbidities)
                 redFlagsStep.tag(Step.redFlags)
             }
@@ -107,7 +131,6 @@ struct QuestionnaireView: View {
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $showNextView) {
             if isQuickScan {
-                // Quick scan - pass in-memory payload
                 let payload = QuestionnairePayload(
                     etiology: etiology,
                     duration: duration,
@@ -132,7 +155,6 @@ struct QuestionnaireView: View {
                     measurementResult: measurementResult
                 )
             } else {
-                // Patient flow - fetch from Firestore
                 ReportView(
                     woundGroupId: woundGroupId,
                     patientId: patientId,
@@ -145,58 +167,53 @@ struct QuestionnaireView: View {
         .onChange(of: tissue) { autoSave() }
         .onChange(of: infection) { autoSave() }
     }
-
+    
     // MARK: - Steps
 
     private var etiologyStep: some View {
         questionCard(title: LocalizedStrings.secEtiology) {
-            VStack(spacing: 16) {
-                // Quick templates at top
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Quick start").font(.caption).foregroundColor(.secondary)
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            templateChip("Venous leg ulcer") {
-                                applyVenousTemplate()
-                            }
-                            templateChip("Pressure injury") {
-                                applyPressureTemplate()
-                            }
-                            templateChip("Diabetic foot") {
-                                applyDiabeticTemplate()
-                            }
-                        }
-                    }
-                }
-                .padding(.bottom, 8)
+            IconChoiceGrid(selection: $etiology, options: etiologyOptions) {
+                markComplete(.etiology)
+                goNext()
+            }
+        }
+    }
 
-                Divider()
-
-                IconChoiceGrid(selection: $etiology, options: etiologyOptions) {
-                    markComplete(.etiology)
+    private var durationStep: some View {
+        questionCard(title: LocalizedStrings.secDuration) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("How long has this wound been present?")
+                    .font(.subheadline.weight(.semibold))
+                
+                SegmentedChips(selection: $duration, options: durationOptions) {
+                    markComplete(.duration)
                     goNext()
                 }
             }
         }
     }
 
-    private var tissueInfectionStep: some View {
-        questionCard(title: "Tissue & Infection") {
+    private var tissueStep: some View {
+        questionCard(title: LocalizedStrings.secTissue) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Predominant tissue type in wound bed")
+                    .font(.subheadline.weight(.semibold))
+                
+                SegmentedChips(selection: $tissue, options: tissueOptions) {
+                    markComplete(.tissue)
+                    goNext()
+                }
+            }
+        }
+    }
+
+    private var infectionStep: some View {
+        questionCard(title: LocalizedStrings.secInfection) {
             VStack(alignment: .leading, spacing: 16) {
-                // Tissue
-                Text("Predominant tissue type")
-                    .font(.subheadline.weight(.semibold))
-                SegmentedChips(selection: $tissue, options: tissueOptions)
-
-                Divider().padding(.vertical, 4)
-
-                // Infection severity
-                Text("Infection/inflammation signs")
-                    .font(.subheadline.weight(.semibold))
                 SeverityScale(selection: $infection, options: infectionOptions) {
                     showInfectionDetail = (infection != "none")
                     if !showInfectionDetail {
-                        markComplete(.tissueInfection)
+                        markComplete(.infection)
                         goNext()
                     }
                 }
@@ -211,6 +228,13 @@ struct QuestionnaireView: View {
                         ToggleRow(title: "Purulent discharge", isOn: $hasPurulence)
                         ToggleRow(title: "Erythema >2cm", isOn: $hasErythema)
                         ToggleRow(title: "Fever/systemic illness", isOn: $hasSystemicSigns)
+                        
+                        if !hasAnyInfectionSign {
+                            Text("Please select at least one clinical sign or change to 'None'")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                                .padding(.top, 4)
+                        }
                     }
                     .padding(12)
                     .background(
@@ -308,7 +332,7 @@ struct QuestionnaireView: View {
     private var comorbiditiesStep: some View {
         questionCard(title: LocalizedStrings.secComorbidities) {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Select all that apply")
+                Text("Select all that apply (optional)")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
@@ -320,7 +344,7 @@ struct QuestionnaireView: View {
     private var redFlagsStep: some View {
         questionCard(title: LocalizedStrings.secRedFlags) {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Any concerning signs?")
+                Text("Any concerning signs? (optional)")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
@@ -337,24 +361,23 @@ struct QuestionnaireView: View {
 
     private var footer: some View {
         VStack(spacing: 8) {
-            // Inline summary
             if !completedSteps.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        if etiology != "unknown" {
+                        if !etiology.isEmpty {
                             summaryChip(labelFor(etiology, in: etiologyOptions), icon: "checkmark.circle.fill")
                         }
-                        if tissue != "unknown" {
+                        if !tissue.isEmpty {
                             summaryChip(labelFor(tissue, in: tissueOptions), icon: "drop.fill")
                         }
-                        if infection != "none" {
+                        if infection != "none" && !infection.isEmpty {
                             summaryChip(
                                 labelFor(infection, in: infectionOptions),
                                 icon: "exclamationmark.triangle.fill",
                                 color: infection == "systemic" ? .red : .orange
                             )
                         }
-                        if moisture != "unknown" {
+                        if !moisture.isEmpty {
                             summaryChip(labelFor(moisture, in: moistureOptions), icon: "drop.fill")
                         }
                     }
@@ -415,42 +438,20 @@ struct QuestionnaireView: View {
         .foregroundColor(color)
     }
 
-    private var resumeBanner: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "arrow.clockwise.circle.fill")
-            Text("Resume from where you left off")
-                .font(.footnote.weight(.medium))
-            Spacer()
-            Button("Start over") {
-                clearDraft()
-                showResumeBanner = false
-            }
-            .font(.caption.weight(.semibold))
-            .foregroundColor(.blue)
-        }
-        .padding(12)
-        .background(Color.blue.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
-        .padding(.horizontal)
-    }
-
-    // MARK: - Navigation with Skip Logic
-
-    private var currentIndex: Int {
-        navigationHistory.count + 1
-    }
+    // MARK: - Navigation
 
     private var estimatedTotalSteps: Int {
-        var total = 5 // etiology, tissue+infection, moisture, edge, comorbidities, redflags
+        var total = 6 // etiology, duration, tissue, infection, moisture, edge
         
-        // Add perfusion if arterial/diabetic
         if etiology == "arterial" || etiology == "diabeticFoot" {
-            total += 1
+            total += 1 // perfusion
         }
         
-        // Add bone if diabetic foot or necrotic
         if etiology == "diabeticFoot" || tissue == "necrosis" {
-            total += 1
+            total += 1 // bone
         }
+        
+        total += 2 // comorbidities, redflags
         
         return total
     }
@@ -459,9 +460,12 @@ struct QuestionnaireView: View {
         step == .redFlags
     }
 
+    private var hasAnyInfectionSign: Bool {
+        hasPurulence || hasErythema || hasSystemicSigns
+    }
+
     private func goNext() {
         guard let next = nextStep(after: step) else {
-            // Reached end, save
             save()
             return
         }
@@ -486,23 +490,27 @@ struct QuestionnaireView: View {
     private func nextStep(after current: Step) -> Step? {
         switch current {
         case .etiology:
-            return .tissueInfection
+            return .duration
             
-        case .tissueInfection:
+        case .duration:
+            return .tissue
+            
+        case .tissue:
+            return .infection
+            
+        case .infection:
             return .moisture
             
         case .moisture:
             return .edge
             
         case .edge:
-            // Skip perfusion for venous/pressure (rarely ischemic)
             if etiology == "venous" || etiology == "pressure" {
                 return .comorbidities
             }
             return .perfusion
             
         case .perfusion:
-            // Skip bone involvement if not diabetic foot and not necrotic
             if etiology != "diabeticFoot" && tissue != "necrosis" {
                 return .comorbidities
             }
@@ -515,18 +523,25 @@ struct QuestionnaireView: View {
             return .redFlags
             
         case .redFlags:
-            return nil // Done
+            return nil
         }
     }
 
     private func isStepAnswered(_ s: Step) -> Bool {
         switch s {
-        case .etiology: return etiology != "unknown"
-        case .tissueInfection: return tissue != "unknown" && infection != "unknown"
-        case .moisture: return moisture != "unknown"
-        case .edge: return edge != "unknown"
-        case .perfusion: return abi != "unknown" && pulses != "unknown"
-        case .boneInvolvement: return true // toggles always valid
+        case .etiology: return !etiology.isEmpty
+        case .duration: return !duration.isEmpty
+        case .tissue: return !tissue.isEmpty
+        case .infection:
+            if infection.isEmpty { return false }
+            if infection != "none" && showInfectionDetail {
+                return hasAnyInfectionSign
+            }
+            return true
+        case .moisture: return !moisture.isEmpty
+        case .edge: return !edge.isEmpty
+        case .perfusion: return !abi.isEmpty && !pulses.isEmpty
+        case .boneInvolvement: return true
         case .comorbidities: return true
         case .redFlags: return true
         }
@@ -534,120 +549,6 @@ struct QuestionnaireView: View {
 
     private func markComplete(_ step: Step) {
         completedSteps.insert(step)
-    }
-
-    // MARK: - Quick Templates
-
-    private func templateChip(_ label: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(label)
-                .font(.caption.weight(.semibold))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Capsule().fill(Color.blue.opacity(0.15)))
-                .foregroundColor(.blue)
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func applyVenousTemplate() {
-        etiology = "venous"
-        tissue = "granulation"
-        infection = "none"
-        moisture = "moderate"
-        edge = "attached"
-        // Skip perfusion automatically via logic
-        Haptics.success()
-    }
-
-    private func applyPressureTemplate() {
-        etiology = "pressure"
-        tissue = "slough"
-        infection = "local"
-        moisture = "moderate"
-        edge = "undermined"
-        Haptics.success()
-    }
-
-    private func applyDiabeticTemplate() {
-        etiology = "diabeticFoot"
-        tissue = "necrosis"
-        infection = "local"
-        moisture = "low"
-        edge = "rolled"
-        probeToBone = true
-        comorbidities.insert("diabetes")
-        comorbidities.insert("neuropathy")
-        Haptics.success()
-    }
-
-    // MARK: - Auto-save
-
-    private func autoSave() {
-        let draft: [String: Any] = [
-            "etiology": etiology,
-            "tissue": tissue,
-            "infection": infection,
-            "moisture": moisture,
-            "edge": edge,
-            "abi": abi,
-            "pulses": pulses,
-            "exposedBone": exposedBone,
-            "probeToBone": probeToBone,
-            "comorbidities": Array(comorbidities),
-            "redFlags": Array(redFlags),
-            "timestamp": Date().timeIntervalSince1970
-        ]
-        UserDefaults.standard.set(draft, forKey: "questionnaire_draft_\(woundGroupId)")
-    }
-
-    private func loadDraft() {
-        guard let draft = UserDefaults.standard.dictionary(forKey: "questionnaire_draft_\(woundGroupId)") else {
-            return
-        }
-        
-        // Check if draft is recent (< 24 hours old)
-        if let timestamp = draft["timestamp"] as? TimeInterval {
-            let age = Date().timeIntervalSince1970 - timestamp
-            if age > 86400 { // 24 hours
-                clearDraft()
-                return
-            }
-        }
-        
-        etiology = draft["etiology"] as? String ?? "unknown"
-        tissue = draft["tissue"] as? String ?? "unknown"
-        infection = draft["infection"] as? String ?? "none"
-        moisture = draft["moisture"] as? String ?? "unknown"
-        edge = draft["edge"] as? String ?? "unknown"
-        abi = draft["abi"] as? String ?? "unknown"
-        pulses = draft["pulses"] as? String ?? "unknown"
-        exposedBone = draft["exposedBone"] as? Bool ?? false
-        probeToBone = draft["probeToBone"] as? Bool ?? false
-        comorbidities = Set(draft["comorbidities"] as? [String] ?? [])
-        redFlags = Set(draft["redFlags"] as? [String] ?? [])
-        
-        if etiology != "unknown" {
-            showResumeBanner = true
-        }
-    }
-
-    private func clearDraft() {
-        UserDefaults.standard.removeObject(forKey: "questionnaire_draft_\(woundGroupId)")
-        etiology = "unknown"
-        tissue = "unknown"
-        infection = "none"
-        moisture = "unknown"
-        edge = "unknown"
-        abi = "unknown"
-        pulses = "unknown"
-        exposedBone = false
-        probeToBone = false
-        comorbidities = []
-        redFlags = []
-        completedSteps = []
-        navigationHistory = []
-        step = .etiology
     }
 
     // MARK: - Logic
@@ -672,15 +573,14 @@ struct QuestionnaireView: View {
         isSaving = true
 
         if isQuickScan {
-            // Quick scan - just navigate to report without saving
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 isSaving = false
+                clearDraft()
                 showNextView = true
             }
             return
         }
 
-        // Regular patient flow - save to Firebase
         let db = Firestore.firestore()
         let ref = db.collection("woundGroups").document(woundGroupId)
 
@@ -717,6 +617,58 @@ struct QuestionnaireView: View {
         }
     }
 
+    // MARK: - Auto-save
+
+    private func autoSave() {
+        let draft: [String: Any] = [
+            "etiology": etiology,
+            "duration": duration,
+            "tissue": tissue,
+            "infection": infection,
+            "moisture": moisture,
+            "edge": edge,
+            "abi": abi,
+            "pulses": pulses,
+            "exposedBone": exposedBone,
+            "probeToBone": probeToBone,
+            "comorbidities": Array(comorbidities),
+            "redFlags": Array(redFlags),
+            "timestamp": Date().timeIntervalSince1970
+        ]
+        UserDefaults.standard.set(draft, forKey: "questionnaire_draft_\(woundGroupId)")
+    }
+
+    private func loadDraft() {
+        guard let draft = UserDefaults.standard.dictionary(forKey: "questionnaire_draft_\(woundGroupId)") else {
+            return
+        }
+        
+        if let timestamp = draft["timestamp"] as? TimeInterval {
+            let age = Date().timeIntervalSince1970 - timestamp
+            if age > 86400 {
+                clearDraft()
+                return
+            }
+        }
+        
+        etiology = draft["etiology"] as? String ?? ""
+        duration = draft["duration"] as? String ?? ""
+        tissue = draft["tissue"] as? String ?? ""
+        infection = draft["infection"] as? String ?? ""
+        moisture = draft["moisture"] as? String ?? ""
+        edge = draft["edge"] as? String ?? ""
+        abi = draft["abi"] as? String ?? ""
+        pulses = draft["pulses"] as? String ?? ""
+        exposedBone = draft["exposedBone"] as? Bool ?? false
+        probeToBone = draft["probeToBone"] as? Bool ?? false
+        comorbidities = Set(draft["comorbidities"] as? [String] ?? [])
+        redFlags = Set(draft["redFlags"] as? [String] ?? [])
+    }
+
+    private func clearDraft() {
+        UserDefaults.standard.removeObject(forKey: "questionnaire_draft_\(woundGroupId)")
+    }
+
     // MARK: - Helpers
 
     private func questionCard<Content: View>(
@@ -724,13 +676,9 @@ struct QuestionnaireView: View {
         @ViewBuilder content: () -> Content
     ) -> some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(title)
-                .font(.title3.bold())
-                .padding(.horizontal)
-
+            Text(title).font(.title3.bold()).padding(.horizontal)
             GroupCard { content() }
                 .padding(.horizontal)
-
             Spacer(minLength: 24)
         }
     }
@@ -740,7 +688,7 @@ struct QuestionnaireView: View {
     }
 }
 
-// MARK: - UI Components (reused from original)
+// MARK: - UI Components
 
 private struct StepIndicator: View {
     let currentIndex: Int
@@ -819,7 +767,7 @@ private struct GroupCard<Content: View>: View {
     }
 }
 
-// MARK: - Input Components (reused from original with minor tweaks)
+// Input components
 
 private struct IconChoiceGrid: View {
     @Binding var selection: String
@@ -1004,15 +952,9 @@ private struct ToggleRow: View {
         Toggle(isOn: $isOn) {
             Text(title).font(.subheadline)
         }
-        .onChange(of: isOn) { oldValue, newValue in
-            if newValue {
-                Haptics.light()
-            }
-         }
+        .onChange(of: isOn) { _ in Haptics.light() }
     }
 }
-
-// MARK: - Models (reused from original)
 
 private struct Option: Identifiable, Hashable {
     let id: String
@@ -1020,7 +962,8 @@ private struct Option: Identifiable, Hashable {
     let sfSymbol: String?
 }
 
-// Options (same as before)
+// Options
+
 private var etiologyOptions: [Option] {
     [
         .init(id: "venous", label: LocalizedStrings.optEtiologyVenous, sfSymbol: "drop.fill"),
@@ -1028,8 +971,15 @@ private var etiologyOptions: [Option] {
         .init(id: "diabeticFoot", label: LocalizedStrings.optEtiologyDiabetic, sfSymbol: "figure.walk"),
         .init(id: "pressure", label: LocalizedStrings.optEtiologyPressure, sfSymbol: "bed.double.fill"),
         .init(id: "trauma", label: LocalizedStrings.optEtiologyTrauma, sfSymbol: "bandage.fill"),
-        .init(id: "surgical", label: LocalizedStrings.optEtiologySurgical, sfSymbol: "scissors"),
-        .init(id: "unknown", label: LocalizedStrings.optUnknown, sfSymbol: "questionmark.circle")
+        .init(id: "surgical", label: LocalizedStrings.optEtiologySurgical, sfSymbol: "scissors")
+    ]
+}
+
+private var durationOptions: [Option] {
+    [
+        .init(id: "lt4w", label: LocalizedStrings.optDurationLt4w, sfSymbol: nil),
+        .init(id: "w4to12", label: LocalizedStrings.optDuration4to12, sfSymbol: nil),
+        .init(id: "gt12w", label: LocalizedStrings.optDurationGt12w, sfSymbol: nil)
     ]
 }
 
@@ -1037,8 +987,7 @@ private var tissueOptions: [Option] {
     [
         .init(id: "granulation", label: LocalizedStrings.optTissueGranulation, sfSymbol: nil),
         .init(id: "slough", label: LocalizedStrings.optTissueSlough, sfSymbol: nil),
-        .init(id: "necrosis", label: LocalizedStrings.optTissueNecrosis, sfSymbol: nil),
-        .init(id: "unknown", label: LocalizedStrings.optUnknown, sfSymbol: nil)
+        .init(id: "necrosis", label: LocalizedStrings.optTissueNecrosis, sfSymbol: nil)
     ]
 }
 
@@ -1071,16 +1020,14 @@ private var abiOptions: [Option] {
     [
         .init(id: "ge0_8", label: LocalizedStrings.optAbiGE0_8, sfSymbol: nil),
         .init(id: "p0_5to0_79", label: LocalizedStrings.optAbi0_5to0_79, sfSymbol: nil),
-        .init(id: "lt0_5", label: LocalizedStrings.optAbiLT0_5, sfSymbol: nil),
-        .init(id: "unknown", label: LocalizedStrings.optUnknown, sfSymbol: nil)
+        .init(id: "lt0_5", label: LocalizedStrings.optAbiLT0_5, sfSymbol: nil)
     ]
 }
 
 private var pulsesOptions: [Option] {
     [
         .init(id: "yes", label: LocalizedStrings.optYes, sfSymbol: nil),
-        .init(id: "no", label: LocalizedStrings.optNo, sfSymbol: nil),
-        .init(id: "unknown", label: LocalizedStrings.optUnknown, sfSymbol: nil)
+        .init(id: "no", label: LocalizedStrings.optNo, sfSymbol: nil)
     ]
 }
 
@@ -1102,8 +1049,6 @@ private var redFlagOptions: [Option] {
         .init(id: "systemicUnwell", label: LocalizedStrings.optRFSystemic, sfSymbol: nil)
     ]
 }
-
-// MARK: - Haptics Helper
 
 enum Haptics {
     static func light() {
