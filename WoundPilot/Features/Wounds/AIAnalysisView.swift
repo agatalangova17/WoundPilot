@@ -46,7 +46,6 @@ struct AIReport {
     let diagnosis: String
     let woundType: String
     let healingStage: String
-    let woundStage: String
     let etiologyLine: String
     let recommendations: [String]
     let banners: [String]
@@ -70,10 +69,9 @@ enum Rec: Hashable {
 
 struct RulesEngine {
     static func analyze(_ q: QuestionnairePayload) -> AIReport {
-        let woundType   = LocalizedStrings.mapWoundTypeLabel(for: q.etiology)
+        let woundType    = LocalizedStrings.mapWoundTypeLabel(for: q.etiology)
         let healingStage = LocalizedStrings.mapHealingStageLabel(for: q.tissue)
-        let woundStage  = mapWoundStage(q)
-        let diagnosis   = mapDiagnosis(etiology: q.etiology, duration: q.duration, abi: q.abi, infection: q.infection)
+        let diagnosis    = mapDiagnosis(etiology: q.etiology, duration: q.duration, abi: q.abi, infection: q.infection)
         let etiologyLine = LocalizedStrings.mapEtiologyLine(for: q.etiology)
 
         var banners: [String] = []
@@ -132,18 +130,10 @@ struct RulesEngine {
             diagnosis: diagnosis,
             woundType: woundType,
             healingStage: healingStage,
-            woundStage: woundStage,
             etiologyLine: etiologyLine,
             recommendations: recoText,
             banners: banners
         )
-    }
-
-    private static func mapWoundStage(_ q: QuestionnairePayload) -> String {
-        if q.etiology == "diabeticFoot", q.probeToBone {
-            return LocalizedStrings.woundStageWagnerSuspected
-        }
-        return LocalizedStrings.woundStageNotStaged
     }
 
     private static func mapDiagnosis(etiology: String, duration: String, abi: String, infection: String) -> String {
@@ -173,7 +163,7 @@ struct ReportView: View {
     var isQuickScan: Bool = false
     var quickScanPayload: QuestionnairePayload? = nil
     var measurementResult: WoundMeasurementResult? = nil
-    
+
     @State private var loading = true
     @State private var report: AIReport?
     @State private var payload: QuestionnairePayload?
@@ -238,18 +228,15 @@ struct ReportView: View {
                                 .animation(.easeOut(duration: 0.35), value: animate)
                         }
 
-                        // Hero header
+                        // Hero header (NO wound grading)
                         HeroHeader(
                             title: LocalizedStrings.analysisReportTitle,
                             diagnosisTitle: LocalizedStrings.diagnosisField,
                             diagnosis: report.diagnosis,
                             chips: [
-                                .init(icon: "bandage.fill",         title: LocalizedStrings.woundTypeField,    value: report.woundType),
-                                .init(icon: "waveform.path.ecg",    title: LocalizedStrings.healingStageField, value: report.healingStage),
-                                .init(icon: "chart.bar.fill",       title: LocalizedStrings.woundStageField,   value: report.woundStage)
-                            ],
-                            stageLabel: report.woundStage,
-                            stageProgress: stageProgress(for: report.healingStage)
+                                .init(icon: "bandage.fill",      title: LocalizedStrings.woundTypeField,    value: report.woundType),
+                                .init(icon: "waveform.path.ecg", title: LocalizedStrings.healingStageField, value: report.healingStage)
+                            ]
                         )
                         .padding(.horizontal)
                         .opacity(animate ? 1 : 0)
@@ -361,7 +348,7 @@ struct ReportView: View {
 
     private func exportPDF() {
         guard let report else { return }
-        
+
         do {
             let pdfData = try PDFComposer.make(
                 report: report,
@@ -370,34 +357,22 @@ struct ReportView: View {
                 woundGroupId: woundGroupId,
                 heroImage: heroImage
             )
-            
+
             // Save to Documents directory
             let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             let fileName = "WoundReport_\(Date().timeIntervalSince1970).pdf"
             let pdfURL = documentsPath.appendingPathComponent(fileName)
-            
+
             try pdfData.write(to: pdfURL, options: .atomic)
-            
-            print("PDF saved to: \(pdfURL.path)")
-            print("File exists: \(FileManager.default.fileExists(atPath: pdfURL.path))")
-            
+
             // Share the URL
             shareItems = [pdfURL]
             showShare = true
-            
+
         } catch {
             print("PDF generation error: \(error)")
             errorMessage = "Failed to create PDF: \(error.localizedDescription)"
         }
-    }
-
-    // Visual progress for ring based on healing stage
-    private func stageProgress(for healing: String) -> Double {
-        let l = healing.lowercased()
-        if l.contains("granul") { return 0.75 }
-        if l.contains("slough") || l.contains("inflam") { return 0.45 }
-        if l.contains("necrot") || l.contains("isch") { return 0.2 }
-        return 0.35
     }
 
     // Icon mapping for recommendation cards
@@ -474,7 +449,6 @@ private enum PDFComposer {
         <div class="chips">
             <div class="chip"><span>\(escape(LocalizedStrings.woundTypeField))</span>\(escape(report.woundType))</div>
             <div class="chip"><span>\(escape(LocalizedStrings.healingStageField))</span>\(escape(report.healingStage))</div>
-            <div class="chip"><span>\(escape(LocalizedStrings.woundStageField))</span>\(escape(report.woundStage))</div>
         </div>
         """
 
@@ -536,7 +510,7 @@ private enum PDFComposer {
             .header .title { font-weight: 700; letter-spacing: .2px; margin-bottom: 6pt; }
             .header .diag-label { font-size: 9pt; opacity: .9; font-weight: 600; }
             .header .diag { font-size: 16pt; font-weight: 800; margin: 2pt 0 8pt; }
-            .chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6pt; }
+            .chips { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6pt; }
             .chip { background: rgba(255,255,255,.18); color: #fff; border-radius: 10pt; padding: 8pt 10pt; font-size: 9pt; font-weight: 700; }
             .chip span { display:block; font-size:8pt; opacity:.9; font-weight:700; margin-bottom:2pt; }
             .meta { display:flex; gap:12pt; margin-top: 6pt; font-size: 9pt; opacity: .95; }
@@ -724,11 +698,9 @@ private struct HeroHeader: View {
     let diagnosisTitle: String
     let diagnosis: String
     let chips: [Chip]
-    let stageLabel: String
-    let stageProgress: Double
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
+        ZStack {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(
                     LinearGradient(colors: [Color.accentColor, Color.accentColor.opacity(0.9)],
@@ -781,35 +753,8 @@ private struct HeroHeader: View {
                 }
             }
             .padding(16)
-
-            ProgressRing(progress: stageProgress, label: stageLabel)
-                .padding(12)
         }
         .shadow(color: .black.opacity(0.16), radius: 14, y: 8)
-    }
-}
-
-private struct ProgressRing: View {
-    let progress: Double
-    let label: String
-
-    var body: some View {
-        ZStack {
-            Circle().stroke(.white.opacity(0.25), lineWidth: 8)
-                .frame(width: 64, height: 64)
-            Circle()
-                .trim(from: 0, to: CGFloat(min(max(progress, 0), 1)))
-                .stroke(.white, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-                .frame(width: 64, height: 64)
-            Text(label)
-                .font(.system(size: 10, weight: .bold))
-                .foregroundStyle(.white)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .minimumScaleFactor(0.6)
-                .frame(width: 54)
-        }
     }
 }
 
@@ -898,10 +843,10 @@ private struct RecommendationCard: View {
 
 private struct ActivityView: UIViewControllerRepresentable {
     let items: [Any]
-    
+
     func makeUIViewController(context: Context) -> UIActivityViewController {
         UIActivityViewController(activityItems: items, applicationActivities: nil)
     }
-    
+
     func updateUIViewController(_ vc: UIActivityViewController, context: Context) {}
 }
