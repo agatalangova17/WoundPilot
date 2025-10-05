@@ -1,8 +1,8 @@
 import SwiftUI
 
-// Keep if you use it elsewhere
+
 struct BodyAtlas {
-    let imageName: String = "graph"   // asset name in your Assets.xcassets
+    let imageName: String = "graph"
     let width: CGFloat = 900
     let height: CGFloat = 1200
     var aspectRatio: CGFloat { width / height }
@@ -39,7 +39,7 @@ struct WoundLocationPickerView: View {
                                 regionButton("front_left_elbow",         0.40,  0.39, in: ig.size)
                                 regionButton("front_right_forearm",      0.15,  0.48, in: ig.size)
                                 regionButton("front_left_forearm",       0.42,  0.48, in: ig.size)
-                                // NOTE: a couple of keys have a typo "quandrant" in the data; we map both in LocalizedStrings.
+                                
                                 regionButton("abdomen_right_upper_quandrant", 0.25, 0.42, in: ig.size)
                                 regionButton("abdomen_left_upper_quadrant",   0.33, 0.42, in: ig.size)
                                 regionButton("abdomen_right_lower_quandrant", 0.25, 0.48, in: ig.size)
@@ -102,7 +102,7 @@ struct WoundLocationPickerView: View {
         .environment(\.locale, Locale(identifier: langManager.currentLanguage.rawValue))
     }
 
-    // MARK: - Tap target (size scales with image width)
+    
     @ViewBuilder
     private func regionButton(_ key: String, _ nx: CGFloat, _ ny: CGFloat, in size: CGSize) -> some View {
         let isSelected = (selectedRegion == key)
@@ -113,7 +113,7 @@ struct WoundLocationPickerView: View {
             onConfirm(key)
         } label: {
             Circle()
-                .fill(Color.black.opacity(0.001)) // must be non-zero to receive taps
+                .fill(Color.black.opacity(0.001)) 
                 .frame(width: d, height: d)
                 .overlay(
                     Circle()

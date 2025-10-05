@@ -62,7 +62,7 @@ struct AnalyticsView: View {
             }
             .navigationTitle(LocalizedStrings.analyticsTitle)
             .onAppear { fetchAnalyticsData() }
-            // iOS 16/17-safe change listener
+            
             .onChangeCompat(timeRange) { fetchAnalyticsData() }
         }
     }
@@ -72,7 +72,7 @@ struct AnalyticsView: View {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         let db = Firestore.firestore()
 
-        // derive start date
+        
         let now = Date()
         let startDate: Date? = {
             switch timeRange {

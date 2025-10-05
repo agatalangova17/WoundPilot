@@ -12,7 +12,7 @@ struct WoundGroupPickerView: View {
     @State private var newGroupName: String = ""
     @State private var isLoading = true
 
-    // Needs Hashable for navigationDestination(item:)
+    
     private struct ChosenGroup: Identifiable, Hashable {
         let id: String
         let name: String
@@ -145,7 +145,6 @@ struct WoundGroupPickerView: View {
                     let data = doc.data()
                     if let pid = data["patientId"] as? String,
                        let name = data["name"] as? String {
-                        // Pass the new optional fields explicitly (nil is fine)
                         return WoundGroup(
                             id: doc.documentID,
                             name: name,
@@ -168,7 +167,6 @@ struct WoundGroupPickerView: View {
         let groupData: [String: Any] = [
             "name": newGroupName.trimmingCharacters(in: .whitespacesAndNewlines),
             "patientId": patient.id
-            // You can also persist bodyRegionCode/side/subsite later when chosen
         ]
         newDoc.setData(groupData) { error in
             guard error == nil else { return }

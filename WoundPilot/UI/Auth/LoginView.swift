@@ -12,7 +12,7 @@ struct LoginView: View {
     @State private var password = ""
     @State private var errorMessage = ""
 
-    // Inline validation messages
+    
     @State private var emailError = ""
     @State private var passwordError = ""
 

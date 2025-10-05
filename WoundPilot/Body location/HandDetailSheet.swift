@@ -4,7 +4,7 @@ struct HandDetailSheet: View {
     @Binding var selection: String?
     var onDone: () -> Void
 
-    // Stable codes; UI text comes from LocalizedStrings
+    
     private let fingerCodes = ["thumb", "index", "middle", "ring", "pinky"]
     private let areaCodes   = ["palm", "thenar", "hypothenar", "wrist", "dorsum"]
 

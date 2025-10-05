@@ -18,7 +18,7 @@ struct ForgotPasswordView: View {
         ScrollView {
             VStack(spacing: 16) {
 
-                // Email field (no extra label)
+                // Email
                 TextField(LocalizedStrings.enterEmailPlaceholder, text: $email)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled(true)
@@ -44,7 +44,7 @@ struct ForgotPasswordView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                // Primary action (solid blue, no gradient)
+                // Primary action 
                 Button(LocalizedStrings.sendResetEmailButton) {
                     sendPasswordReset()
                 }

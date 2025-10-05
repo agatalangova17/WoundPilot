@@ -170,12 +170,12 @@ struct BodyLocalizationView: View {
     private func handleRegionSelected(_ region: String) {
         selectedRegion = region
         
-        // Reset context
+        
         selectedSubsite = nil
         footDetail = nil
         handDetail = nil
         
-        // Extract side from region code
+        
         selectedSide = extractSide(from: region)
         
         if regionNeedsSubsite(region) {

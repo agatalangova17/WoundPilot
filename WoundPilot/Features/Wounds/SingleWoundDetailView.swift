@@ -75,10 +75,10 @@ struct SingleWoundDetailView: View {
             areaCm2 = calculatedArea
         }
 
-        // Store for questionnaire navigation
+        
         measurementResult = result
 
-        // Persist to Firestore
+        
         WoundService.shared.addMeasurement(
             woundId: wound.id,
             lengthCm: lengthCm,

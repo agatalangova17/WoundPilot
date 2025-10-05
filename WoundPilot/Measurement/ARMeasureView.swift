@@ -17,7 +17,7 @@ struct ARMeasureView: View {
     var onComplete: ((WoundMeasurementResult) -> Void)?
     var onSwitchToManual: (() -> Void)?
     
-    // State managed by coordinator
+    
     @State private var measurementState = ARMeasurementState()
     @State private var trackingLabel = LocalizedStrings.arInitializing
     @State private var trackingIsGood = false
@@ -83,7 +83,7 @@ struct ARMeasureView: View {
     
     private var topBar: some View {
         HStack(spacing: 12) {
-            // Removed close button - user can use system back button
+            
             
             // Tracking quality
             HStack(spacing: 6) {
@@ -219,10 +219,10 @@ struct ARMeasureView: View {
         guard let length = lengthCm,
               let width = widthCm else { return }
         
-        // Capture photo from AR session
+        
         NotificationCenter.default.post(name: .arCapturePhoto, object: nil)
         
-        // Brief delay to allow photo capture
+        
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             let result = WoundMeasurementResult(
                 lengthCm: length,

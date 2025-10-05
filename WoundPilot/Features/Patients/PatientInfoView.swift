@@ -5,7 +5,7 @@ struct PatientInfoView: View {
     @ObservedObject var langManager = LocalizationManager.shared
     @State private var showEdit = false
 
-    // Localized DOB
+    
     private var formattedDOB: String {
         let df = DateFormatter()
         df.dateStyle = .medium
@@ -14,7 +14,7 @@ struct PatientInfoView: View {
         return df.string(from: patient.dateOfBirth)
     }
 
-    // Map stored value (code or legacy/localized) to localized display
+    
     private var sexDisplay: String {
         let raw = (patient.sex ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         switch raw {

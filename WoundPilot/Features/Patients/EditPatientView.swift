@@ -11,7 +11,7 @@ struct EditPatientView: View {
     @State private var name: String
     @State private var dateOfBirth: Date
 
-    // Store a stable code; UI shows localized label
+    
     @State private var sexCode: String
     private let sexCodes = ["unspecified", "male", "female"]
 
@@ -95,7 +95,7 @@ struct EditPatientView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    // Map stored/legacy values (possibly localized) to stable codes
+    
     private static func computeSexCode(from raw: String?) -> String {
         let v = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if ["male", "m", "muž"].contains(v) { return "male" }
@@ -112,7 +112,7 @@ struct EditPatientView: View {
         }
     }
 
-    // Locale-aware decimal parsing (handles “72,5” and “72.5”)
+    
     private func parseLocalizedDouble(_ text: String) -> Double? {
         let fmt = NumberFormatter()
         fmt.locale = Locale(identifier: langManager.currentLanguage.rawValue)
@@ -120,7 +120,7 @@ struct EditPatientView: View {
         if let n = fmt.number(from: text.trimmingCharacters(in: .whitespaces)) {
             return n.doubleValue
         }
-        // Fallback: basic dot/comma swap
+        
         let swapped = text.replacingOccurrences(of: ",", with: ".")
         return Double(swapped)
     }
@@ -141,7 +141,7 @@ struct EditPatientView: View {
         var data: [String: Any] = [
             "name": name.trimmingCharacters(in: .whitespaces),
             "dateOfBirth": Timestamp(date: dateOfBirth),
-            "sex": sexCode, // store stable code
+            "sex": sexCode, 
             "isDiabetic": isDiabetic,
             "isSmoker": isSmoker,
             "hasPAD": hasPAD,

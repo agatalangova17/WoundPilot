@@ -4,7 +4,7 @@ struct FootDetailSheet: View {
     @Binding var selection: String?
     var onDone: () -> Void
 
-    // Stable codes; text comes from LocalizedStrings
+    
     private let toeOptions  = ["toe_1", "toe_2", "toe_3", "toe_4", "toe_5"]
     private let heelOptions = ["heel_central", "heel_medial", "heel_lateral"]
     private let zoneOptions = ["forefoot", "midfoot", "hindfoot", "plantar_arch"]

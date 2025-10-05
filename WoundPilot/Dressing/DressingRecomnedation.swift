@@ -235,7 +235,7 @@ private struct ProductRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(product.name) // already localized below in engine
+                Text(product.name)
                     .font(.subheadline.weight(.semibold))
                 Spacer()
                 if product.priority == .preferred {
@@ -248,12 +248,11 @@ private struct ProductRow: View {
                 }
             }
 
-            Text(product.rationale) // already localized below in engine
+            Text(product.rationale)
                 .font(.caption)
                 .foregroundColor(.secondary)
 
             if !product.examples.isEmpty {
-                // Build a localized line like: "Examples: A, B, C"
                 let line = "\(LocalizedStrings.examplesPrefix) \(product.examples.joined(separator: ", "))"
                 Text(line)
                     .font(.caption)
@@ -279,15 +278,15 @@ struct DressingRecommendations {
 
 struct DressingProduct: Identifiable {
     let id = UUID()
-    let name: String       // localized
-    let rationale: String  // localized
-    let examples: [String] // brand names (proper nouns)
+    let name: String
+    let rationale: String
+    let examples: [String]
     let priority: Priority
 
     enum Priority { case preferred, alternative }
 }
 
-// MARK: - Dressing Engine (Rules-based, fully localized)
+// MARK: - Dressing Engine (Rules-based)
 
 enum DressingEngine {
     static func recommend(measurements: WoundMeasurementResult, assessment: QuestionnairePayload) -> DressingRecommendations {
@@ -465,7 +464,7 @@ enum DressingEngine {
     }
 }
 
-// MARK: - PDF Composer (localized)
+// MARK: - PDF Composer 
 
 private enum CompletePDFComposer {
     static func make(

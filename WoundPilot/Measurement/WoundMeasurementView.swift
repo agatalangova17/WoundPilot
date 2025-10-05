@@ -16,7 +16,7 @@ struct WoundMeasurementView: View {
                 ARMeasureView(
                     onComplete: { result in
                         onComplete?(result)
-                        // REMOVED: dismiss() - let parent handle navigation
+                        
                     },
                     onSwitchToManual: {
                         showManualEntry = true
@@ -25,7 +25,7 @@ struct WoundMeasurementView: View {
             } else {
                 ManualMeasurementView(onComplete: { result in
                     onComplete?(result)
-                    // REMOVED: dismiss() - let parent handle navigation
+                    
                 })
             }
         }

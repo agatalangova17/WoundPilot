@@ -16,7 +16,7 @@ struct PatientListView: View {
     @State private var selectedPatient: Patient?
     @State private var showPatientDetail = false
 
-    // Search
+    
     @State private var searchText = ""
     @State private var scope: SearchScope = .all
 
@@ -24,7 +24,7 @@ struct PatientListView: View {
     private var results: [Patient] {
         var list = patients
 
-        // Scope filter
+        
         switch scope {
         case .all: break
         case .diabetic: list = list.filter { $0.isDiabetic == true }
@@ -32,7 +32,7 @@ struct PatientListView: View {
         case .pad:      list = list.filter { $0.hasPAD     == true }
         }
 
-        // Text search (name, age, or year in DOB)
+        
         let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { return list }
 
@@ -50,7 +50,7 @@ struct PatientListView: View {
         }
     }
 
-    // Suggestions: common tags + top names
+    
     private var nameSuggestions: [String] {
         let names = patients.map { $0.name }.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
         return Array(names.prefix(6))
@@ -109,7 +109,7 @@ struct PatientListView: View {
                 }
             }
             .environment(\.locale, Locale(identifier: langManager.currentLanguage.rawValue))
-            // 👇 Search UI
+            
             .searchable(
                 text: $searchText,
                 placement: .navigationBarDrawer(displayMode: .always),
@@ -169,7 +169,7 @@ struct PatientListView: View {
 
     private func patientBadges(_ p: Patient) -> [Badge] {
         var items: [Badge] = []
-        // age
+        
         items.append(Badge(icon: "calendar", text: String(age(from: p.dateOfBirth))))
         if p.isDiabetic == true {
             items.append(Badge(icon: "drop.fill", text: LocalizedStrings.badgeDM))
@@ -191,7 +191,7 @@ struct PatientListView: View {
         Calendar.current.dateComponents([.year], from: dob, to: Date()).year ?? 0
     }
 
-    // Stable pastel color for the accent strip
+    
     private func color(from seed: String) -> Color {
         var total = 0
         for u in seed.unicodeScalars { total = Int(u.value) &+ total }

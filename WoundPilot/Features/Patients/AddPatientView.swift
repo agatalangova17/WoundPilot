@@ -9,7 +9,7 @@ struct AddPatientView: View {
     @State private var name: String = ""
     @State private var dateOfBirth = Date()
 
-    // Stable codes; UI shows localized labels
+    
     @State private var sexCode = "unspecified"
     private let sexCodes = ["unspecified", "male", "female"]
 
@@ -41,7 +41,7 @@ struct AddPatientView: View {
                         ForEach(sexCodes, id: \.self) { code in
                             Text(localizedSexTitle(code))
                                 .tag(code)
-                                .accessibilityLabel(Text(localizedSexTitle(code))) // a11y uses localized text
+                                .accessibilityLabel(Text(localizedSexTitle(code)))
                         }
                     }
                 }
@@ -93,7 +93,7 @@ struct AddPatientView: View {
         }
     }
 
-    // Localized title for sex codes (stored value remains a stable code)
+    
     private func localizedSexTitle(_ code: String) -> String {
         switch code {
         case "male": return LocalizedStrings.sexMale
@@ -102,7 +102,7 @@ struct AddPatientView: View {
         }
     }
 
-    // Parse decimal using current locale (handles “72,5” and “72.5”)
+    
     private func parseLocalizedDouble(_ text: String) -> Double? {
         let fmt = NumberFormatter()
         fmt.locale = Locale(identifier: langManager.currentLanguage.rawValue)
@@ -110,7 +110,7 @@ struct AddPatientView: View {
         if let n = fmt.number(from: text.trimmingCharacters(in: .whitespaces)) {
             return n.doubleValue
         }
-        // fallback: try dot/comma swap
+        
         let swapped = text.replacingOccurrences(of: ",", with: ".")
         return Double(swapped)
     }
@@ -143,7 +143,7 @@ struct AddPatientView: View {
             "allergies": allergies.trimmingCharacters(in: .whitespaces)
         ]
 
-        if let w = parseLocalizedDouble(weight) { data["weight"] = w } // add only if valid
+        if let w = parseLocalizedDouble(weight) { data["weight"] = w } 
 
         // Remove empty string fields
         data = data.filter { key, value in

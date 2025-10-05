@@ -42,7 +42,6 @@ struct PatientDetailView: View {
                 // Primary action (uniform width, same radius)
                 NavigationLink(
                     destination: WoundGroupPickerView(patient: patient) { groupId, groupName in
-                        // later: route to capture/location flow
                         print("Selected group: \(groupId) - \(groupName)")
                     }
                 ) {
@@ -89,7 +88,6 @@ struct PatientDetailView: View {
         .background(pageBG.ignoresSafeArea())
         .navigationTitle(LocalizedStrings.patientDetailsTitle)
         .navigationBarTitleDisplayMode(.inline)
-        // ensure system components (e.g., date, numbers) follow the active language
         .environment(\.locale, Locale(identifier: langManager.currentLanguage.rawValue))
     }
 }
@@ -145,7 +143,7 @@ private struct HeaderCard: View {
                     .font(.footnote)
                     .foregroundColor(.secondary)
 
-                // Badges row – short, consistent “pills”
+                
                 HStack(spacing: 6) {
                     Tag(icon: "calendar", text: "\(age) \(LocalizedStrings.ageShort)")
                     if isDiabetic { Tag(icon: "drop.fill", text: LocalizedStrings.abbrevDM) }

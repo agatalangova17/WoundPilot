@@ -65,7 +65,7 @@ struct QuestionnaireView: View {
     @State private var completedSteps: Set<Step> = []
     @State private var navigationHistory: [Step] = []
 
-    // Computed properties for conditional rendering
+    
     private var shouldShowPerfusion: Bool {
         etiology == "arterial" || etiology == "diabeticFoot"
     }

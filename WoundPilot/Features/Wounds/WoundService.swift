@@ -162,7 +162,7 @@ class WoundService {
                 return
             }
 
-            // Mirror latest on parent
+            
             var latest: [String: Any] = [
                 "length_cm": lengthCm,
                 "width_cm":  widthCm,
@@ -240,7 +240,7 @@ class WoundService {
         woundGroupId: String,
         completion: @escaping (Result<[WoundMeasurement], Error>) -> Void
     ) {
-        // First, get all wounds in this group
+        
         db.collection("wounds")
             .whereField("woundGroupId", isEqualTo: woundGroupId)
             .getDocuments { snapshot, error in
@@ -257,7 +257,7 @@ class WoundService {
                 var allMeasurements: [WoundMeasurement] = []
                 let group = DispatchGroup()
                 
-                // For each wound, fetch its measurements
+                
                 for doc in docs {
                     let woundId = doc.documentID
                     group.enter()
@@ -275,7 +275,7 @@ class WoundService {
                 }
                 
                 group.notify(queue: .main) {
-                    // Sort all measurements by date
+                    
                     let sorted = allMeasurements.sorted { $0.measured_at < $1.measured_at }
                     completion(.success(sorted))
                 }

@@ -51,9 +51,9 @@ struct AIReport {
     let banners: [String]
 }
 
-// =====================================================
-// MARK: - Rules Engine (uses only public LocalizedStrings)
-// =====================================================
+// ====================
+// MARK: - Rules Engine
+// ====================
 
 enum Rec: Hashable {
     case cleanse, protectPeriwound
@@ -150,9 +150,9 @@ struct RulesEngine {
     }
 }
 
-// =====================================================
-// MARK: - Analysis View (polished UI + pretty PDF with photo)
-// =====================================================
+// ======================
+// MARK: - Analysis View
+// ======================
 
 struct ReportView: View {
     @ObservedObject var langManager = LocalizationManager.shared
@@ -171,7 +171,7 @@ struct ReportView: View {
     @State private var animate = false
     @State private var goToDressing = false
 
-    // Sharing
+    
     @State private var shareItems: [Any] = []
     @State private var showShare = false
 
@@ -360,14 +360,14 @@ struct ReportView: View {
                 heroImage: heroImage
             )
 
-            // Save to Documents directory
+            
             let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             let fileName = "WoundReport_\(Date().timeIntervalSince1970).pdf"
             let pdfURL = documentsPath.appendingPathComponent(fileName)
 
             try pdfData.write(to: pdfURL, options: .atomic)
 
-            // Share the URL
+            
             shareItems = [pdfURL]
             showShare = true
 
@@ -377,7 +377,7 @@ struct ReportView: View {
         }
     }
 
-    // Icon mapping for recommendation cards
+    
     private func iconForRecommendation(_ text: String) -> String {
         let t = text.lowercased()
 

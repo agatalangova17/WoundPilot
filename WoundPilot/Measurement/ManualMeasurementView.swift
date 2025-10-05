@@ -13,7 +13,6 @@ struct ManualMeasurementView: View {
     @State private var loadedImage: UIImage?
     @State private var showValidationError = false
     
-    // REMOVED: @Environment(\.dismiss) private var dismiss
     
     private var lengthCm: Float? {
         Float(lengthText.replacingOccurrences(of: ",", with: "."))
@@ -108,7 +107,7 @@ struct ManualMeasurementView: View {
         .navigationTitle(LocalizedStrings.manualEntryTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            // REMOVED: Cancel button - user can use system back button
+            
             
             ToolbarItem(placement: .confirmationAction) {
                 Button(LocalizedStrings.saveAction) {
@@ -165,6 +164,6 @@ struct ManualMeasurementView: View {
         )
         
         onComplete?(result)
-        // REMOVED: dismiss() - let parent handle navigation
+        
     }
 }
