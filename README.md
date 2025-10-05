@@ -1,179 +1,122 @@
 # WoundPilot – Smart Wound Analysis for Clinicians  
-*A modern AI-powered wound care assistant, built with SwiftUI and Firebase.*
+*A mobile wound assessment and management application for healthcare professionals, built with Swift and Firebase.*
 
 ---
 
-## 🧭 Overview
+## Overview
 
-**WoundPilot** is a clinically-focused iOS app designed to help healthcare professionals capture, document, and analyze chronic wounds using AI and CoreML (coming soon). Built with a secure Firebase backend and a polished SwiftUI interface, WoundPilot aims to modernize wound tracking and simplify digital documentation for doctors in the field or in the clinic.
+WoundPilot is an iOS application that uses AR/LiDAR technology to measure chronic wounds and provides evidence-based treatment recommendations using the TIME framework. The app supports both individual patient tracking and quick assessment modes.
 
 > ⚠️ Currently under active development
 
 ---
 
-## ✨ Key Features
+## Key Features
 
-- 📸 **Wound Photo Capture** – Take or upload high-resolution images of wounds  
-- 🧠 **AI-Powered Analysis** (coming soon) – Automated wound stage and type detection via CoreML  
-- 🔒 **Secure Login & Authentication** – Firebase Auth with email & password login  
-- 🧾 **Wound History by Patient** – View, group, and track healing over time  
-- 📍 **Wound Location Mapping** – Select body region using interactive diagram  
-- 📊 **Healing Graphs** – Visualize wound progress over time  
-- ⚙️ **Firebase Firestore & Storage** – Secure cloud-based storage of wound data and images
-- 🌐 **Multilingual Support** – English and Slovak language options (UI localization)  
+**Core Functionality**
 
----
+- AR Wound Measurement: Uses iPhone LiDAR to measure wound dimensions (length, width, area)
+- Clinical Assessment: TIME framework-based questionnaire (Tissue, Infection, Moisture, Edge)
+- Treatment Recommendations: Algorithm-driven suggestions for dressing selection and wound management
+- Patient Management: Track multiple patients and wound groups over time
+- Healing Analytics: Visual charts showing wound progression
+- Bilingual Support: English and Slovak localization
 
-## 📸 Screenshots
+**Key Workflows**
 
-<img src="WoundPilot/Screenshots/dashboard.png" alt="Dashboard screen" width="350"/>
-
-*Main dashboard with fast access to scanning, patient management, and clinical tips.*
-
-<img src="WoundPilot/Screenshots/capture.png" alt="Wound capture options" width="350"/>
-
-*Flexible image input: real-time camera, photo library, or dummy wound image.*
-
-<img src="WoundPilot/Screenshots/locationpicker.png" alt="Wound location picker" width="350"/>
-
-*Interactive anatomical diagram for selecting precise wound regions.*
-
-<img src="WoundPilot/Screenshots/getstarted.png" alt="Get Started AI steps" width="350"/>
-
-*Simple 3-step guide before starting AI-powered wound evaluation.*
-
-<img src="WoundPilot/Screenshots/analytics.png" alt="Analytics view" width="350"/>
-
-*Analytics showing total patients and wound captures across time ranges.*
-
-<img src="WoundPilot/Screenshots/sharing.png" alt="Case sharing view" width="350"/>
-
-*Secure sharing and referrals for clinician-to-clinician collaboration.*
-
-<img src="WoundPilot/Screenshots/welcome.png" alt="Welcome screen" width="350"/>
-
-*Friendly clinical assistant welcoming users with secure onboarding.*
-
-## 🧠 AI Analysis (Coming Soon)
-
-WoundPilot will integrate a custom CoreML model trained on wound image datasets to provide:
-
-- Wound type classification (e.g., pressure ulcer, diabetic ulcer)  
-- Stage detection (e.g., necrotic, granulating, epithelizing)  
-- Etiology suggestions and possible differential diagnoses  
-- Healing trend predictions based on previous images  
-
-This feature is currently under development with a custom training pipeline using CoreML and real clinical image data.
+- **Patient Flow:** Patient → Wound → AR Measurement → Assessment → Report → Dressing Recommendations
+- **Quick Scan:** Anonymous assessment without patient records (for teaching/consultation)
 
 ---
 
-## 🔧 Tech Stack
+## Tech Stack
 
-| Layer        | Tools/Frameworks                           |
-|--------------|---------------------------------------------|
-| **Frontend** | SwiftUI, Combine                           |
-| **Backend**  | Firebase Authentication, Firestore, Storage |
-| **AI**       | CoreML (planned), Vision, Custom Model      |
-| **UI Design**| SF Symbols, Swift Charts                    |
+- **Language:** Swift 5.9
+- **Framework:** SwiftUI
+- **Backend:** Firebase (Firestore, Storage, Auth)
+- **AR:** ARKit, RealityKit
+- **Minimum iOS:** 17.0
+- **Device Requirements:** iPhone with LiDAR (iPhone 12 Pro and newer)
 
 ---
 
-## 🗂 Project Structure (simplified)
+## Current Architecture (simplified)
 
 ```
 WoundPilot/
-├── Views/
-│   ├── HomeView.swift
-│   ├── CaptureWoundView.swift
-│   ├── WoundListView.swift
-│   ├── QuestionnaireView.swift
-│   └── ...
-├── Services/
-│   ├── FirebaseService.swift
-│   ├── WoundService.swift
-│   └── ...
 ├── Models/
+│   ├── Patient.swift
 │   ├── Wound.swift
-│   └── Patient.swift
-├── Utilities/
-│   └── ImagePicker.swift
-└── WoundPilotApp.swift
+│   └── WoundMeasurementResult.swift
+├── Features/
+│   ├── Patients/
+│   ├── Wounds/
+│   ├── Measurement/
+│   │   └── ARMeasureView.swift
+│   ├── Questionnaire/
+│   │   └── QuestionnaireView.swift
+│   └── Dressing/
+│       └── DressingRecommendationView.swift
+├── Language/
+│   └── LocalizationManager.swift
+└── Services/
+    └── WoundService.swift
 ```
 
 ---
+## Clinical Decision Support
 
-## 🚀 Getting Started
+The app implements evidence-based algorithms for:
 
-### Requirements
+- **Venous Ulcers:** Compression therapy recommendations based on ABI
+- **Arterial Ulcers:** Vascular referral triggers, debridement contraindications
+- **Diabetic Foot Ulcers:** Offloading, infection management, osteomyelitis screening
+- **Pressure Ulcers:** Pressure redistribution guidance
+- **Dressing Selection:** Moisture management, antimicrobial dressings, sizing calculations
 
-- macOS (Monterey or later)  
-- Xcode 15+  
-- Firebase account + configured iOS app  
-- Swift 5.9+  
-
-### Installation
-
-1. Clone the repository:
-
-```bash
-git clone https://github.com/yourusername/WoundPilot.git
-cd WoundPilot
-```
-
-2. Open `WoundPilot.xcodeproj` in Xcode.
-
-3. Configure Firebase:
-   - Download your `GoogleService-Info.plist`
-   - Add it to the Xcode project root
-
-4. Build & run on iOS Simulator or device
-
----
-
-## 🔐 Privacy & Security
+## Privacy & Security
 
 WoundPilot stores all sensitive data using Firebase with the following practices:
 
-- ✅ **Authentication** via secure Firebase Auth  
-- ✅ **No local storage of medical images** (stored only in Firebase Storage)  
-- ✅ **Realtime Firestore database rules** restrict access to user-owned data  
-- ✅ **No 3rd-party analytics or tracking** included  
-- ✅ **HIPAA compliance goals** in progress (AI and data processing plans aligned)  
+- **Authentication** via secure Firebase Auth  
+- **No local storage of medical images** (stored only in Firebase Storage)  
+- **Realtime Firestore database rules** restrict access to user-owned data  
+- **No 3rd-party analytics or tracking** included  
+- **HIPAA compliance goals** in progress 
 
 ---
 
-## 🛣 Roadmap
+## Known Issues
 
-- [x] Basic patient and wound capture flow  
-- [x] Secure login and Firestore integration  
-- [x] Body location picker  
-- [x] Healing graph (Swift Charts)  
-- [ ] AI size and general wound analysis via CoreML  
-- [ ] Questionnaire scoring and risk classification  
-- [ ] TestFlight release  
-- [ ] Localization: Full Slovak + English language support
+- PDF export generates file but renders blank (HTML/CSS parsing issue)
+- AR measurements are currently not very accurate
+
 
 ---
 
-## 👨‍💻 Author
-
+## Author
 **[@agatalangova17](https://github.com/agatalangova17)**  
-Aspiring mobile developer, passionate about clinical technology, privacy, and human-centered design.
+Aspiring mobile developer, passionate about clinical technology, privacy, and design.
 
 ---
 
-## 📨 Contact
+## Contact
 
 Feel free to reach out if you're interested in collaboration, internships, or feedback!
 
-📧 Email: agata.langova17@gmail.com
-🌐 GitHub: [github.com/agatalangova17](https://github.com/agatalangova17)
+Email: agata.langova17@gmail.com
+GitHub: [github.com/agatalangova17](https://github.com/agatalangova17)
 
 ---
 
-## 📄 License
+## Contributing
+
+This is an academic project. For questions or suggestions, contact agata.langova17@gmail.com.
+
+---
+
+## License
 
 © 2025 WoundPilot. All rights reserved.
 
-This project is intended for educational and portfolio use only.  
-Do not reproduce, redistribute, or deploy without permission.
+Note: This application is intended for educational and clinical decision support purposes. It does not replace professional medical judgment. All treatment decisions should be made by qualified healthcare professionals. Do not reproduce, redistribute, or deploy without permission.
