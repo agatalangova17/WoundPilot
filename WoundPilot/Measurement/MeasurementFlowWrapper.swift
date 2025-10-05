@@ -1,6 +1,7 @@
 import SwiftUI
 import FirebaseFirestore
 import FirebaseStorage
+import FirebaseAuth
 
 struct MeasurementFlowWrapper: View {
     let patient: Patient?
@@ -78,26 +79,49 @@ struct MeasurementFlowWrapper: View {
     }
     
     private func createWound(result: WoundMeasurementResult, imageURL: String?, patientId: String) {
-        let woundData: [String: Any] = [
+        let woundGroupIdToUse = woundGroupId ?? UUID().uuidString
+        
+        // Save to woundGroups (new architecture - for questionnaire)
+        let woundGroupData: [String: Any] = [
             "patientId": patientId,
-            "woundGroupId": woundGroupId ?? "",
             "location": locationString ?? "",
             "imageURL": imageURL ?? "",
             "lengthCm": result.lengthCm,
             "widthCm": result.widthCm,
             "areaCm2": result.areaCm2 ?? 0,
             "measurementMethod": result.method.rawValue,
-            "timestamp": FieldValue.serverTimestamp()
+            "createdAt": FieldValue.serverTimestamp()
+        ]
+        
+        Firestore.firestore()
+            .collection("woundGroups")
+            .document(woundGroupIdToUse)
+            .setData(woundGroupData, merge: true)
+        
+        // ALSO save to wounds collection (old architecture - for display)
+        guard let userId = Auth.auth().currentUser?.uid else {
+            isSaving = false
+            return
+        }
+        
+        let woundData: [String: Any] = [
+            "imageURL": imageURL ?? "",
+            "timestamp": FieldValue.serverTimestamp(),
+            "location": locationString ?? "",
+            "woundGroupId": woundGroupIdToUse,
+            "woundGroupName": "Wound \(Date().formatted(date: .abbreviated, time: .omitted))",
+            "patientId": patientId,
+            "userId": userId
         ]
         
         Firestore.firestore().collection("wounds").addDocument(data: woundData) { error in
-            DispatchQueue.main.async {
-                isSaving = false
-                if error == nil {
-                    savedWoundId = woundGroupId
-                    goToQuestionnaire = true
+                DispatchQueue.main.async {
+                    isSaving = false
+                    if error == nil {
+                        savedWoundId = woundGroupIdToUse
+                        goToQuestionnaire = true
+                    }
                 }
             }
-        }
     }
 }

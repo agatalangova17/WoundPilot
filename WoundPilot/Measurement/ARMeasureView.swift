@@ -12,8 +12,6 @@ import UIKit
 import ARKit
 import RealityKit
 
-import SwiftUI
-import ARKit
 
 struct ARMeasureView: View {
     var onComplete: ((WoundMeasurementResult) -> Void)?
@@ -78,6 +76,7 @@ struct ARMeasureView: View {
             }
         }
         .ignoresSafeArea()
+        .toolbar(.hidden, for: .tabBar) 
     }
     
     // MARK: - UI Components
