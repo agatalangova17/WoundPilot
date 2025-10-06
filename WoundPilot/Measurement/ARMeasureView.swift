@@ -12,11 +12,9 @@ import UIKit
 import ARKit
 import RealityKit
 
-
 struct ARMeasureView: View {
     var onComplete: ((WoundMeasurementResult) -> Void)?
     var onSwitchToManual: (() -> Void)?
-    
     
     @State private var measurementState = ARMeasurementState()
     @State private var trackingLabel = LocalizedStrings.arInitializing
@@ -24,6 +22,7 @@ struct ARMeasureView: View {
     @State private var distanceLabel = ""
     @State private var confidenceScore: WoundMeasurementResult.MeasurementConfidence?
     @State private var capturedPhoto: UIImage?
+    @State private var showInstructions = true
     
     @Environment(\.dismiss) private var dismiss
     
@@ -41,51 +40,108 @@ struct ARMeasureView: View {
     
     var body: some View {
         ZStack {
-            ARViewContainer(
-                measurementState: $measurementState,
-                trackingLabel: $trackingLabel,
-                trackingIsGood: $trackingIsGood,
-                distanceLabel: $distanceLabel,
-                confidenceScore: $confidenceScore,
-                capturedPhoto: $capturedPhoto
-            )
-            
-            VStack(spacing: 0) {
-                // Top bar
-                topBar
-                    .padding()
-                    .background(.ultraThinMaterial)
+            // AR measurement view
+            ZStack {
+                ARViewContainer(
+                    measurementState: $measurementState,
+                    trackingLabel: $trackingLabel,
+                    trackingIsGood: $trackingIsGood,
+                    distanceLabel: $distanceLabel,
+                    confidenceScore: $confidenceScore,
+                    capturedPhoto: $capturedPhoto
+                )
                 
-                // Measurements HUD
-                if let length = lengthCm {
-                    measurementsDisplay(length: length)
-                        .padding(.top, 8)
+                VStack(spacing: 0) {
+                    topBar
+                        .padding()
+                        .padding(.top, 40)
+                        .background(.ultraThinMaterial)
+                    
+                    if let length = lengthCm {
+                        measurementsDisplay(length: length)
+                            .padding(.top, 8)
+                    }
+                    
+                    Spacer()
+                    
+                    instructionsBanner
+                        .padding(.horizontal)
+                        .padding(.bottom, 8)
+                    
+                    controlButtons
+                        .padding()
+                        .background(.ultraThinMaterial)
                 }
-                
-                Spacer()
-                
-                // Instructions
-                instructionsBanner
-                    .padding(.horizontal)
-                    .padding(.bottom, 8)
-                
-                // Controls
-                controlButtons
-                    .padding()
-                    .background(.ultraThinMaterial)
+            }
+            
+            // Initial instructions overlay
+            if showInstructions {
+                initialInstructionsOverlay
             }
         }
         .ignoresSafeArea()
-        .toolbar(.hidden, for: .tabBar) 
+        .toolbar(.hidden, for: .tabBar)
+        .navigationBarHidden(true)
+    }
+    
+    // MARK: - Initial Instructions Overlay
+    
+    private var initialInstructionsOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.85).ignoresSafeArea()
+            
+            VStack(spacing: 24) {
+                Image(systemName: "camera.viewfinder")
+                    .font(.system(size: 60))
+                    .foregroundColor(.blue)
+                
+                Text("AR Measurement Tips")
+                    .font(.title2.bold())
+                    .foregroundColor(.white)
+                
+                VStack(alignment: .leading, spacing: 16) {
+                    instructionRow(icon: "ruler", text: "Hold phone 20-30cm from wound surface")
+                    instructionRow(icon: "hand.raised.fill", text: "Keep phone steady while tapping")
+                    instructionRow(icon: "light.max", text: "Ensure good lighting on the wound")
+                    instructionRow(icon: "hand.point.up.left.fill", text: "Tap the longest edges first, then width")
+                }
+                .padding(.horizontal, 24)
+                
+                Button {
+                    showInstructions = false
+                } label: {
+                    Text("Start Measurement")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(Color.blue)
+                        .cornerRadius(12)
+                }
+                .padding(.horizontal, 32)
+                .padding(.top, 8)
+            }
+            .padding()
+        }
+    }
+    
+    private func instructionRow(icon: String, text: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundColor(.blue)
+                .frame(width: 30)
+            Text(text)
+                .font(.subheadline)
+                .foregroundColor(.white)
+            Spacer()
+        }
     }
     
     // MARK: - UI Components
     
     private var topBar: some View {
         HStack(spacing: 12) {
-            
-            
-            // Tracking quality
             HStack(spacing: 6) {
                 Image(systemName: trackingIsGood ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                     .imageScale(.small)
@@ -102,7 +158,6 @@ struct ARMeasureView: View {
             
             Spacer()
             
-            // Distance feedback
             if !distanceLabel.isEmpty {
                 Text(distanceLabel)
                     .font(.caption.weight(.medium))
@@ -125,7 +180,6 @@ struct ARMeasureView: View {
                 }
             }
             
-            // Confidence indicator
             if let conf = confidenceScore {
                 HStack(spacing: 6) {
                     Image(systemName: confidenceIcon(conf.score))
@@ -154,18 +208,42 @@ struct ARMeasureView: View {
     }
     
     private var instructionsBanner: some View {
-        Text(measurementState.stage.instruction)
-            .font(.footnote.weight(.medium))
-            .multilineTextAlignment(.center)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .frame(maxWidth: .infinity)
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        VStack(spacing: 8) {
+            if !distanceLabel.isEmpty {
+                let isGood = distanceLabel.contains(LocalizedStrings.distanceSuffixOK)
+                
+                HStack(spacing: 8) {
+                    Image(systemName: isGood ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        .font(.title3)
+                    Text(distanceLabel)
+                        .font(.headline.weight(.bold))
+                }
+                .foregroundColor(isGood ? .green : .orange)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .frame(maxWidth: .infinity)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill((isGood ? Color.green : Color.orange).opacity(0.2))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(isGood ? Color.green : Color.orange, lineWidth: 2)
+                )
+            }
+            
+            Text(measurementState.stage.instruction)
+                .font(.footnote.weight(.medium))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        }
     }
     
     private var controlButtons: some View {
         HStack(spacing: 12) {
-            // Manual fallback
             Button {
                 onSwitchToManual?()
             } label: {
@@ -176,7 +254,6 @@ struct ARMeasureView: View {
             .buttonStyle(.bordered)
             .tint(.secondary)
             
-            // Undo
             Button {
                 NotificationCenter.default.post(name: .arMeasureUndo, object: nil)
             } label: {
@@ -188,7 +265,6 @@ struct ARMeasureView: View {
             .tint(.orange)
             .disabled(!measurementState.stage.canUndo)
             
-            // Reset
             Button {
                 NotificationCenter.default.post(name: .arMeasureReset, object: nil)
             } label: {
@@ -200,7 +276,6 @@ struct ARMeasureView: View {
             .tint(.red)
             .disabled(!measurementState.stage.canUndo)
             
-            // Save
             Button {
                 saveAndComplete()
             } label: {
@@ -219,9 +294,7 @@ struct ARMeasureView: View {
         guard let length = lengthCm,
               let width = widthCm else { return }
         
-        
         NotificationCenter.default.post(name: .arCapturePhoto, object: nil)
-        
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             let result = WoundMeasurementResult(
@@ -278,7 +351,6 @@ private struct ARViewContainer: UIViewRepresentable {
             capturedPhoto: $capturedPhoto
         )
         
-        // Configure AR session
         let config = ARWorldTrackingConfiguration()
         config.planeDetection = [.horizontal, .vertical]
         if ARWorldTrackingConfiguration.supportsFrameSemantics(.sceneDepth) {
@@ -287,14 +359,12 @@ private struct ARViewContainer: UIViewRepresentable {
         arView.session.delegate = context.coordinator
         arView.session.run(config)
         
-        // Gesture
         let tap = UITapGestureRecognizer(
             target: context.coordinator,
             action: #selector(Coordinator.handleTap(_:))
         )
         arView.addGestureRecognizer(tap)
         
-        // Notifications
         NotificationCenter.default.addObserver(
             context.coordinator,
             selector: #selector(Coordinator.handleUndo),
@@ -325,8 +395,6 @@ private struct ARViewContainer: UIViewRepresentable {
         coordinator.cleanup()
     }
     
-    // MARK: - Coordinator
-    
     final class Coordinator: NSObject, ARSessionDelegate {
         weak var arView: ARView?
         
@@ -356,8 +424,6 @@ private struct ARViewContainer: UIViewRepresentable {
             self.capturedPhoto = capturedPhoto
         }
         
-        // MARK: - Tap handling
-        
         @objc func handleTap(_ gesture: UITapGestureRecognizer) {
             guard gesture.state == .ended,
                   let arView = arView,
@@ -370,17 +436,13 @@ private struct ARViewContainer: UIViewRepresentable {
                 return
             }
             
-            // Add point
             measurementState.wrappedValue.addPoint(worldPos)
-            
-            // Visual feedback
             placeDot(at: worldPos)
             updateVisuals()
             updateConfidence()
         }
         
         private func performRaycast(arView: ARView, point: CGPoint) -> ARRaycastResult? {
-            // Try detected geometry first
             if let query = arView.makeRaycastQuery(
                 from: point,
                 allowing: .existingPlaneGeometry,
@@ -389,7 +451,6 @@ private struct ARViewContainer: UIViewRepresentable {
                 return result
             }
             
-            // Fallback to estimated plane
             if let query = arView.makeRaycastQuery(
                 from: point,
                 allowing: .estimatedPlane,
@@ -410,8 +471,6 @@ private struct ARViewContainer: UIViewRepresentable {
             )
         }
         
-        // MARK: - Visuals
-        
         private func placeDot(at position: SIMD3<Float>) {
             guard let arView = arView else { return }
             
@@ -426,11 +485,9 @@ private struct ARViewContainer: UIViewRepresentable {
         }
         
         private func updateVisuals() {
-            // Draw lines between points as measurement progresses
             guard let arView = arView else { return }
             let state = measurementState.wrappedValue
             
-            // Remove old line anchors (keep dots)
             let dotCount = state.points.count
             while visualAnchors.count > dotCount {
                 if let lastLine = visualAnchors.popLast() {
@@ -438,12 +495,10 @@ private struct ARViewContainer: UIViewRepresentable {
                 }
             }
             
-            // Draw length line (points 0-1)
             if state.points.count >= 2 {
                 drawLine(from: state.points[0], to: state.points[1], color: .systemBlue)
             }
             
-            // Draw width line (points 2-3 mirrored across length axis)
             if state.points.count >= 3,
                let p1 = state.points[safe: 0],
                let p2 = state.points[safe: 1],
@@ -470,7 +525,6 @@ private struct ARViewContainer: UIViewRepresentable {
             let material = SimpleMaterial(color: color, isMetallic: false)
             let entity = ModelEntity(mesh: box, materials: [material])
             
-            // Rotate to align with direction
             let zAxis = SIMD3<Float>(0, 0, 1)
             entity.transform.rotation = rotationBetween(from: zAxis, to: direction)
             
@@ -497,7 +551,6 @@ private struct ARViewContainer: UIViewRepresentable {
             let dot = simd_dot(from, to)
             
             if dot < -0.9999 {
-                // Opposite directions
                 let axis = simd_length(simd_cross(from, SIMD3<Float>(1, 0, 0))) > 0.01
                 ? simd_normalize(simd_cross(from, SIMD3<Float>(1, 0, 0)))
                 : simd_normalize(simd_cross(from, SIMD3<Float>(0, 1, 0)))
@@ -512,8 +565,6 @@ private struct ARViewContainer: UIViewRepresentable {
                 r: s / 2
             ))
         }
-        
-        // MARK: - Confidence calculation
         
         private func updateConfidence() {
             let state = measurementState.wrappedValue
@@ -536,7 +587,6 @@ private struct ARViewContainer: UIViewRepresentable {
             DispatchQueue.main.async {
                 self.confidenceScore.wrappedValue = confidence
                 
-                // Update distance label
                 if let dist = avgDistance {
                     let cm = Int(dist * 100)
                     let prefix = "📏 \(cm)\(LocalizedStrings.cmUnit)"
@@ -551,14 +601,11 @@ private struct ARViewContainer: UIViewRepresentable {
             }
         }
         
-        // MARK: - Actions
-        
         @objc func handleUndo() {
             guard let arView = arView else { return }
             
             measurementState.wrappedValue.removeLastPoint()
             
-            // Remove last visual anchor (dot or line)
             if let last = visualAnchors.popLast() {
                 arView.scene.removeAnchor(last)
             }
@@ -585,7 +632,6 @@ private struct ARViewContainer: UIViewRepresentable {
             guard let arView = arView,
                   let frame = arView.session.currentFrame else { return }
             
-            // Convert ARFrame's captured image to UIImage
             let pixelBuffer = frame.capturedImage
             let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
             
@@ -599,10 +645,7 @@ private struct ARViewContainer: UIViewRepresentable {
             }
         }
         
-        // MARK: - ARSessionDelegate
-        
         func session(_ session: ARSession, didUpdate frame: ARFrame) {
-            // Track camera position for distance calculation
             let transform = frame.camera.transform
             currentCameraPosition = SIMD3<Float>(
                 transform.columns.3.x,
@@ -610,7 +653,6 @@ private struct ARViewContainer: UIViewRepresentable {
                 transform.columns.3.z
             )
             
-            // Update confidence in real-time if we have points
             if measurementState.wrappedValue.points.count >= 2 {
                 updateConfidence()
             }
@@ -646,8 +688,6 @@ private struct ARViewContainer: UIViewRepresentable {
             }
         }
         
-        // MARK: - Cleanup
-        
         func cleanup() {
             guard let arView = arView else { return }
             visualAnchors.forEach { arView.scene.removeAnchor($0) }
@@ -655,8 +695,6 @@ private struct ARViewContainer: UIViewRepresentable {
         }
     }
 }
-
-// MARK: - Notifications
 
 extension Notification.Name {
     static let arMeasureUndo = Notification.Name("ARMeasureUndo")
