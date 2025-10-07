@@ -25,6 +25,7 @@ struct WoundDetailView: View {
                     .fontWeight(.bold)
 
                 // Healing progress chart
+                // Healing progress chart
                 if isLoading {
                     ProgressView()
                         .padding()
@@ -75,9 +76,29 @@ struct WoundDetailView: View {
                         }
                     }
                 } else {
-                    Text(LocalizedStrings.notEnoughDataForGraph)
-                        .foregroundColor(.gray)
-                        .padding()
+                    // REPLACE THIS SECTION
+                    VStack(spacing: 12) {
+                        Image(systemName: "chart.line.uptrend.xyaxis")
+                            .font(.system(size: 48))
+                            .foregroundColor(.gray.opacity(0.5))
+                        
+                        VStack(spacing: 4) {
+                            Text("Track Healing Progress")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            
+                            Text("Take 2+ measurements over time to see healing trends")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 40)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.gray.opacity(0.05))
+                    )
                 }
 
                 Divider()
