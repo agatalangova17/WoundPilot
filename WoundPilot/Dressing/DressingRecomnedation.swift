@@ -312,19 +312,59 @@ struct DressingProduct: Identifiable {
 enum DressingEngine {
     static func recommend(measurements: WoundMeasurementResult, assessment: QuestionnairePayload) -> DressingRecommendations {
 
-        // Calculate sizes with margins
+        // Calculate sizes with TYPE-AWARE margins
         let length = measurements.lengthCm
         let width = measurements.widthCm
 
-        let primaryLength = Int(ceil(length + 4))
-        let primaryWidth  = Int(ceil(width + 4))
-        let secondaryLength = Int(ceil(length + 6))
-        let secondaryWidth  = Int(ceil(width + 6))
-        let borderLength    = Int(ceil(length + 8))
-        let borderWidth     = Int(ceil(width + 8))
+        // Determine primary dressing type first to calculate appropriate margins
+        var primaryMargin: Float = 2.0 // Default for hydrofiber/alginate
+        var isDryOrLowExudate = (assessment.moisture == "dry" || assessment.moisture == "low")
+        
+        // Check what primary dressing we'll recommend
+        if assessment.tissue == "necrosis" || assessment.tissue == "slough" {
+            if assessment.moisture == "high" {
+                primaryMargin = 2.0 // Alginate - minimal margin
+            } else {
+                primaryMargin = isDryOrLowExudate ? 4.0 : 3.0 // Hydrocolloid/foam
+            }
+        } else if assessment.tissue == "granulation" {
+            if assessment.infection == "local" || assessment.infection == "systemic" {
+                primaryMargin = 3.0 // Silver foam
+            } else {
+                switch assessment.moisture {
+                case "dry":
+                    primaryMargin = 2.0 // Hydrogel - minimal
+                case "low":
+                    primaryMargin = 4.0 // Thin foam/hydrocolloid - needs border
+                case "moderate":
+                    primaryMargin = 3.0 // Foam
+                case "high":
+                    primaryMargin = 2.0 // Superabsorbent/alginate - minimal
+                default:
+                    primaryMargin = 3.0 // Foam default
+                }
+            }
+        }
+        
+        // High exudate or shear risk → use larger margin
+        if assessment.moisture == "high" && (assessment.etiology == "venous" || assessment.etiology == "pressure") {
+            primaryMargin = max(primaryMargin, 3.0)
+        }
+        
+        let primaryLength = Int(ceil(length + primaryMargin))
+        let primaryWidth  = Int(ceil(width + primaryMargin))
+        
+        // Secondary adds 2cm more
+        let secondaryLength = Int(ceil(length + primaryMargin + 2))
+        let secondaryWidth  = Int(ceil(width + primaryMargin + 2))
+        
+        // Border adds 2cm more
+        let borderLength    = Int(ceil(length + primaryMargin + 4))
+        let borderWidth     = Int(ceil(width + primaryMargin + 4))
 
         var primary: [DressingProduct] = []
-
+        
+        // ... rest of your dressing selection logic stays the same ...
         if assessment.tissue == "necrosis" {
             primary.append(
                 DressingProduct(
