@@ -1652,7 +1652,9 @@ struct LocalizedStrings {
     static var badgeDM: String { t("DM", "DM") }
     static var badgeSmoker: String { t("Smoker", "Fajčiar") }
     static var badgePAD: String { t("PAD", "PAD") }
-    static var secBoneDepth: String { NSLocalizedString("sec_bone_depth", comment: "") }
+    static var secBoneDepth: String {
+        t("Bone involvement", "Postihnutie kosti")
+    }
         static var woundLabel: String { NSLocalizedString("wound_label", comment: "") }
        
         static var qHowLongPresent: String { NSLocalizedString("q_how_long_present", comment: "") }
@@ -1669,10 +1671,19 @@ struct LocalizedStrings {
         static var abiLabel: String { NSLocalizedString("abi_label", comment: "") }
         static var palpablePedalPulses: String { NSLocalizedString("palpable_pedal_pulses", comment: "") }
         static var boneDeepStructuresTitle: String { NSLocalizedString("bone_deep_structures_title", comment: "") }
-        static var boneVisibleToggle: String { NSLocalizedString("bone_visible_toggle", comment: "") }
-        static var probeToBonePositiveToggle: String { NSLocalizedString("probe_to_bone_positive_toggle", comment: "") }
-        static var selectAllThatApplyOptional: String { NSLocalizedString("select_all_optional", comment: "") }
-        static var anyConcerningSignsOptional: String { NSLocalizedString("any_concerning_signs_optional", comment: "") }
+    static var boneVisibleToggle: String {
+        t("Bone visible", "Viditeľná kosť")
+    }
+
+    static var probeToBonePositiveToggle: String {
+        t("Probe to bone positive", "Sonda dosiahne kosť (pozitívne)")
+    }
+    static var selectAllThatApplyOptional: String {
+           t("Select all (optional)", "Vyberte všetko (voliteľné)")
+       }
+    static var anyConcerningSignsOptional: String {
+            t("Any concerning signs (optional)", "Akékoľvek znepokojujúce príznaky (voliteľné)")
+        }
 
         // Guardrails / banners
         static var guardrailUrgentAntibiotics: String { NSLocalizedString("guardrail_urgent_antibiotics", comment: "") }
@@ -1685,7 +1696,9 @@ struct LocalizedStrings {
         // Footer controls
        
         static var next: String { NSLocalizedString("next", comment: "") }
-        static var saveAndAnalyze: String { NSLocalizedString("save_and_analyze", comment: "") }
+    static var saveAndAnalyze: String {
+            t("Save & Analyze", "Uložiť a analyzovať")
+        }
 
         // Step indicator
         static func stepProgress(_ current: Int, _ total: Int, _ title: String) -> String {
@@ -1931,6 +1944,7 @@ struct LocalizedStrings {
               "Zadajte platné hodnoty v rozsahu 0,1 až 100 cm")
         }
     static var savingWoundSpinner: String { t("Saving wound...", "Ukladám ranu...") }
+  
     }
 
 
