@@ -20,11 +20,7 @@ struct WoundDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Text(woundGroupName)
-                    .font(.title2)
-                    .fontWeight(.bold)
-
-                // Healing progress chart
+                
                 // Healing progress chart
                 if isLoading {
                     ProgressView()
@@ -123,7 +119,9 @@ struct WoundDetailView: View {
 
                             VStack(alignment: .leading, spacing: 6) {
                                 if let location = wound.location {
-                                    Text(location.replacingOccurrences(of: "_", with: " ").capitalized)
+                                    Text(location.replacingOccurrences(of: "_", with: " ")
+                                                 .replacingOccurrences(of: "|", with: ", ")
+                                                 .capitalized)
                                         .font(.subheadline.weight(.semibold))
                                         .foregroundColor(.primary)
                                 }

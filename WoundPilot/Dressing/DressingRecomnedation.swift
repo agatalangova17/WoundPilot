@@ -64,24 +64,6 @@ struct DressingRecommendationView: View {
                     }
 
                     
-                    Button {
-                        // Dismiss back to root
-                        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                           let window = windowScene.windows.first,
-                           let rootVC = window.rootViewController {
-                            rootVC.dismiss(animated: true)
-                        }
-                    } label: {
-                        Label("Done", systemImage: "checkmark.circle.fill")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .fill(Color.green)
-                            )
-                            .foregroundColor(.white)
-                    }
 
                     .padding(.bottom, 24)                   
                 }
@@ -364,7 +346,7 @@ enum DressingEngine {
 
         var primary: [DressingProduct] = []
         
-        // ... rest of your dressing selection logic stays the same ...
+        
         if assessment.tissue == "necrosis" {
             primary.append(
                 DressingProduct(

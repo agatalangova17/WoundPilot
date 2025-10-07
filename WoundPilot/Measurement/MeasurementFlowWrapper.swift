@@ -109,7 +109,10 @@ struct MeasurementFlowWrapper: View {
             "timestamp": FieldValue.serverTimestamp(),
             "location": locationString ?? "",
             "woundGroupId": woundGroupIdToUse,
-            "woundGroupName": "Wound \(Date().formatted(date: .abbreviated, time: .omitted))",
+            "woundGroupName": locationString?
+                .replacingOccurrences(of: "_", with: " ")
+                .replacingOccurrences(of: "|", with: " - ")
+                .capitalized ?? "Wound \(Date().formatted(date: .abbreviated, time: .omitted))",
             "patientId": patientId,
             "userId": userId
         ]

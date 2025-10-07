@@ -1969,6 +1969,9 @@ struct LocalizedStrings {
     static var groupNameHint: String {
         t("Tip: use Side + Location (e.g., “Left Heel”).", "Tip: použite Strana + Lokalita (napr. „Ľavá päta“).")
     }
+    static let manualPhotoAddRequired      = t("Add Photo (Required)", "Pridať fotografiu (povinné)")
+        static let manualPhotoChange           = t("Change Photo", "Zmeniť fotografiu")
+        static let manualPhotoRequiredFooter   = t("Photo required for wound documentation", "Fotografia je povinná pre dokumentáciu rany")
   
     }
 

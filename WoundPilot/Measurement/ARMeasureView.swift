@@ -81,7 +81,7 @@ struct ARMeasureView: View {
         }
         .ignoresSafeArea()
         .toolbar(.hidden, for: .tabBar)
-        .navigationBarHidden(true)
+        
     }
     
     // MARK: - Initial Instructions Overlay

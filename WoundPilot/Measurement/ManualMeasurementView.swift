@@ -30,7 +30,8 @@ struct ManualMeasurementView: View {
     private var canSave: Bool {
         lengthCm != nil && widthCm != nil &&
         lengthCm! > 0 && widthCm! > 0 &&
-        lengthCm! <= 100 && widthCm! <= 100
+        lengthCm! <= 100 && widthCm! <= 100 &&
+        loadedImage != nil
     }
     
     var body: some View {
@@ -46,7 +47,8 @@ struct ManualMeasurementView: View {
                     HStack {
                         Image(systemName: "photo.on.rectangle.angled")
                             .foregroundColor(.blue)
-                        Text(LocalizedStrings.manualPhotoAddOptional)
+                        Text(loadedImage == nil ? LocalizedStrings.manualPhotoAddRequired
+                                                : LocalizedStrings.manualPhotoChange)
                         Spacer()
                         if loadedImage != nil {
                             Image(systemName: "checkmark.circle.fill")
@@ -65,7 +67,7 @@ struct ManualMeasurementView: View {
             } header: {
                 Text(LocalizedStrings.manualPhotoSectionTitle)
             } footer: {
-                Text(LocalizedStrings.manualPhotoHint)
+                Text(LocalizedStrings.manualPhotoRequiredFooter)
             }
             
             Section {
@@ -107,8 +109,6 @@ struct ManualMeasurementView: View {
         .navigationTitle(LocalizedStrings.manualEntryTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            
-            
             ToolbarItem(placement: .confirmationAction) {
                 Button(LocalizedStrings.saveAction) {
                     saveAndComplete()
@@ -164,6 +164,5 @@ struct ManualMeasurementView: View {
         )
         
         onComplete?(result)
-        
     }
 }
