@@ -12,7 +12,6 @@ struct WoundGroupPickerView: View {
     @State private var newGroupName: String = ""
     @State private var isLoading = true
 
-    
     private struct ChosenGroup: Identifiable, Hashable {
         let id: String
         let name: String
@@ -24,33 +23,59 @@ struct WoundGroupPickerView: View {
             ScrollView {
                 VStack(spacing: 24) {
 
-                    // Hero
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack(alignment: .top, spacing: 14) {
+                    // MARK: - Hero (micro-onboarding with guidance)
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(alignment: .top, spacing: 12) {
                             Image(systemName: "square.stack.3d.up.fill")
-                                .font(.system(size: 30))
+                                .font(.system(size: 28, weight: .semibold))
                                 .foregroundColor(.white)
-                            VStack(alignment: .leading) {
-                                Text(LocalizedStrings.groupWoundImagesTitle)
-                                    .font(.title3).bold().foregroundColor(.white)
-                                Text(LocalizedStrings.groupWoundImagesSubtitle)
-                                    .font(.subheadline).foregroundColor(.white.opacity(0.9))
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(LocalizedStrings.groupWoundImagesTitleBetter)
+                                    .font(.title3.bold())
+                                    .foregroundColor(.white)
+                                Text(LocalizedStrings.groupWoundImagesSubtitleBetter)
+                                    .font(.subheadline)
+                                    .foregroundColor(.white.opacity(0.9))
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            HeroBullet(text: LocalizedStrings.groupWhyTrend)
+                            HeroBullet(text: LocalizedStrings.groupWhyCompare)
+                            HeroBullet(text: LocalizedStrings.groupWhyFindFast)
+                        }
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(LocalizedStrings.groupExamplesTitle)
+                                .font(.footnote.weight(.semibold))
+                                .foregroundColor(.white.opacity(0.95))
+
+                            FlexibleChips(chips: [
+                                "Left Heel Ulcer",
+                                "Right Lateral Malleolus",
+                                "Sacrum – Pressure Injury",
+                                "Plantar Hallux – Diabetic Foot"
+                            ]) { example in
+                                newGroupName = example
                             }
                         }
                     }
-                    .padding()
+                    .padding(16)
                     .background(
                         LinearGradient(
                             gradient: Gradient(colors: [Color.accentColor, Color.blue]),
-                            startPoint: .topLeading, endPoint: .bottomTrailing
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
                         )
                     )
                     .cornerRadius(20)
                     .shadow(color: Color.black.opacity(0.1), radius: 6, x: 0, y: 4)
 
-                    // Existing groups
+                    // MARK: - Existing groups
                     VStack(alignment: .leading, spacing: 16) {
-                        Text(LocalizedStrings.existingWoundGroups).font(.headline)
+                        Text(LocalizedStrings.existingWoundGroups)
+                            .font(.headline)
 
                         if isLoading {
                             ProgressView()
@@ -68,12 +93,15 @@ struct WoundGroupPickerView: View {
                                         Image(systemName: "folder.fill")
                                             .foregroundColor(.accentColor)
                                         VStack(alignment: .leading) {
-                                            Text(group.name).fontWeight(.semibold)
+                                            Text(group.name)
+                                                .fontWeight(.semibold)
                                             Text(LocalizedStrings.tapToContinue)
-                                                .font(.caption).foregroundColor(.gray)
+                                                .font(.caption)
+                                                .foregroundColor(.gray)
                                         }
                                         Spacer()
-                                        Image(systemName: "chevron.right").foregroundColor(.gray)
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(.gray)
                                     }
                                     .padding()
                                     .background(Color(.systemGray6))
@@ -83,13 +111,21 @@ struct WoundGroupPickerView: View {
                         }
                     }
 
-                    // Create new group
+                    // MARK: - Create new group
                     VStack(alignment: .leading, spacing: 12) {
-                        Text(LocalizedStrings.createNewWoundGroup).font(.headline)
+                        Text(LocalizedStrings.createNewWoundGroup)
+                            .font(.headline)
 
                         VStack(spacing: 14) {
-                            TextField(LocalizedStrings.exampleLeftFootUlcerPlaceholder, text: $newGroupName)
+                            TextField(LocalizedStrings.groupNamePlaceholder, text: $newGroupName)
                                 .textFieldStyle(.roundedBorder)
+                                .textInputAutocapitalization(.words)
+                                .autocorrectionDisabled(true)
+
+                            Text(LocalizedStrings.groupNameHint)
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
 
                             Button {
                                 createGroup()
@@ -117,7 +153,7 @@ struct WoundGroupPickerView: View {
             .navigationBarTitleDisplayMode(.inline)
             .onAppear { fetchExistingGroups() }
 
-            // Navigation ➜ Body Localization
+            // MARK: - Navigation ➜ Body Localization
             .navigationDestination(item: $chosenGroup) { choice in
                 if let patient {
                     BodyLocalizationView(
@@ -133,7 +169,7 @@ struct WoundGroupPickerView: View {
         }
     }
 
-    // MARK: Data
+    // MARK: - Data
     private func fetchExistingGroups() {
         guard let patient else { isLoading = false; return }
         let db = Firestore.firestore()
@@ -173,6 +209,49 @@ struct WoundGroupPickerView: View {
             onGroupSelected?(newDoc.documentID, newGroupName)
             chosenGroup = ChosenGroup(id: newDoc.documentID, name: newGroupName)
             newGroupName = ""
+        }
+    }
+}
+
+// MARK: - Helpers (local)
+
+private struct HeroBullet: View {
+    let text: String
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Image(systemName: "checkmark.seal.fill")
+                .foregroundColor(.white)
+                .imageScale(.small)
+            Text(text)
+                .font(.footnote)
+                .foregroundColor(.white.opacity(0.95))
+        }
+    }
+}
+
+/// Simple flexible chip row (wraps as needed)
+private struct FlexibleChips: View {
+    let chips: [String]
+    let onPick: (String) -> Void
+
+    var body: some View {
+        let cols = [GridItem(.adaptive(minimum: 160), spacing: 8)]
+        LazyVGrid(columns: cols, alignment: .leading, spacing: 8) {
+            ForEach(chips, id: \.self) { label in
+                Button {
+                    onPick(label)
+                } label: {
+                    Text(label)
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 8)
+                        .background(Color.white.opacity(0.18))
+                        .foregroundColor(.white)
+                        .clipShape(Capsule())
+                        .overlay(Capsule().stroke(Color.white.opacity(0.25), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 }

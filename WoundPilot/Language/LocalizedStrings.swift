@@ -1944,6 +1944,31 @@ struct LocalizedStrings {
               "Zadajte platné hodnoty v rozsahu 0,1 až 100 cm")
         }
     static var savingWoundSpinner: String { t("Saving wound...", "Ukladám ranu...") }
+    static var groupWoundImagesTitleBetter: String {
+        t("Group wound images", "Zoskupte fotografie rany")
+    }
+    static var groupWoundImagesSubtitleBetter: String {
+        t("Keep all photos of the same wound together so healing is clear and comparable.",
+          "Majte všetky fotografie tej istej rany pokope, aby bol priebeh hojenia jasný a porovnateľný.")
+    }
+    static var groupWhyTrend: String {
+        t("See the healing trend and area change over time.", "Sledujte trend hojenia a zmenu plochy v čase.")
+    }
+    static var groupWhyCompare: String {
+        t("Compare measurements consistently between visits.", "Porovnávajte merania konzistentne medzi kontrolami.")
+    }
+    static var groupWhyFindFast: String {
+        t("Find related photos quickly during follow-ups.", "Rýchlo nájdite súvisiace fotografie pri kontrolách.")
+    }
+    static var groupExamplesTitle: String {
+        t("Examples", "Príklady")
+    }
+    static var groupNamePlaceholder: String {
+        t("Name this wound group (e.g., Left Heel Ulcer)", "Pomenujte skupinu rán (napr. Ľavá päta – vred)")
+    }
+    static var groupNameHint: String {
+        t("Tip: use Side + Location (e.g., “Left Heel”).", "Tip: použite Strana + Lokalita (napr. „Ľavá päta“).")
+    }
   
     }
 
