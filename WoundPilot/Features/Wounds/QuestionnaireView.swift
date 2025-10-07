@@ -293,9 +293,25 @@ struct QuestionnaireView: View {
     private var perfusionStep: some View {
         questionCard(title: LocalizedStrings.secPerfusion) {
             VStack(alignment: .leading, spacing: 16) {
-                Text(LocalizedStrings.perfusionABIHeading)
-                    .font(.subheadline.weight(.semibold))
+                HStack {
+                    Text(LocalizedStrings.perfusionABIHeading)
+                        .font(.subheadline.weight(.semibold))
+                    HelpButton(text: "ABI (Ankle-Brachial Index) measures blood flow to the legs. Normal is 0.9-1.3. Values below 0.8 indicate poor circulation. If unknown, select 'Unknown' - the wound should be assessed by a vascular specialist before compression.")
+                }
+                
                 SegmentedChips(selection: $abi, options: abiOptions)
+
+                if abi == "unknown" {
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .foregroundColor(.orange)
+                        Text("ABI measurement recommended before applying compression therapy")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(10)
+                    .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+                }
 
                 Divider().padding(.vertical, 4)
 
@@ -321,7 +337,10 @@ struct QuestionnaireView: View {
                 
                 Divider().padding(.vertical, 4)
                 
-                ToggleRow(title: LocalizedStrings.probeToBoneToggle, isOn: $probeToBone)
+                HStack {
+                    ToggleRow(title: LocalizedStrings.probeToBoneToggle, isOn: $probeToBone)
+                    HelpButton(text: "Probe to bone: Using a sterile probe, can you feel hard bone at the wound base? This suggests deep infection (osteomyelitis).")
+                }
 
                 if exposedBone || probeToBone {
                     GuardrailBadge(text: "⚠️ " + LocalizedStrings.boneOsteoGuardrail)
@@ -1019,7 +1038,8 @@ private var abiOptions: [Option] {
     [
         .init(id: "ge0_8", label: LocalizedStrings.optAbiGE0_8, sfSymbol: nil),
         .init(id: "p0_5to0_79", label: LocalizedStrings.optAbi0_5to0_79, sfSymbol: nil),
-        .init(id: "lt0_5", label: LocalizedStrings.optAbiLT0_5, sfSymbol: nil)
+        .init(id: "lt0_5", label: LocalizedStrings.optAbiLT0_5, sfSymbol: nil),
+        .init(id: "unknown", label: "Unknown / Not measured", sfSymbol: nil)
     ]
 }
 
@@ -1056,5 +1076,29 @@ enum Haptics {
     
     static func success() {
         UINotificationFeedbackGenerator().notificationOccurred(.success)
+    }
+    
+    
+}
+
+// MARK: - Help Tooltip
+
+private struct HelpButton: View {
+    let text: String
+    @State private var showHelp = false
+    
+    var body: some View {
+        Button {
+            showHelp = true
+        } label: {
+            Image(systemName: "info.circle")
+                .foregroundColor(.blue)
+                .imageScale(.medium)
+        }
+        .alert("Help", isPresented: $showHelp) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(text)
+        }
     }
 }
