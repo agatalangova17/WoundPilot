@@ -81,7 +81,6 @@ struct ARMeasureView: View {
         }
         .ignoresSafeArea()
         .toolbar(.hidden, for: .tabBar)
-        
     }
     
     // MARK: - Initial Instructions Overlay
@@ -155,7 +154,7 @@ struct ARMeasureView: View {
                 (trackingIsGood ? Color.green : Color.orange).opacity(0.15),
                 in: Capsule()
             )
-            
+            .padding(.leading, 270)  // Push away from back button
             Spacer()
             
             if !distanceLabel.isEmpty {
