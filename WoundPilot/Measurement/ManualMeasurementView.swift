@@ -4,6 +4,7 @@
 import SwiftUI
 import PhotosUI
 
+
 struct ManualMeasurementView: View {
     var onComplete: ((WoundMeasurementResult) -> Void)?
     
@@ -12,6 +13,7 @@ struct ManualMeasurementView: View {
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var loadedImage: UIImage?
     @State private var showValidationError = false
+    @State private var showCamera = false
     
     
     private var lengthCm: Float? {
@@ -43,17 +45,29 @@ struct ManualMeasurementView: View {
             }
             
             Section {
+                // Photo library picker
                 PhotosPicker(selection: $selectedPhoto, matching: .images) {
                     HStack {
-                        Image(systemName: "photo.on.rectangle.angled")
+                        Image(systemName: "photo.on.rectangle")
                             .foregroundColor(.blue)
-                        Text(loadedImage == nil ? LocalizedStrings.manualPhotoAddRequired
-                                                : LocalizedStrings.manualPhotoChange)
+                        Text("Choose from Library")
                         Spacer()
                         if loadedImage != nil {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundColor(.green)
                         }
+                    }
+                }
+                
+                // Camera button
+                Button {
+                    showCamera = true
+                } label: {
+                    HStack {
+                        Image(systemName: "camera.fill")
+                            .foregroundColor(.blue)
+                        Text("Take Photo")
+                        Spacer()
                     }
                 }
                 
@@ -129,6 +143,9 @@ struct ManualMeasurementView: View {
                 }
             }
         }
+        .sheet(isPresented: $showCamera) {
+            ImagePicker(image: $loadedImage)
+        }
     }
     
     private var infoBox: some View {
@@ -164,5 +181,44 @@ struct ManualMeasurementView: View {
         )
         
         onComplete?(result)
+    }
+}
+
+// MARK: - Camera Image Picker
+
+struct ImagePicker: UIViewControllerRepresentable {
+    @Binding var image: UIImage?
+    @Environment(\.dismiss) private var dismiss
+    
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = .camera
+        picker.delegate = context.coordinator
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: ImagePicker
+        
+        init(_ parent: ImagePicker) {
+            self.parent = parent
+        }
+        
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            if let image = info[.originalImage] as? UIImage {
+                parent.image = image
+            }
+            parent.dismiss()
+        }
+        
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.dismiss()
+        }
     }
 }
