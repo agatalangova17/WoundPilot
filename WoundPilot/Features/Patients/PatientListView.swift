@@ -16,7 +16,6 @@ struct PatientListView: View {
     @State private var selectedPatient: Patient?
     @State private var showPatientDetail = false
 
-    
     @State private var searchText = ""
     @State private var scope: SearchScope = .all
 
@@ -24,33 +23,27 @@ struct PatientListView: View {
     private var results: [Patient] {
         var list = patients
 
-        
         switch scope {
         case .all: break
-        case .diabetic: list = list.filter { $0.isDiabetic == true }
+        case .diabetic: list = list.filter { $0.hasDiabetes == true }  // FIXED
         case .smoker:   list = list.filter { $0.isSmoker   == true }
         case .pad:      list = list.filter { $0.hasPAD     == true }
         }
 
-        
         let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { return list }
 
         let qLower = q.lowercased()
         return list.filter { p in
             let nameMatch = p.name.lowercased().contains(qLower)
-
             let a = age(from: p.dateOfBirth)
             let ageMatch = "\(a)".contains(qLower)
-
             let year = Calendar.current.component(.year, from: p.dateOfBirth)
             let yearMatch = "\(year)".contains(qLower)
-
             return nameMatch || ageMatch || yearMatch
         }
     }
 
-    
     private var nameSuggestions: [String] {
         let names = patients.map { $0.name }.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
         return Array(names.prefix(6))
@@ -109,19 +102,16 @@ struct PatientListView: View {
                 }
             }
             .environment(\.locale, Locale(identifier: langManager.currentLanguage.rawValue))
-            
             .searchable(
                 text: $searchText,
                 placement: .navigationBarDrawer(displayMode: .always),
                 prompt: LocalizedStrings.searchPatientsPrompt
             )
             .searchSuggestions {
-                // quick tag suggestions (localized)
                 Text(LocalizedStrings.tagDM).searchCompletion(LocalizedStrings.tagDM)
                 Text(LocalizedStrings.tagSmoker).searchCompletion(LocalizedStrings.tagSmoker)
                 Text(LocalizedStrings.tagPAD).searchCompletion(LocalizedStrings.tagPAD)
                 Divider()
-                // top patient names
                 ForEach(nameSuggestions, id: \.self) { s in Text(s).searchCompletion(s) }
             }
             .searchScopes($scope) {
@@ -171,7 +161,7 @@ struct PatientListView: View {
         var items: [Badge] = []
         
         items.append(Badge(icon: "calendar", text: String(age(from: p.dateOfBirth))))
-        if p.isDiabetic == true {
+        if p.hasDiabetes == true {  // FIXED
             items.append(Badge(icon: "drop.fill", text: LocalizedStrings.badgeDM))
         }
         if p.isSmoker == true {
@@ -191,7 +181,6 @@ struct PatientListView: View {
         Calendar.current.dateComponents([.year], from: dob, to: Date()).year ?? 0
     }
 
-    
     private func color(from seed: String) -> Color {
         var total = 0
         for u in seed.unicodeScalars { total = Int(u.value) &+ total }
@@ -228,20 +217,32 @@ struct PatientListView: View {
                             guard let name = data["name"] as? String,
                                   let dobTimestamp = data["dateOfBirth"] as? Timestamp else { return nil }
 
+                            // Parse mobility status
+                            var mobilityStatus: MobilityStatus? = nil
+                            if let mobilityString = data["mobilityStatus"] as? String {
+                                mobilityStatus = MobilityStatus(rawValue: mobilityString)
+                            }
+
                             return Patient(
                                 id: doc.documentID,
                                 name: name,
                                 dateOfBirth: dobTimestamp.dateValue(),
                                 sex: data["sex"] as? String,
-                                isDiabetic: data["isDiabetic"] as? Bool,
-                                isSmoker: data["isSmoker"] as? Bool,
+                                hasDiabetes: data["hasDiabetes"] as? Bool,
                                 hasPAD: data["hasPAD"] as? Bool,
-                                hasMobilityIssues: data["hasMobilityIssues"] as? Bool,
-                                hasBloodPressureIssues: data["hasBloodPressureIssues"] as? Bool,
+                                hasVenousDisease: data["hasVenousDisease"] as? Bool,
+                                isImmunosuppressed: data["isImmunosuppressed"] as? Bool,
+                                mobilityStatus: mobilityStatus,
+                                canOffload: data["canOffload"] as? Bool,
+                                isOnAnticoagulants: data["isOnAnticoagulants"] as? Bool,
+                                isSmoker: data["isSmoker"] as? Bool,
+                                allergyToAdhesives: data["allergyToAdhesives"] as? Bool,
+                                allergyToIodine: data["allergyToIodine"] as? Bool,
+                                allergyToSilver: data["allergyToSilver"] as? Bool,
+                                allergyToLatex: data["allergyToLatex"] as? Bool,
                                 weight: data["weight"] as? Double,
-                                allergies: data["allergies"] as? String,
-                                bloodPressure: data["bloodPressure"] as? String,
-                                diabetesType: data["diabetesType"] as? String
+                                otherAllergies: data["otherAllergies"] as? String,
+                                notes: data["notes"] as? String
                             )
                         }
                     }
@@ -282,9 +283,7 @@ private enum SearchScope: Hashable, CaseIterable {
     case all, diabetic, smoker, pad
 }
 
-//
 // MARK: - Row/Card components
-//
 
 private struct Badge: Identifiable {
     let id = UUID()

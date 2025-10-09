@@ -8,18 +8,33 @@ struct AddPatientView: View {
 
     @State private var name: String = ""
     @State private var dateOfBirth = Date()
-
-    
     @State private var sexCode = "unspecified"
     private let sexCodes = ["unspecified", "male", "female"]
 
-    @State private var isDiabetic = false
-    @State private var isSmoker = false
-    @State private var hasPAD = false
-    @State private var hasMobilityIssues = false
-    @State private var hasBloodPressureIssues = false
+    // MARK: Comorbidities (three-state: nil=unknown, true=yes, false=no)
+    @State private var hasDiabetes: Bool? = nil
+    @State private var hasPAD: Bool? = nil
+    @State private var hasVenousDisease: Bool? = nil
+    @State private var isImmunosuppressed: Bool? = nil
+    
+    // MARK: Mobility
+    @State private var mobilityStatus: MobilityStatus? = nil
+    @State private var canOffload: Bool? = nil
+    
+    // MARK: Medications & Risk Factors
+    @State private var isOnAnticoagulants: Bool? = nil
+    @State private var isSmoker: Bool? = nil
+    
+    // MARK: Dressing Allergies
+    @State private var allergyToAdhesives: Bool? = nil
+    @State private var allergyToIodine: Bool? = nil
+    @State private var allergyToSilver: Bool? = nil
+    @State private var allergyToLatex: Bool? = nil
+    
+    // MARK: Optional Details
     @State private var weight: String = ""
-    @State private var allergies: String = ""
+    @State private var otherAllergies: String = ""
+    @State private var notes: String = ""
 
     @State private var isSaving = false
     @State private var errorMessage: String?
@@ -29,45 +44,80 @@ struct AddPatientView: View {
     var body: some View {
         NavigationStack {
             Form {
-                // MARK: Patient Info
-                Section(header: Text(LocalizedStrings.patientInformationSection)) {
-                    TextField(LocalizedStrings.fullNameLabel, text: $name)
+                // MARK: Basic Info
+                Section(header: Text("Patient Information")) {
+                    TextField("Full Name", text: $name)
                         .textInputAutocapitalization(.words)
                         .autocorrectionDisabled(true)
 
-                    DatePicker(LocalizedStrings.dateOfBirth, selection: $dateOfBirth, displayedComponents: .date)
+                    DatePicker("Date of Birth", selection: $dateOfBirth, displayedComponents: .date)
 
-                    Picker(LocalizedStrings.sexLabel, selection: $sexCode) {
+                    Picker("Sex", selection: $sexCode) {
                         ForEach(sexCodes, id: \.self) { code in
-                            Text(localizedSexTitle(code))
-                                .tag(code)
-                                .accessibilityLabel(Text(localizedSexTitle(code)))
+                            Text(localizedSexTitle(code)).tag(code)
                         }
                     }
                 }
 
-                // MARK: Optional Clinical Info
-                Section(header: Text(LocalizedStrings.optionalClinicalInfoSection)) {
-                    Toggle(LocalizedStrings.diabetic, isOn: $isDiabetic)
-                    Toggle(LocalizedStrings.smoker, isOn: $isSmoker)
-                    Toggle(LocalizedStrings.peripheralArteryDisease, isOn: $hasPAD)
-                    Toggle(LocalizedStrings.mobilityIssues, isOn: $hasMobilityIssues)
-                    Toggle(LocalizedStrings.bloodPressureIssues, isOn: $hasBloodPressureIssues)
-
-                    TextField(LocalizedStrings.weightKgPlaceholder, text: $weight)
-                        .keyboardType(.decimalPad)
-
-                    TextField(LocalizedStrings.knownAllergiesPlaceholder, text: $allergies)
-                        .textInputAutocapitalization(.words)
-                        .autocorrectionDisabled(true)
+                // MARK: Critical Comorbidities
+                Section(header: Text("Medical History"),
+                        footer: Text("These affect treatment recommendations. Select 'Unknown' if unsure.")) {
+                    ThreeStateToggle(title: "Diabetes", state: $hasDiabetes)
+                    ThreeStateToggle(title: "Peripheral Arterial Disease (PAD)", state: $hasPAD)
+                    ThreeStateToggle(title: "Venous Disease", state: $hasVenousDisease)
+                    ThreeStateToggle(title: "Immunosuppressed", state: $isImmunosuppressed)
+                }
+                
+                // MARK: Medications & Risk
+                Section(header: Text("Medications & Risk Factors")) {
+                    ThreeStateToggle(title: "On Anticoagulants/Blood Thinners", state: $isOnAnticoagulants)
+                    ThreeStateToggle(title: "Smoker", state: $isSmoker)
                 }
 
-                // MARK: Actions & Messages
+                // MARK: Mobility
+                Section(header: Text("Mobility")) {
+                    Picker("Mobility Status", selection: $mobilityStatus) {
+                        Text("Unknown").tag(nil as MobilityStatus?)
+                        ForEach(MobilityStatus.allCases, id: \.self) { status in
+                            Text(status.rawValue).tag(status as MobilityStatus?)
+                        }
+                    }
+                    
+                    // Only show if mobility impaired
+                    if let mobility = mobilityStatus,
+                       mobility != .independent {
+                        ThreeStateToggle(title: "Can Patient Offload Weight?", state: $canOffload)
+                    }
+                }
+
+                // MARK: Dressing Allergies
+                Section(header: Text("Known Dressing Allergies"),
+                        footer: Text("Select only if patient has confirmed allergies")) {
+                    ThreeStateToggle(title: "Adhesives", state: $allergyToAdhesives)
+                    ThreeStateToggle(title: "Iodine", state: $allergyToIodine)
+                    ThreeStateToggle(title: "Silver", state: $allergyToSilver)
+                    ThreeStateToggle(title: "Latex", state: $allergyToLatex)
+                    
+                    TextField("Other Allergies (optional)", text: $otherAllergies)
+                        .textInputAutocapitalization(.sentences)
+                }
+
+                // MARK: Optional Details
+                Section(header: Text("Additional Information (Optional)")) {
+                    TextField("Weight (kg)", text: $weight)
+                        .keyboardType(.decimalPad)
+                    
+                    TextField("Clinical Notes", text: $notes, axis: .vertical)
+                        .lineLimit(3...6)
+                        .textInputAutocapitalization(.sentences)
+                }
+
+                // MARK: Actions
                 Section {
                     if isSaving {
-                        ProgressView(LocalizedStrings.saving)
+                        ProgressView("Saving...")
                     } else {
-                        Button(LocalizedStrings.savePatient) { savePatient() }
+                        Button("Save Patient") { savePatient() }
                             .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
                     }
 
@@ -79,12 +129,11 @@ struct AddPatientView: View {
                     }
                 }
             }
-            .environment(\.locale, Locale(identifier: langManager.currentLanguage.rawValue))
-            .navigationTitle(LocalizedStrings.addPatient)
+            .navigationTitle("Add Patient")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(LocalizedStrings.cancel) { dismiss() }
+                    Button("Cancel") { dismiss() }
                 }
             }
             .navigationDestination(item: $routePatient) { patient in
@@ -93,32 +142,33 @@ struct AddPatientView: View {
         }
     }
 
-    
     private func localizedSexTitle(_ code: String) -> String {
         switch code {
-        case "male": return LocalizedStrings.sexMale
-        case "female": return LocalizedStrings.sexFemale
-        default: return LocalizedStrings.sexUnspecified
+        case "male": return "Male"
+        case "female": return "Female"
+        default: return "Unspecified"
         }
     }
 
-    
     private func parseLocalizedDouble(_ text: String) -> Double? {
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        if trimmed.isEmpty { return nil }
+        
         let fmt = NumberFormatter()
         fmt.locale = Locale(identifier: langManager.currentLanguage.rawValue)
         fmt.numberStyle = .decimal
-        if let n = fmt.number(from: text.trimmingCharacters(in: .whitespaces)) {
+        if let n = fmt.number(from: trimmed) {
             return n.doubleValue
         }
         
-        let swapped = text.replacingOccurrences(of: ",", with: ".")
+        let swapped = trimmed.replacingOccurrences(of: ",", with: ".")
         return Double(swapped)
     }
 
     // MARK: Save
     private func savePatient() {
         guard let userId = Auth.auth().currentUser?.uid else {
-            errorMessage = LocalizedStrings.userNotLoggedIn
+            errorMessage = "User not logged in"
             return
         }
 
@@ -134,31 +184,43 @@ struct AddPatientView: View {
             "dateOfBirth": Timestamp(date: dateOfBirth),
             "ownerId": userId,
             "createdAt": Timestamp(date: Date()),
-            "sex": sexCode,
-            "isDiabetic": isDiabetic,
-            "isSmoker": isSmoker,
-            "hasPAD": hasPAD,
-            "hasMobilityIssues": hasMobilityIssues,
-            "hasBloodPressureIssues": hasBloodPressureIssues,
-            "allergies": allergies.trimmingCharacters(in: .whitespaces)
+            "sex": sexCode
         ]
 
-        if let w = parseLocalizedDouble(weight) { data["weight"] = w } 
-
-        // Remove empty string fields
-        data = data.filter { key, value in
-            if let s = value as? String { return !s.isEmpty }
-            return true
+        // Add optional clinical fields (only if not nil)
+        if let val = hasDiabetes { data["hasDiabetes"] = val }
+        if let val = hasPAD { data["hasPAD"] = val }
+        if let val = hasVenousDisease { data["hasVenousDisease"] = val }
+        if let val = isImmunosuppressed { data["isImmunosuppressed"] = val }
+        if let val = isOnAnticoagulants { data["isOnAnticoagulants"] = val }
+        if let val = isSmoker { data["isSmoker"] = val }
+        
+        if let mobility = mobilityStatus {
+            data["mobilityStatus"] = mobility.rawValue
         }
+        if let val = canOffload { data["canOffload"] = val }
+        
+        if let val = allergyToAdhesives { data["allergyToAdhesives"] = val }
+        if let val = allergyToIodine { data["allergyToIodine"] = val }
+        if let val = allergyToSilver { data["allergyToSilver"] = val }
+        if let val = allergyToLatex { data["allergyToLatex"] = val }
+        
+        if let w = parseLocalizedDouble(weight) { data["weight"] = w }
+        
+        let trimmedOtherAllergies = otherAllergies.trimmingCharacters(in: .whitespaces)
+        if !trimmedOtherAllergies.isEmpty { data["otherAllergies"] = trimmedOtherAllergies }
+        
+        let trimmedNotes = notes.trimmingCharacters(in: .whitespaces)
+        if !trimmedNotes.isEmpty { data["notes"] = trimmedNotes }
 
         patientRef.setData(data) { error in
             isSaving = false
             if let error = error {
-                errorMessage = LocalizedStrings.failedToSave(error.localizedDescription)
+                errorMessage = "Failed to save: \(error.localizedDescription)"
                 return
             }
 
-            successMessage = LocalizedStrings.patientSavedSuccessfully
+            successMessage = "Patient saved successfully"
             let newId = patientRef.documentID
 
             let newPatient = Patient(
@@ -166,15 +228,21 @@ struct AddPatientView: View {
                 name: name.trimmingCharacters(in: .whitespaces),
                 dateOfBirth: dateOfBirth,
                 sex: sexCode,
-                isDiabetic: isDiabetic,
-                isSmoker: isSmoker,
+                hasDiabetes: hasDiabetes,
                 hasPAD: hasPAD,
-                hasMobilityIssues: hasMobilityIssues,
-                hasBloodPressureIssues: hasBloodPressureIssues,
+                hasVenousDisease: hasVenousDisease,
+                isImmunosuppressed: isImmunosuppressed,
+                mobilityStatus: mobilityStatus,
+                canOffload: canOffload,
+                isOnAnticoagulants: isOnAnticoagulants,
+                isSmoker: isSmoker,
+                allergyToAdhesives: allergyToAdhesives,
+                allergyToIodine: allergyToIodine,
+                allergyToSilver: allergyToSilver,
+                allergyToLatex: allergyToLatex,
                 weight: parseLocalizedDouble(weight),
-                allergies: allergies.trimmingCharacters(in: .whitespaces),
-                bloodPressure: nil,
-                diabetesType: isDiabetic ? "unspecified" : "none"
+                otherAllergies: trimmedOtherAllergies.isEmpty ? nil : trimmedOtherAllergies,
+                notes: trimmedNotes.isEmpty ? nil : trimmedNotes
             )
 
             routePatient = newPatient
@@ -186,12 +254,40 @@ struct AddPatientView: View {
         name = ""
         dateOfBirth = Date()
         sexCode = "unspecified"
-        isDiabetic = false
-        isSmoker = false
-        hasPAD = false
-        hasMobilityIssues = false
-        hasBloodPressureIssues = false
+        hasDiabetes = nil
+        hasPAD = nil
+        hasVenousDisease = nil
+        isImmunosuppressed = nil
+        mobilityStatus = nil
+        canOffload = nil
+        isOnAnticoagulants = nil
+        isSmoker = nil
+        allergyToAdhesives = nil
+        allergyToIodine = nil
+        allergyToSilver = nil
+        allergyToLatex = nil
         weight = ""
-        allergies = ""
+        otherAllergies = ""
+        notes = ""
+    }
+}
+
+// MARK: - Three-State Toggle Helper
+struct ThreeStateToggle: View {
+    let title: String
+    @Binding var state: Bool?
+    
+    var body: some View {
+        HStack {
+            Text(title)
+            Spacer()
+            Picker("", selection: $state) {
+                Text("Unknown").tag(nil as Bool?)
+                Text("No").tag(false as Bool?)
+                Text("Yes").tag(true as Bool?)
+            }
+            .pickerStyle(.segmented)
+            .frame(width: 200)
+        }
     }
 }

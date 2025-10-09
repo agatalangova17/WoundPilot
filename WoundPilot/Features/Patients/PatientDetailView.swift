@@ -16,7 +16,7 @@ struct PatientDetailView: View {
         let df = DateFormatter()
         df.dateStyle = .medium
         df.timeStyle = .none
-        df.locale = Locale(identifier: langManager.currentLanguage.rawValue) // "en"/"sk"
+        df.locale = Locale(identifier: langManager.currentLanguage.rawValue)
         return df.string(from: patient.dateOfBirth)
     }
 
@@ -33,7 +33,7 @@ struct PatientDetailView: View {
                     name: patient.name,
                     dobLabel: "\(LocalizedStrings.dateOfBirth): \(formattedDOB)",
                     age: age,
-                    isDiabetic: patient.isDiabetic ?? false,
+                    hasDiabetes: patient.hasDiabetes ?? false,  // FIXED
                     isSmoker: patient.isSmoker ?? false,
                     hasPAD: patient.hasPAD ?? false
                 )
@@ -98,7 +98,7 @@ private struct HeaderCard: View {
     let name: String
     let dobLabel: String
     let age: Int
-    let isDiabetic: Bool
+    let hasDiabetes: Bool  // FIXED
     let isSmoker: Bool
     let hasPAD: Bool
 
@@ -146,9 +146,9 @@ private struct HeaderCard: View {
                 
                 HStack(spacing: 6) {
                     Tag(icon: "calendar", text: "\(age) \(LocalizedStrings.ageShort)")
-                    if isDiabetic { Tag(icon: "drop.fill", text: LocalizedStrings.abbrevDM) }
-                    if isSmoker   { Tag(icon: "lungs.fill", text: LocalizedStrings.smokerShort) }
-                    if hasPAD     { Tag(icon: "figure.walk.motion", text: LocalizedStrings.abbrevPAD) }
+                    if hasDiabetes { Tag(icon: "drop.fill", text: LocalizedStrings.abbrevDM) }  // FIXED
+                    if isSmoker    { Tag(icon: "lungs.fill", text: LocalizedStrings.smokerShort) }
+                    if hasPAD      { Tag(icon: "figure.walk.motion", text: LocalizedStrings.abbrevPAD) }
                 }
             }
 
