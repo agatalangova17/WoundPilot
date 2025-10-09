@@ -25,8 +25,7 @@ struct PatientListView: View {
 
         switch scope {
         case .all: break
-        case .diabetic: list = list.filter { $0.hasDiabetes == true }  // FIXED
-        case .smoker:   list = list.filter { $0.isSmoker   == true }
+        case .diabetic: list = list.filter { $0.hasDiabetes == true }
         case .pad:      list = list.filter { $0.hasPAD     == true }
         }
 
@@ -109,7 +108,6 @@ struct PatientListView: View {
             )
             .searchSuggestions {
                 Text(LocalizedStrings.tagDM).searchCompletion(LocalizedStrings.tagDM)
-                Text(LocalizedStrings.tagSmoker).searchCompletion(LocalizedStrings.tagSmoker)
                 Text(LocalizedStrings.tagPAD).searchCompletion(LocalizedStrings.tagPAD)
                 Divider()
                 ForEach(nameSuggestions, id: \.self) { s in Text(s).searchCompletion(s) }
@@ -117,7 +115,6 @@ struct PatientListView: View {
             .searchScopes($scope) {
                 Text(LocalizedStrings.scopeAll).tag(SearchScope.all)
                 Text(LocalizedStrings.scopeDM).tag(SearchScope.diabetic)
-                Text(LocalizedStrings.scopeSmoker).tag(SearchScope.smoker)
                 Text(LocalizedStrings.scopePAD).tag(SearchScope.pad)
             }
             .navigationTitle(LocalizedStrings.yourPatientsTitle)
@@ -161,11 +158,8 @@ struct PatientListView: View {
         var items: [Badge] = []
         
         items.append(Badge(icon: "calendar", text: String(age(from: p.dateOfBirth))))
-        if p.hasDiabetes == true {  // FIXED
+        if p.hasDiabetes == true {
             items.append(Badge(icon: "drop.fill", text: LocalizedStrings.badgeDM))
-        }
-        if p.isSmoker == true {
-            items.append(Badge(icon: "lungs.fill", text: LocalizedStrings.badgeSmoker))
         }
         if p.hasPAD == true {
             items.append(Badge(
@@ -217,12 +211,6 @@ struct PatientListView: View {
                             guard let name = data["name"] as? String,
                                   let dobTimestamp = data["dateOfBirth"] as? Timestamp else { return nil }
 
-                            // Parse mobility status
-                            var mobilityStatus: MobilityStatus? = nil
-                            if let mobilityString = data["mobilityStatus"] as? String {
-                                mobilityStatus = MobilityStatus(rawValue: mobilityString)
-                            }
-
                             return Patient(
                                 id: doc.documentID,
                                 name: name,
@@ -232,17 +220,14 @@ struct PatientListView: View {
                                 hasPAD: data["hasPAD"] as? Bool,
                                 hasVenousDisease: data["hasVenousDisease"] as? Bool,
                                 isImmunosuppressed: data["isImmunosuppressed"] as? Bool,
-                                mobilityStatus: mobilityStatus,
+                                hasMobilityImpairment: data["hasMobilityImpairment"] as? Bool,
                                 canOffload: data["canOffload"] as? Bool,
                                 isOnAnticoagulants: data["isOnAnticoagulants"] as? Bool,
-                                isSmoker: data["isSmoker"] as? Bool,
                                 allergyToAdhesives: data["allergyToAdhesives"] as? Bool,
                                 allergyToIodine: data["allergyToIodine"] as? Bool,
                                 allergyToSilver: data["allergyToSilver"] as? Bool,
                                 allergyToLatex: data["allergyToLatex"] as? Bool,
-                                weight: data["weight"] as? Double,
-                                otherAllergies: data["otherAllergies"] as? String,
-                                notes: data["notes"] as? String
+                                otherAllergies: data["otherAllergies"] as? String
                             )
                         }
                     }
@@ -278,9 +263,9 @@ struct PatientListView: View {
     }
 }
 
-// MARK: - Search scope
+// MARK: - Search scope (removed smoker)
 private enum SearchScope: Hashable, CaseIterable {
-    case all, diabetic, smoker, pad
+    case all, diabetic, pad
 }
 
 // MARK: - Row/Card components

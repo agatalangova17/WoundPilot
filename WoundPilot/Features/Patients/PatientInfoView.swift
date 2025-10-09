@@ -16,117 +16,127 @@ struct PatientInfoView: View {
     private var sexDisplay: String {
         let raw = (patient.sex ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         switch raw {
-        case "male", "m", "muž": return LocalizedStrings.sexMale
-        case "female", "f", "žena": return LocalizedStrings.sexFemale
+        case "male", "m", "muž": return "Male"
+        case "female", "f", "žena": return "Female"
         case "unspecified", "unknown", "neurčené", "": fallthrough
-        default: return LocalizedStrings.sexUnspecified
+        default: return "Unspecified"
         }
     }
-
-    private func formatWeight(_ value: Double) -> String {
-        let nf = NumberFormatter()
-        nf.numberStyle = .decimal
-        nf.minimumFractionDigits = 1
-        nf.maximumFractionDigits = 1
-        nf.locale = Locale(identifier: langManager.currentLanguage.rawValue)
-        return nf.string(from: NSNumber(value: value)) ?? String(format: "%.1f", value)
-    }
     
-    // Helper to display three-state Bool
     private func threeStateDisplay(_ value: Bool?) -> String {
         guard let value = value else { return "Unknown" }
         return value ? "Yes" : "No"
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                // MARK: Basic Info
-                Section(header: Text("Patient Information")) {
-                    InfoRow(label: "Name", value: patient.name)
-                    InfoRow(label: "Date of Birth", value: formattedDOB)
-                    InfoRow(label: "Sex", value: sexDisplay)
-                }
+        ZStack {
+            Color(.systemGroupedBackground).ignoresSafeArea()
+            
+            ScrollView {
+                VStack(spacing: 20) {
+                    // MARK: Basic Info
+                    VStack(spacing: 16) {
+                        SectionHeader(icon: "person.fill", title: "Patient Information", color: .blue)
+                        
+                        VStack(spacing: 12) {
+                            InfoRow(label: "Name", value: patient.name)
+                            InfoRow(label: "Date of Birth", value: formattedDOB)
+                            InfoRow(label: "Sex", value: sexDisplay)
+                        }
+                    }
+                    .cardStyle()
 
-                // MARK: Medical History
-                Section(header: Text("Medical History")) {
-                    InfoRow(label: "Diabetes", value: threeStateDisplay(patient.hasDiabetes))
-                    InfoRow(label: "Peripheral Arterial Disease", value: threeStateDisplay(patient.hasPAD))
-                    InfoRow(label: "Venous Disease", value: threeStateDisplay(patient.hasVenousDisease))
-                    InfoRow(label: "Immunosuppressed", value: threeStateDisplay(patient.isImmunosuppressed))
-                }
-                
-                // MARK: Medications & Risk Factors
-                Section(header: Text("Medications & Risk Factors")) {
-                    InfoRow(label: "On Anticoagulants", value: threeStateDisplay(patient.isOnAnticoagulants))
-                    InfoRow(label: "Smoker", value: threeStateDisplay(patient.isSmoker))
-                }
-
-                // MARK: Mobility
-                Section(header: Text("Mobility")) {
-                    InfoRow(
-                        label: "Mobility Status",
-                        value: patient.mobilityStatus?.rawValue ?? "Unknown"
-                    )
+                    // MARK: Medical History
+                    VStack(spacing: 16) {
+                        SectionHeader(icon: "heart.text.square.fill", title: "Medical History", color: .red)
+                        
+                        VStack(spacing: 12) {
+                            InfoRow(label: "Diabetes", value: threeStateDisplay(patient.hasDiabetes))
+                            InfoRow(label: "Peripheral Arterial Disease", value: threeStateDisplay(patient.hasPAD))
+                            InfoRow(label: "Venous Disease", value: threeStateDisplay(patient.hasVenousDisease))
+                            InfoRow(label: "Immunosuppressed", value: threeStateDisplay(patient.isImmunosuppressed))
+                        }
+                    }
+                    .cardStyle()
                     
-                    if let mobility = patient.mobilityStatus, mobility != .independent {
-                        InfoRow(label: "Can Offload Weight", value: threeStateDisplay(patient.canOffload))
+                    // MARK: Medications
+                    VStack(spacing: 16) {
+                        SectionHeader(icon: "pills.fill", title: "Medications", color: .orange)
+                        
+                        InfoRow(label: "On Blood Thinners", value: threeStateDisplay(patient.isOnAnticoagulants))
                     }
-                }
+                    .cardStyle()
 
-                // MARK: Dressing Allergies
-                if hasAnyAllergy {
-                    Section(header: Text("Known Dressing Allergies")) {
-                        if patient.allergyToAdhesives == true {
-                            InfoRow(label: "Adhesives", value: "Allergic", valueColor: .red)
-                        }
-                        if patient.allergyToIodine == true {
-                            InfoRow(label: "Iodine", value: "Allergic", valueColor: .red)
-                        }
-                        if patient.allergyToSilver == true {
-                            InfoRow(label: "Silver", value: "Allergic", valueColor: .red)
-                        }
-                        if patient.allergyToLatex == true {
-                            InfoRow(label: "Latex", value: "Allergic", valueColor: .red)
-                        }
-                        if let other = patient.otherAllergies, !other.isEmpty {
-                            InfoRow(label: "Other Allergies", value: other, valueColor: .red)
-                        }
-                    }
-                }
-
-                // MARK: Additional Information
-                if patient.weight != nil || patient.notes != nil {
-                    Section(header: Text("Additional Information")) {
-                        if let weight = patient.weight {
-                            InfoRow(label: "Weight", value: "\(formatWeight(weight)) kg")
-                        }
-                        if let notes = patient.notes, !notes.isEmpty {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Clinical Notes")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                Text(notes)
-                                    .font(.body)
+                    // MARK: Mobility
+                    VStack(spacing: 16) {
+                        SectionHeader(icon: "figure.walk", title: "Mobility", color: .purple)
+                        
+                        VStack(spacing: 12) {
+                            InfoRow(label: "Mobility Impairment", value: threeStateDisplay(patient.hasMobilityImpairment))
+                            
+                            if patient.hasMobilityImpairment == true {
+                                InfoRow(label: "Can Offload Weight", value: threeStateDisplay(patient.canOffload))
                             }
                         }
                     }
-                }
+                    .cardStyle()
 
-                // MARK: Actions
-                Section {
+                    // MARK: Allergies
+                    if hasAnyAllergy {
+                        VStack(spacing: 16) {
+                            SectionHeader(icon: "exclamationmark.triangle.fill", title: "Dressing Allergies", color: .pink)
+                            
+                            VStack(spacing: 12) {
+                                if patient.allergyToAdhesives == true {
+                                    InfoRow(label: "Adhesives", value: "Allergic", valueColor: .red)
+                                }
+                                if patient.allergyToIodine == true {
+                                    InfoRow(label: "Iodine", value: "Allergic", valueColor: .red)
+                                }
+                                if patient.allergyToSilver == true {
+                                    InfoRow(label: "Silver", value: "Allergic", valueColor: .red)
+                                }
+                                if patient.allergyToLatex == true {
+                                    InfoRow(label: "Latex", value: "Allergic", valueColor: .red)
+                                }
+                                if let other = patient.otherAllergies, !other.isEmpty {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Other Allergies")
+                                            .font(.subheadline)
+                                            .foregroundColor(.secondary)
+                                        Text(other)
+                                            .font(.body)
+                                            .foregroundColor(.red)
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.horizontal, 16)
+                                }
+                            }
+                        }
+                        .cardStyle()
+                    }
+
+                    // MARK: Edit Button
                     Button {
                         showEdit = true
                     } label: {
                         Label("Edit Patient Information", systemImage: "square.and.pencil")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                            .background(Color(.secondarySystemBackground))
+                            .foregroundColor(.blue)
+                            .cornerRadius(16)
                     }
                 }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
             }
-            .navigationTitle("Patient Information")
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationDestination(isPresented: $showEdit) {
-                EditPatientView(patient: patient)
-            }
+        }
+        .navigationTitle("Patient Information")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(isPresented: $showEdit) {
+            EditPatientView(patient: patient)
         }
     }
     
@@ -139,7 +149,6 @@ struct PatientInfoView: View {
     }
 }
 
-// MARK: - Helper View
 private struct InfoRow: View {
     let label: String
     let value: String
@@ -148,10 +157,13 @@ private struct InfoRow: View {
     var body: some View {
         HStack {
             Text(label)
+                .font(.subheadline)
                 .foregroundColor(.secondary)
             Spacer()
             Text(value)
+                .font(.body)
                 .foregroundColor(valueColor)
         }
+        .padding(.horizontal, 16)
     }
 }

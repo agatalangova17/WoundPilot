@@ -33,8 +33,7 @@ struct PatientDetailView: View {
                     name: patient.name,
                     dobLabel: "\(LocalizedStrings.dateOfBirth): \(formattedDOB)",
                     age: age,
-                    hasDiabetes: patient.hasDiabetes ?? false,  // FIXED
-                    isSmoker: patient.isSmoker ?? false,
+                    hasDiabetes: patient.hasDiabetes ?? false,
                     hasPAD: patient.hasPAD ?? false
                 )
                 .cardStyle(bg: cardBG, stroke: stroke)
@@ -98,8 +97,7 @@ private struct HeaderCard: View {
     let name: String
     let dobLabel: String
     let age: Int
-    let hasDiabetes: Bool  // FIXED
-    let isSmoker: Bool
+    let hasDiabetes: Bool
     let hasPAD: Bool
 
     @ScaledMetric(relativeTo: .title2) private var avatar: CGFloat = 56
@@ -146,8 +144,7 @@ private struct HeaderCard: View {
                 
                 HStack(spacing: 6) {
                     Tag(icon: "calendar", text: "\(age) \(LocalizedStrings.ageShort)")
-                    if hasDiabetes { Tag(icon: "drop.fill", text: LocalizedStrings.abbrevDM) }  // FIXED
-                    if isSmoker    { Tag(icon: "lungs.fill", text: LocalizedStrings.smokerShort) }
+                    if hasDiabetes { Tag(icon: "drop.fill", text: LocalizedStrings.abbrevDM) }
                     if hasPAD      { Tag(icon: "figure.walk.motion", text: LocalizedStrings.abbrevPAD) }
                 }
             }
