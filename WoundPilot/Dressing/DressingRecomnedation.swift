@@ -3,6 +3,7 @@ import SwiftUI
 struct DressingRecommendationView: View {
     let measurements: WoundMeasurementResult
     let assessment: QuestionnairePayload
+    let context: QuestionnaireContext
 
     @ObservedObject var langManager = LocalizationManager.shared
 
@@ -14,12 +15,17 @@ struct DressingRecommendationView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
+                // Allergy warnings if present
+                if hasRelevantAllergies {
+                    allergyWarningCard
+                }
+                
                 // Size recommendations
                 sizeCard
 
                 // Primary dressing
                 dressingCard(
-                    title: LocalizedStrings.primaryDressingTitle,
+                    title: "Primary Dressing",
                     icon: "bandage.fill",
                     products: recommendations?.primary ?? [],
                     color: .blue
@@ -28,7 +34,7 @@ struct DressingRecommendationView: View {
                 // Secondary dressing
                 if let secondary = recommendations?.secondary, !secondary.isEmpty {
                     dressingCard(
-                        title: LocalizedStrings.secondaryDressingTitle,
+                        title: "Secondary Dressing",
                         icon: "square.stack.fill",
                         products: secondary,
                         color: .green
@@ -38,21 +44,21 @@ struct DressingRecommendationView: View {
                 // Border/retention
                 if let border = recommendations?.border, !border.isEmpty {
                     dressingCard(
-                        title: LocalizedStrings.borderDressingTitle,
+                        title: "Border/Retention",
                         icon: "square.on.square",
                         products: border,
                         color: .orange
                     )
                 }
 
-                // Instructions and PDF export
+                // Instructions
                 VStack(spacing: 16) {
                     instructionsCard
 
                     Button {
                         exportPDF()
                     } label: {
-                        Label(LocalizedStrings.exportCompleteReport, systemImage: "doc.fill")
+                        Label("Export Complete Report", systemImage: "doc.fill")
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
@@ -62,15 +68,12 @@ struct DressingRecommendationView: View {
                             )
                             .foregroundColor(.white)
                     }
-
-                    
-
-                    .padding(.bottom, 24)                   
+                    .padding(.bottom, 24)
                 }
             }
             .padding()
         }
-        .navigationTitle(LocalizedStrings.dressingSelectionTitle)
+        .navigationTitle("Dressing Selection")
         .navigationBarTitleDisplayMode(.inline)
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .sheet(isPresented: $showShare) {
@@ -82,27 +85,75 @@ struct DressingRecommendationView: View {
                 animate = true
             }
         }
-        .environment(\.locale, Locale(identifier: langManager.currentLanguage.rawValue))
+    }
+
+    // MARK: - Allergy Warning
+    
+    private var hasRelevantAllergies: Bool {
+        context.allergyToAdhesives == true ||
+        context.allergyToIodine == true ||
+        context.allergyToSilver == true ||
+        context.allergyToLatex == true ||
+        (context.otherAllergies != nil && !context.otherAllergies!.isEmpty)
+    }
+    
+    private var allergyWarningCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("⚠️ Known Allergies", systemImage: "exclamationmark.triangle.fill")
+                .font(.headline)
+                .foregroundColor(.red)
+            
+            VStack(alignment: .leading, spacing: 6) {
+                if context.allergyToAdhesives == true {
+                    Text("• Adhesives - use silicone-based products")
+                }
+                if context.allergyToIodine == true {
+                    Text("• Iodine - avoid iodine-based antimicrobials")
+                }
+                if context.allergyToSilver == true {
+                    Text("• Silver - avoid silver dressings, use PHMB or honey alternatives")
+                }
+                if context.allergyToLatex == true {
+                    Text("• Latex - ensure all products are latex-free")
+                }
+                if let other = context.otherAllergies, !other.isEmpty {
+                    Text("• Other: \(other)")
+                }
+            }
+            .font(.subheadline)
+            .foregroundColor(.secondary)
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.red.opacity(0.1))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.red.opacity(0.3), lineWidth: 2)
+        )
+        .opacity(animate ? 1 : 0)
+        .offset(y: animate ? 0 : 20)
     }
 
     // MARK: - Size Card
 
     private var sizeCard: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Label(LocalizedStrings.recommendedDressingSizesTitle, systemImage: "ruler")
+            Label("Recommended Dressing Sizes", systemImage: "ruler")
                 .font(.headline)
                 .foregroundColor(.primary)
 
             if let recs = recommendations {
                 VStack(spacing: 12) {
-                    sizeRow(label: LocalizedStrings.woundDimensionsLabel, value: recs.woundSize)
+                    sizeRow(label: "Wound Dimensions", value: recs.woundSize)
                     Divider()
-                    sizeRow(label: LocalizedStrings.primaryDressingLabel, value: recs.primarySize, highlight: true)
-                    sizeRow(label: LocalizedStrings.secondaryDressingLabel, value: recs.secondarySize)
-                    sizeRow(label: LocalizedStrings.borderIfNeededLabel, value: recs.borderSize)
+                    sizeRow(label: "Primary Dressing", value: recs.primarySize, highlight: true)
+                    sizeRow(label: "Secondary Dressing", value: recs.secondarySize)
+                    sizeRow(label: "Border (if needed)", value: recs.borderSize)
                 }
 
-                Text(LocalizedStrings.marginsNote)
+                Text("Sizes calculated with appropriate margins for dressing type")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .padding(.top, 8)
@@ -165,16 +216,28 @@ struct DressingRecommendationView: View {
 
     private var instructionsCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label(LocalizedStrings.applicationNotesTitle, systemImage: "info.circle.fill")
+            Label("Application Notes", systemImage: "info.circle.fill")
                 .font(.headline)
                 .foregroundColor(.blue)
 
             VStack(alignment: .leading, spacing: 8) {
-                bulletPoint(LocalizedStrings.appNoteClean)
-                bulletPoint(LocalizedStrings.appNoteApplyPrimary)
-                bulletPoint(LocalizedStrings.appNoteMargin)
-                bulletPoint(LocalizedStrings.appNoteSecure)
-                bulletPoint(LocalizedStrings.appNoteChangeFrequency)
+                bulletPoint("Clean wound with normal saline")
+                bulletPoint("Apply primary dressing directly to wound bed")
+                bulletPoint("Ensure adequate margin around wound edges")
+                bulletPoint("Secure with appropriate secondary/border dressing")
+                bulletPoint("Change frequency: as per product guidance or when strike-through occurs")
+                
+                if assessment.hasDeepSpaces {
+                    bulletPoint("⚠️ Pack deep spaces loosely - do not overfill")
+                }
+                
+                if assessment.infectionSeverity != .none {
+                    bulletPoint("⚠️ Monitor for signs of worsening infection")
+                }
+                
+                if assessment.dominantTissueType == "necrosis" && assessment.infectionSeverity != .none {
+                    bulletPoint("⚠️ Antimicrobial coverage essential - do not use plain hydrogel alone")
+                }
             }
             .font(.subheadline)
         }
@@ -204,7 +267,8 @@ struct DressingRecommendationView: View {
             let pdfData = try CompletePDFComposer.make(
                 assessment: assessment,
                 measurements: measurements,
-                dressing: recs
+                dressing: recs,
+                context: context
             )
 
             let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -225,7 +289,8 @@ struct DressingRecommendationView: View {
     private func calculateRecommendations() {
         recommendations = DressingEngine.recommend(
             measurements: measurements,
-            assessment: assessment
+            assessment: assessment,
+            context: context
         )
     }
 }
@@ -242,12 +307,17 @@ private struct ProductRow: View {
                     .font(.subheadline.weight(.semibold))
                 Spacer()
                 if product.priority == .preferred {
-                    Text(LocalizedStrings.preferredTag)
+                    Text("Preferred")
                         .font(.caption2.weight(.bold))
                         .foregroundColor(.green)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(Capsule().fill(Color.green.opacity(0.15)))
+                }
+                if product.allergyWarning {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.orange)
+                        .imageScale(.small)
                 }
             }
 
@@ -256,7 +326,7 @@ private struct ProductRow: View {
                 .foregroundColor(.secondary)
 
             if !product.examples.isEmpty {
-                let line = "\(LocalizedStrings.examplesPrefix) \(product.examples.joined(separator: ", "))"
+                let line = "Examples: \(product.examples.joined(separator: ", "))"
                 Text(line)
                     .font(.caption)
                     .foregroundColor(.blue)
@@ -285,212 +355,387 @@ struct DressingProduct: Identifiable {
     let rationale: String
     let examples: [String]
     let priority: Priority
+    let allergyWarning: Bool
 
     enum Priority { case preferred, alternative }
 }
 
-// MARK: - Dressing Engine (Rules-based)
+// MARK: - CORRECTED Dressing Engine with Infection-First Logic
 
 enum DressingEngine {
-    static func recommend(measurements: WoundMeasurementResult, assessment: QuestionnairePayload) -> DressingRecommendations {
+    static func recommend(
+        measurements: WoundMeasurementResult,
+        assessment: QuestionnairePayload,
+        context: QuestionnaireContext
+    ) -> DressingRecommendations {
 
-        // Calculate sizes with TYPE-AWARE margins
         let length = measurements.lengthCm
         let width = measurements.widthCm
+        let dominantTissue = assessment.dominantTissueType
+        let hasInfection = assessment.infectionSeverity != .none
 
-        // Determine primary dressing type first to calculate appropriate margins
-        var primaryMargin: Float = 2.0 // Default for hydrofiber/alginate
-        var isDryOrLowExudate = (assessment.moisture == "dry" || assessment.moisture == "low")
-        
-        // Check what primary dressing we'll recommend
-        if assessment.tissue == "necrosis" || assessment.tissue == "slough" {
-            if assessment.moisture == "high" {
-                primaryMargin = 2.0 // Alginate - minimal margin
-            } else {
-                primaryMargin = isDryOrLowExudate ? 4.0 : 3.0 // Hydrocolloid/foam
-            }
-        } else if assessment.tissue == "granulation" {
-            if assessment.infection == "local" || assessment.infection == "systemic" {
-                primaryMargin = 3.0 // Silver foam
-            } else {
-                switch assessment.moisture {
-                case "dry":
-                    primaryMargin = 2.0 // Hydrogel - minimal
-                case "low":
-                    primaryMargin = 4.0 // Thin foam/hydrocolloid - needs border
-                case "moderate":
-                    primaryMargin = 3.0 // Foam
-                case "high":
-                    primaryMargin = 2.0 // Superabsorbent/alginate - minimal
-                default:
-                    primaryMargin = 3.0 // Foam default
-                }
-            }
-        }
-        
-        // High exudate or shear risk → use larger margin
-        if assessment.moisture == "high" && (assessment.etiology == "venous" || assessment.etiology == "pressure") {
-            primaryMargin = max(primaryMargin, 3.0)
-        }
-        
+        // Calculate sizes (simplified - use 2cm margin for most products)
+        let primaryMargin: Float = 2.0
         let primaryLength = Int(ceil(length + primaryMargin))
         let primaryWidth  = Int(ceil(width + primaryMargin))
-        
-        // Secondary adds 2cm more
         let secondaryLength = Int(ceil(length + primaryMargin + 2))
         let secondaryWidth  = Int(ceil(width + primaryMargin + 2))
-        
-        // Border adds 2cm more
-        let borderLength    = Int(ceil(length + primaryMargin + 4))
-        let borderWidth     = Int(ceil(width + primaryMargin + 4))
+        let borderLength = Int(ceil(length + primaryMargin + 4))
+        let borderWidth  = Int(ceil(width + primaryMargin + 4))
 
         var primary: [DressingProduct] = []
         
+        // ====================================================================
+        // CRITICAL: INFECTION-FIRST LOGIC
+        // If wound is infected, antimicrobial coverage is PRIORITY #1
+        // ====================================================================
         
-        if assessment.tissue == "necrosis" {
-            primary.append(
-                DressingProduct(
-                    name: LocalizedStrings.dpHydrogelName,
-                    rationale: LocalizedStrings.dpHydrogelRationale,
-                    examples: ["IntraSite Gel", "Purilon Gel", "DuoDERM Hydroactive"],
-                    priority: .preferred
-                )
-            )
-        } else if assessment.tissue == "slough" {
-            if assessment.moisture == "high" {
+        if hasInfection {
+            // INFECTED WOUNDS - need antimicrobial coverage
+            
+            if dominantTissue == "necrosis" {
+                // INFECTED NECROTIC WOUND - needs antimicrobial + autolytic debridement
+                
+                // Option 1: Medical Grade Honey (works on both infection AND necrosis)
                 primary.append(
                     DressingProduct(
-                        name: LocalizedStrings.dpAlginateName,
-                        rationale: LocalizedStrings.dpAlginateRationale,
-                        examples: ["Kaltostat", "Sorbsan", "Algisite M"],
-                        priority: .preferred
+                        name: "Medical Grade Manuka Honey",
+                        rationale: "Broad-spectrum antimicrobial AND promotes autolytic debridement of necrotic tissue. Dual action addresses both infection and devitalized tissue.",
+                        examples: ["Medihoney", "Activon", "Manukamed"],
+                        priority: .preferred,
+                        allergyWarning: false
                     )
                 )
+                
+                // Option 2: Cadexomer Iodine (if no iodine allergy)
+                if context.allergyToIodine != true {
+                    primary.append(
+                        DressingProduct(
+                            name: "Cadexomer Iodine Paste",
+                            rationale: "Antimicrobial coverage for infection while promoting autolytic debridement",
+                            examples: ["Iodosorb", "Iodoflex"],
+                            priority: .preferred,
+                            allergyWarning: false
+                        )
+                    )
+                }
+                
+                // Option 3: Silver Alginate (if no silver allergy)
+                if context.allergyToSilver != true {
+                    primary.append(
+                        DressingProduct(
+                            name: "Silver Alginate",
+                            rationale: "Antimicrobial silver with high absorbency and autolytic properties",
+                            examples: ["Aquacel Ag", "Silvercel"],
+                            priority: .alternative,
+                            allergyWarning: false
+                        )
+                    )
+                }
+                
+            } else if dominantTissue == "slough" {
+                // INFECTED SLOUGHY WOUND
+                
+                // Option 1: Medical honey
+                primary.append(
+                    DressingProduct(
+                        name: "Medical Grade Manuka Honey",
+                        rationale: "Antimicrobial action with autolytic debridement for infected sloughy tissue",
+                        examples: ["Medihoney", "Activon"],
+                        priority: .preferred,
+                        allergyWarning: false
+                    )
+                )
+                
+                // Option 2: Silver foam/hydrofiber
+                if context.allergyToSilver != true {
+                    if assessment.exudate == "high" {
+                        primary.append(
+                            DressingProduct(
+                                name: "Silver Hydrofiber",
+                                rationale: "High absorbency antimicrobial for infected wound with slough",
+                                examples: ["Aquacel Ag", "Aquacel Ag Extra"],
+                                priority: .preferred,
+                                allergyWarning: false
+                            )
+                        )
+                    } else {
+                        primary.append(
+                            DressingProduct(
+                                name: "Silver Foam",
+                                rationale: "Antimicrobial foam for infected sloughy wound",
+                                examples: ["Mepilex Ag", "Allevyn Ag"],
+                                priority: .alternative,
+                                allergyWarning: context.allergyToAdhesives == true
+                            )
+                        )
+                    }
+                }
+                
+                // Option 3: PHMB (if silver allergy)
+                if context.allergyToSilver == true {
+                    primary.append(
+                        DressingProduct(
+                            name: "PHMB Antimicrobial Foam",
+                            rationale: "Antimicrobial without silver (patient has silver allergy)",
+                            examples: ["Kendall AMD", "Biatain PHMB"],
+                            priority: .preferred,
+                            allergyWarning: false
+                        )
+                    )
+                }
+                
             } else {
+                // INFECTED GRANULATION TISSUE
+                
+                // Option 1: Medical honey
                 primary.append(
                     DressingProduct(
-                        name: LocalizedStrings.dpHydrocolloidHydrofiberName,
-                        rationale: LocalizedStrings.dpHydrocolloidHydrofiberRationale,
-                        examples: ["DuoDERM Extra Thin", "Aquacel Foam"],
-                        priority: .preferred
+                        name: "Medical Grade Manuka Honey",
+                        rationale: "Antimicrobial for infected granulating wound, promotes healing",
+                        examples: ["Medihoney", "Activon"],
+                        priority: .preferred,
+                        allergyWarning: false
                     )
                 )
-            }
-        } else if assessment.tissue == "granulation" {
-            if assessment.infection == "local" || assessment.infection == "systemic" {
-                primary.append(
-                    DressingProduct(
-                        name: LocalizedStrings.dpSilverFoamName,
-                        rationale: LocalizedStrings.dpSilverFoamRationale,
-                        examples: ["Mepilex Ag", "Aquacel Ag Foam", "Acticoat"],
-                        priority: .preferred
-                    )
-                )
-            } else {
-                switch assessment.moisture {
-                case "dry":
+                
+                // Option 2: Silver foam
+                if context.allergyToSilver != true {
                     primary.append(
                         DressingProduct(
-                            name: LocalizedStrings.dpHydrogelSheetName,
-                            rationale: LocalizedStrings.dpHydrogelSheetRationale,
-                            examples: ["IntraSite Gel", "Nu-Gel"],
-                            priority: .preferred
+                            name: "Silver Foam Dressing",
+                            rationale: "Antimicrobial action for infected granulating wound",
+                            examples: ["Mepilex Ag", "Aquacel Ag Foam", "Allevyn Ag"],
+                            priority: .preferred,
+                            allergyWarning: context.allergyToAdhesives == true
                         )
                     )
-                case "low":
+                }
+                
+                // Option 3: PHMB (if silver allergy)
+                if context.allergyToSilver == true {
                     primary.append(
                         DressingProduct(
-                            name: LocalizedStrings.dpThinFoamOrHydrocolloidName,
-                            rationale: LocalizedStrings.dpThinFoamOrHydrocolloidRationale,
-                            examples: ["Mepilex Lite", "DuoDERM Extra Thin"],
-                            priority: .preferred
-                        )
-                    )
-                case "moderate":
-                    primary.append(
-                        DressingProduct(
-                            name: LocalizedStrings.dpFoamName,
-                            rationale: LocalizedStrings.dpFoamRationale,
-                            examples: ["Mepilex Border", "Allevyn Gentle"],
-                            priority: .preferred
-                        )
-                    )
-                case "high":
-                    primary.append(
-                        DressingProduct(
-                            name: LocalizedStrings.dpSuperabsorbentOrAlginateName,
-                            rationale: LocalizedStrings.dpSuperabsorbentOrAlginateRationale,
-                            examples: ["Zetuvit Plus", "Kaltostat", "Aquacel Foam Extra"],
-                            priority: .preferred
-                        )
-                    )
-                default:
-                    primary.append(
-                        DressingProduct(
-                            name: LocalizedStrings.dpFoamName,
-                            rationale: LocalizedStrings.dpFoamRationaleGeneric,
-                            examples: ["Mepilex", "Allevyn"],
-                            priority: .preferred
+                            name: "PHMB Antimicrobial Foam",
+                            rationale: "Antimicrobial without silver (patient has silver allergy)",
+                            examples: ["Kendall AMD", "Biatain PHMB"],
+                            priority: .preferred,
+                            allergyWarning: false
                         )
                     )
                 }
             }
-        }
-
-        if (assessment.infection == "local" || assessment.infection == "systemic")
-            && !primary.contains(where: { $0.name.contains("Silver") || $0.name.contains("Strieborný") || $0.name.contains("Antimicrobial") || $0.name.contains("Antimikrobiálny") }) {
-            primary.append(
-                DressingProduct(
-                    name: LocalizedStrings.dpAntimicrobialAltName,
-                    rationale: LocalizedStrings.dpAntimicrobialAltRationale,
-                    examples: ["Acticoat", "Aquacel Ag"],
-                    priority: .alternative
+            
+        } else {
+            // NO INFECTION - Select based on tissue type and exudate
+            
+            if dominantTissue == "necrosis" {
+                // CLEAN NECROTIC WOUND - autolytic debridement
+                
+                primary.append(
+                    DressingProduct(
+                        name: "Hydrogel",
+                        rationale: "Autolytic debridement - softens and rehydrates necrotic tissue",
+                        examples: ["IntraSite Gel", "Purilon Gel", "Nu-Gel"],
+                        priority: .preferred,
+                        allergyWarning: false
+                    )
                 )
-            )
+                
+                // Alternative: Medical honey (also good for clean necrotic wounds)
+                primary.append(
+                    DressingProduct(
+                        name: "Medical Grade Manuka Honey",
+                        rationale: "Natural autolytic debridement with anti-inflammatory properties",
+                        examples: ["Medihoney", "Activon"],
+                        priority: .alternative,
+                        allergyWarning: false
+                    )
+                )
+                
+            } else if dominantTissue == "slough" {
+                // CLEAN SLOUGHY WOUND
+                
+                if assessment.exudate == "high" {
+                    primary.append(
+                        DressingProduct(
+                            name: "Alginate",
+                            rationale: "High absorbency while promoting autolytic debridement",
+                            examples: ["Kaltostat", "Sorbsan", "Algisite M"],
+                            priority: .preferred,
+                            allergyWarning: false
+                        )
+                    )
+                } else {
+                    primary.append(
+                        DressingProduct(
+                            name: "Hydrofiber or Hydrocolloid",
+                            rationale: "Maintains moist environment for autolytic debridement",
+                            examples: ["Aquacel", "DuoDERM CGF"],
+                            priority: .preferred,
+                            allergyWarning: context.allergyToAdhesives == true
+                        )
+                    )
+                }
+                
+            } else if dominantTissue == "granulation" {
+                // CLEAN GRANULATING WOUND - select by exudate level
+                
+                switch assessment.exudate {
+                case "dry":
+                    primary.append(
+                        DressingProduct(
+                            name: "Hydrogel Sheet",
+                            rationale: "Hydrates dry wound bed to support cell migration",
+                            examples: ["IntraSite Conformable", "Nu-Gel"],
+                            priority: .preferred,
+                            allergyWarning: false
+                        )
+                    )
+                    
+                case "low":
+                    primary.append(
+                        DressingProduct(
+                            name: "Thin Foam or Hydrocolloid",
+                            rationale: "Low absorbency for minimal exudate",
+                            examples: ["Mepilex Lite", "DuoDERM Extra Thin"],
+                            priority: .preferred,
+                            allergyWarning: context.allergyToAdhesives == true
+                        )
+                    )
+                    
+                case "moderate":
+                    primary.append(
+                        DressingProduct(
+                            name: "Foam Dressing",
+                            rationale: "Balanced absorbency maintains optimal moisture",
+                            examples: ["Mepilex Border", "Allevyn Gentle"],
+                            priority: .preferred,
+                            allergyWarning: context.allergyToAdhesives == true
+                        )
+                    )
+                    
+                case "high":
+                    primary.append(
+                        DressingProduct(
+                            name: "Superabsorbent or Alginate",
+                            rationale: "High absorbency for heavy exudate management",
+                            examples: ["Zetuvit Plus", "Kaltostat", "Aquacel Foam Extra"],
+                            priority: .preferred,
+                            allergyWarning: false
+                        )
+                    )
+                    
+                default:
+                    primary.append(
+                        DressingProduct(
+                            name: "Foam Dressing",
+                            rationale: "Versatile option for granulating wounds",
+                            examples: ["Mepilex", "Allevyn"],
+                            priority: .preferred,
+                            allergyWarning: context.allergyToAdhesives == true
+                        )
+                    )
+                }
+                
+            } else if dominantTissue == "epithelializing" {
+                // EPITHELIALIZING WOUND - protect new tissue
+                
+                primary.append(
+                    DressingProduct(
+                        name: "Thin Film or Hydrocolloid",
+                        rationale: "Protect new epithelial tissue while allowing moisture vapor transmission",
+                        examples: ["Tegaderm", "DuoDERM Extra Thin", "Opsite"],
+                        priority: .preferred,
+                        allergyWarning: context.allergyToAdhesives == true
+                    )
+                )
+            }
         }
 
+        // ====================================================================
+        // SECONDARY DRESSINGS
+        // ====================================================================
+        
         var secondary: [DressingProduct] = []
 
-        if assessment.etiology == "venous" && assessment.abi == "ge0_8" {
+        // Compression for venous wounds (if perfusion adequate)
+        if context.hasVenousDisease == true {
+            if assessment.abi == "ge0_8" {
+                secondary.append(
+                    DressingProduct(
+                        name: "Full Compression (30-40mmHg)",
+                        rationale: "Essential for venous ulcer healing - improves venous return",
+                        examples: ["4-layer bandage", "Short-stretch bandage", "Compression hosiery"],
+                        priority: .preferred,
+                        allergyWarning: context.allergyToLatex == true
+                    )
+                )
+            } else if assessment.abi == "p0_5to0_79" {
+                secondary.append(
+                    DressingProduct(
+                        name: "Reduced Compression (20-30mmHg)",
+                        rationale: "Modified compression due to reduced arterial supply - requires close monitoring",
+                        examples: ["Modified compression bandage", "Light compression hosiery"],
+                        priority: .preferred,
+                        allergyWarning: context.allergyToLatex == true
+                    )
+                )
+            }
+            // If ABI <0.5 or unknown, compression is contraindicated (not added)
+        }
+
+        // Absorbent pad for high exudate
+        if assessment.exudate == "high" {
             secondary.append(
                 DressingProduct(
-                    name: LocalizedStrings.dpCompressionSystemName,
-                    rationale: LocalizedStrings.dpCompressionSystemRationale,
-                    examples: [LocalizedStrings.dpCompressionExample4Layer, LocalizedStrings.dpCompressionExampleShortStretch],
-                    priority: .preferred
+                    name: "Absorbent Pad",
+                    rationale: "Additional exudate management to protect periwound skin",
+                    examples: ["Zetuvit", "Melolin", "ABD pad"],
+                    priority: .preferred,
+                    allergyWarning: false
                 )
             )
         }
 
-        if assessment.moisture == "high" {
-            secondary.append(
-                DressingProduct(
-                    name: LocalizedStrings.dpAbsorbentPadName,
-                    rationale: LocalizedStrings.dpAbsorbentPadRationale,
-                    examples: ["Zetuvit", "Melolin"],
-                    priority: .preferred
-                )
-            )
-        }
-
+        // ====================================================================
+        // BORDER/RETENTION + OFFLOADING
+        // ====================================================================
+        
         var border: [DressingProduct] = []
 
-        border.append(
-            DressingProduct(
-                name: LocalizedStrings.dpFilmOrSiliconeBorderName,
-                rationale: LocalizedStrings.dpFilmOrSiliconeBorderRationale,
-                examples: ["Tegaderm", "Mepilex Border", "Opsite Flexigrid"],
-                priority: .preferred
-            )
-        )
-
-        if assessment.etiology == "diabeticFoot" {
+        // Border/retention dressing
+        if context.allergyToAdhesives == true {
             border.append(
                 DressingProduct(
-                    name: LocalizedStrings.dpOffloadingDeviceName,
-                    rationale: LocalizedStrings.dpOffloadingDeviceRationale,
-                    examples: ["Total contact cast", "Removable cast boot", "Felted foam"],
-                    priority: .preferred
+                    name: "Silicone Border or Retention Bandage",
+                    rationale: "Gentle fixation without adhesive (patient has adhesive allergy)",
+                    examples: ["Mepilex Border (silicone)", "Retention bandage", "Tubular net"],
+                    priority: .preferred,
+                    allergyWarning: false
+                )
+            )
+        } else {
+            border.append(
+                DressingProduct(
+                    name: "Film Dressing or Self-Adherent Border",
+                    rationale: "Secure primary dressing and protect from external contamination",
+                    examples: ["Tegaderm", "Opsite Flexigrid", "Mepilex Border"],
+                    priority: .preferred,
+                    allergyWarning: false
+                )
+            )
+        }
+
+        // CRITICAL: Offloading for diabetic foot ulcers
+        if context.hasDiabetes == true && context.isFootLocation {
+            border.append(
+                DressingProduct(
+                    name: "Offloading Device (ESSENTIAL)",
+                    rationale: "Mandatory for diabetic foot ulcer healing - eliminates pressure at wound site",
+                    examples: ["Total contact cast (gold standard)", "Removable cast boot", "Felted foam offloading"],
+                    priority: .preferred,
+                    allergyWarning: false
                 )
             )
         }
@@ -507,15 +752,16 @@ enum DressingEngine {
     }
 }
 
-// MARK: - PDF Composer 
+// MARK: - PDF Composer
 
 private enum CompletePDFComposer {
     static func make(
         assessment: QuestionnairePayload,
         measurements: WoundMeasurementResult,
-        dressing: DressingRecommendations
+        dressing: DressingRecommendations,
+        context: QuestionnaireContext
     ) throws -> Data {
-
+        
         let df = DateFormatter()
         df.dateStyle = .medium
         df.timeStyle = .short
@@ -526,7 +772,7 @@ private enum CompletePDFComposer {
             <div class="product">
                 <div class="product-name">\(escape(p.name)) \(showStar && p.priority == .preferred ? "★" : "")</div>
                 <div class="product-rationale">\(escape(p.rationale))</div>
-                \(p.examples.isEmpty ? "" : "<div class=\"product-examples\">\(escape(LocalizedStrings.examplesPrefix)) \(escape(p.examples.joined(separator: ", ")))</div>")
+                \(p.examples.isEmpty ? "" : "<div class=\"product-examples\">Examples: \(escape(p.examples.joined(separator: ", ")))</div>")
             </div>
             """
         }
@@ -535,17 +781,32 @@ private enum CompletePDFComposer {
 
         let secondaryHTML = dressing.secondary.isEmpty ? "" : """
         <div class="dressing-section">
-            <div class="section-title">\(escape(LocalizedStrings.secondaryDressingTitle))</div>
+            <div class="section-title">Secondary Dressing</div>
             \(dressing.secondary.map { productHTML($0) }.joined())
         </div>
         """
 
         let borderHTML = dressing.border.isEmpty ? "" : """
         <div class="dressing-section">
-            <div class="section-title">\(escape(LocalizedStrings.borderDressingTitle))</div>
+            <div class="section-title">Border/Retention</div>
             \(dressing.border.map { productHTML($0) }.joined())
         </div>
         """
+        
+        let allergyHTML = context.allergyToAdhesives == true ||
+                          context.allergyToSilver == true ||
+                          context.allergyToIodine == true ||
+                          context.allergyToLatex == true ? """
+        <div class="alert">
+            <h3>⚠️ Known Allergies</h3>
+            <ul>
+                \(context.allergyToAdhesives == true ? "<li>Adhesives - use silicone products</li>" : "")
+                \(context.allergyToSilver == true ? "<li>Silver - use PHMB or honey alternatives</li>" : "")
+                \(context.allergyToIodine == true ? "<li>Iodine - avoid iodine-based products</li>" : "")
+                \(context.allergyToLatex == true ? "<li>Latex - ensure latex-free products</li>" : "")
+            </ul>
+        </div>
+        """ : ""
 
         let html = """
         <html>
@@ -561,6 +822,14 @@ private enum CompletePDFComposer {
             }
             .header h1 { margin: 0 0 8pt 0; font-size: 18pt; }
             .header .date { font-size: 9pt; opacity: 0.9; }
+
+            .alert {
+                background: #ffe5e5; border-left: 4pt solid #ff0000;
+                padding: 12pt; margin: 12pt 0; border-radius: 6pt;
+            }
+            .alert h3 { margin: 0 0 8pt 0; color: #c00; font-size: 12pt; }
+            .alert ul { margin: 4pt 0 0 16pt; padding: 0; }
+            .alert li { margin: 4pt 0; font-size: 10pt; }
 
             .measurements {
                 background: #f6f7f9; border-radius: 10pt; padding: 12pt; margin-bottom: 12pt;
@@ -593,34 +862,36 @@ private enum CompletePDFComposer {
         </head>
         <body>
             <div class="header">
-                <h1>\(escape(LocalizedStrings.pdfReportTitle))</h1>
+                <h1>Dressing Recommendation Report</h1>
                 <div class="date">\(escape(dateStr))</div>
             </div>
 
+            \(allergyHTML)
+
             <div class="measurements">
-                <h2>\(escape(LocalizedStrings.pdfWoundMeasurements))</h2>
+                <h2>Wound Measurements</h2>
                 <div class="size-grid">
                     <div class="size-item">
-                        <div class="size-label">\(escape(LocalizedStrings.pdfWoundSize))</div>
+                        <div class="size-label">Wound Size</div>
                         <div class="size-value">\(escape(dressing.woundSize))</div>
                     </div>
                     <div class="size-item">
-                        <div class="size-label">\(escape(LocalizedStrings.pdfPrimary))</div>
+                        <div class="size-label">Primary Dressing</div>
                         <div class="size-value">\(escape(dressing.primarySize))</div>
                     </div>
                     <div class="size-item">
-                        <div class="size-label">\(escape(LocalizedStrings.pdfSecondary))</div>
+                        <div class="size-label">Secondary</div>
                         <div class="size-value">\(escape(dressing.secondarySize))</div>
                     </div>
                     <div class="size-item">
-                        <div class="size-label">\(escape(LocalizedStrings.pdfBorderIfNeeded))</div>
+                        <div class="size-label">Border (if needed)</div>
                         <div class="size-value">\(escape(dressing.borderSize))</div>
                     </div>
                 </div>
             </div>
 
             <div class="dressing-section">
-                <div class="section-title">\(escape(LocalizedStrings.primaryDressingTitle))</div>
+                <div class="section-title">Primary Dressing</div>
                 \(primaryHTML)
             </div>
 
@@ -628,18 +899,20 @@ private enum CompletePDFComposer {
             \(borderHTML)
 
             <div class="instructions">
-                <h3>\(escape(LocalizedStrings.pdfApplicationGuidelines))</h3>
+                <h3>Application Guidelines</h3>
                 <ul>
-                    <li>\(escape(LocalizedStrings.appNoteClean))</li>
-                    <li>\(escape(LocalizedStrings.appNoteApplyPrimary))</li>
-                    <li>\(escape(LocalizedStrings.appNoteMargin))</li>
-                    <li>\(escape(LocalizedStrings.appNoteSecure))</li>
-                    <li>\(escape(LocalizedStrings.appNoteChangeFrequency))</li>
+                    <li>Clean wound with normal saline</li>
+                    <li>Apply primary dressing directly to wound bed</li>
+                    <li>Ensure adequate margin around wound edges</li>
+                    <li>Secure with appropriate secondary/border dressing</li>
+                    <li>Change frequency: as per product guidance or when strike-through</li>
+                    \(assessment.hasDeepSpaces ? "<li><strong>Pack deep spaces loosely - do not overfill</strong></li>" : "")
+                    \(assessment.infectionSeverity != .none ? "<li><strong>Monitor for worsening infection signs</strong></li>" : "")
                 </ul>
             </div>
 
             <div class="footer">
-                \(escape(LocalizedStrings.pdfFooterText))
+                This recommendation supports clinical judgment and should be adapted based on individual patient needs, product availability, and local protocols.
             </div>
         </body>
         </html>
@@ -684,4 +957,3 @@ private struct ActivityView: UIViewControllerRepresentable {
 
     func updateUIViewController(_ vc: UIActivityViewController, context: Context) {}
 }
-

@@ -3,7 +3,7 @@ import ARKit
 
 struct SingleWoundDetailView: View {
     let wound: Wound
-
+    
     @ObservedObject var langManager = LocalizationManager.shared
     @State private var navigateToQuestionnaire = false
     @State private var measurementResult: WoundMeasurementResult?
@@ -34,7 +34,8 @@ struct SingleWoundDetailView: View {
         .navigationDestination(isPresented: $navigateToQuestionnaire) {
             QuestionnaireView(
                 woundGroupId: wound.woundGroupId,
-                patientId: wound.patientId,
+                context: makeContextFromWound(),
+                isQuickScan: false,
                 measurementResult: measurementResult
             )
         }
@@ -246,5 +247,43 @@ struct SingleWoundDetailView: View {
     private var displayLocation: String? {
         guard let loc = wound.location, !loc.isEmpty else { return nil }
         return loc.replacingOccurrences(of: "_", with: " ").capitalized
+    }
+    
+    
+    private func makeContextFromWound() -> QuestionnaireContext {
+        QuestionnaireContext(
+            // You do have the patientId on the wound
+            patientId: wound.patientId,
+
+            // You probably don’t have comorbidities here—pass nils (unknown)
+            hasDiabetes: nil,
+            hasPAD: nil,
+            hasVenousDisease: nil,
+            isImmunosuppressed: nil,
+            hasMobilityImpairment: nil,
+            canOffload: nil,
+            isOnAnticoagulants: nil,
+            allergyToAdhesives: nil,
+            allergyToIodine: nil,
+            allergyToSilver: nil,
+            allergyToLatex: nil,
+            otherAllergies: nil,
+
+            // Location context you do have on the wound
+            bodyLocation: wound.location,      // String? on your model
+            bodyRegionCode: nil,               // Your Wound doesn’t have this -> pass nil for now
+            isLowerLimb: isLowerLimb(from: wound.location),
+
+            // Measurements (convert Float -> Double if your context uses Double?)
+            lengthCm: measurementResult.map { Double($0.lengthCm) },
+            widthCm:  measurementResult.map { Double($0.widthCm)  },
+            areaCm2:  measurementResult?.areaCm2.map(Double.init)
+        )
+    }
+
+    private func isLowerLimb(from location: String?) -> Bool {
+        guard let s = location?.lowercased() else { return false }
+        let hits = ["foot","heel","toe","ankle","lower leg","calf","shin","knee","thigh"]
+        return hits.contains { s.contains($0) }
     }
 }

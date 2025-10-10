@@ -1226,35 +1226,8 @@ struct LocalizedStrings {
     // Simple label used in PDF metadata
     static var generatedReportDate: String { t("Date", "Dátum") }
 
-        // Helper to map Rec -> string (plug straight into your engine)
-        static func recommendationText(_ r: Rec) -> String {
-            switch r {
-            case .cleanse:                           return recCleanse
-            case .protectPeriwound:                  return recPeriwound
-            case .compressionFull:                   return recCompressionFull
-            case .compressionAvoidHigh:              return recCompressionAvoidHigh
-            case .compressionContra:                 return recCompressionContra
-            case .debrideEpibole:                    return recDebrideEpibole
-            case .packUndermining:                   return recPackUndermining
-            case .moistureDryHydrogel:               return recMoistureDryHydrogel
-            case .moistureModerateFoam:              return recMoistureModerateFoam
-            case .moistureHighAlginate:              return recMoistureHighAlginate
-            case .elevationAndMobility:              return recElevationMobility
-            case .venousEducation:                   return recVenousEducation
-            case .arterialNoDebridementUntilPerfused:return recArterialNoDebridementUntilPerfused
-            case .arterialVascularReferral:          return recArterialVascularReferral
-            case .arterialPainSupport:               return recArterialPainSupport
-            case .dfuOffloading:                     return recDFUOffloading
-            case .dfuOsteoWorkup:                    return recDFUOsteoWorkup
-            case .antibioticsIfInfected:             return recAntibioticsIfInfected
-            case .glycemicControl:                   return recGlycemicControl
-            case .footwearReview:                    return recFootwearReview
-            case .followUp7d:                        return recFollowUp7d
-            case .closeReview48h:                    return recCloseReview48h
-            case .immunoCloserReview:                return recImmunoCloserReview
-            case .anticoagBleedingRisk:              return recAnticoagBleedingRisk
-            }
-        }
+        
+        
 
         // Public helpers for mapping (if you want to avoid inline t(...) in the engine)
         static func mapWoundTypeLabel(for etiologyId: String) -> String {

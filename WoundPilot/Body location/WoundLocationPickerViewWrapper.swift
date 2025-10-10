@@ -45,7 +45,8 @@ struct BodyLocalizationView: View {
             MeasurementFlowWrapper(
                 patient: patient,
                 woundGroupId: woundGroupId,
-                locationString: composedLocationString()
+                locationString: composedLocationString(),
+                bodyRegionCode: selectedRegion  
             )
         }
         .sheet(isPresented: $showFootDetailSheet) {
